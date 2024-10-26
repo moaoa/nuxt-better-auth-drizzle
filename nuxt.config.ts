@@ -8,7 +8,8 @@ export default defineNuxtConfig({
     "@nuxtjs/seo",
     "@vueuse/nuxt",
     "@nuxt/content",
-    "@formkit/nuxt"
+    "@formkit/nuxt",
+    "nuxt-auth-utils"
   ],
   formkit: {
     autoImport: true,
