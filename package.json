@@ -7,20 +7,28 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "db:generate": "drizzle-kit generate --config ./config/drizzle.config.ts",
+    "db:migrate": "drizzle-kit migrate --config ./config/drizzle.config.ts",
+    "db:studio": "drizzle-kit studio --config ./config/drizzle.config.ts"
   },
   "dependencies": {
     "@formkit/nuxt": "^1.6.7",
+    "@libsql/client": "^0.14.0",
     "@nuxt/content": "^2.13.4",
     "@nuxtjs/seo": "2.0.0-rc.23",
     "@vueuse/nuxt": "^11.1.0",
+    "dotenv": "^16.4.5",
+    "drizzle-orm": "^0.35.3",
     "nuxt": "^3.13.2",
     "vue": "latest",
     "vue-router": "latest"
   },
   "devDependencies": {
     "@nuxtjs/tailwindcss": "^6.12.2",
+    "drizzle-kit": "^0.26.2",
     "nuxt-auth-utils": "^0.5.0",
-    "tailwindcss": "^3.4.14"
+    "tailwindcss": "^3.4.14",
+    "tsx": "^4.19.1"
   }
 }
