@@ -14,3 +14,8 @@ export const useDrizzle = () => {
 
 
 export const tables = schema;
+
+
+
+export const UserInsert = schema.user.$inferInsert;
+export type UserRegisterType = Omit<typeof UserInsert, "createdAt" | "updatedAt" | "id" | "emailVerified">;

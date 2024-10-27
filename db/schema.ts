@@ -15,6 +15,8 @@ export const tools = sqliteTable("tool", {
 export const user = sqliteTable("user", {
 	id: text("id").primaryKey(),
 	name: text('name').notNull(),
+	fistName: text('firstName').notNull(),
+	lastName: text('lastName').notNull(),
 	email: text('email').notNull().unique(),
 	emailVerified: integer('emailVerified', {
 		mode: "boolean"
