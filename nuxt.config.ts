@@ -12,7 +12,7 @@ export default defineNuxtConfig({
     "nuxt-auth-utils"
   ],
   formkit: {
-    autoImport: true,
+    // autoImport: true,
     configFile: './config/formkit.config.ts',
   },
   tailwindcss: {
