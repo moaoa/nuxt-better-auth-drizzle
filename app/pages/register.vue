@@ -69,7 +69,6 @@ const registerForm = computed(() => ([
 
 
 const HandleRegisterUser = async () => {
-    console.log(userInformation.value);
 
     await signUp.email({
         email: userInformation.value.email,
