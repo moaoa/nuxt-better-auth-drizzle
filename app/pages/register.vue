@@ -88,8 +88,9 @@ const HandleRegisterUser = async () => {
 <template>
     <div class='grid place-content-center min-h-screen'>
         <section class='max-w-2xl'>
-            <FormKit id="register-form" type="form" :actions="false" @submit="HandleRegisterUser"
-                v-slot="{ state: { valid } }" v-model="userInformation">
+            <FormKit
+id="register-form" v-slot="{ state: { valid } }" v-model="userInformation" type="form"
+                :actions="false" @submit="HandleRegisterUser">
                 <FormKitSchema :schema="registerForm" />
                 <FormKit type="submit" label="Register" :disabled="!valid" />
             </FormKit>

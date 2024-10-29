@@ -9,7 +9,13 @@ export default defineNuxtConfig({
     "@vueuse/nuxt",
     "@nuxt/content",
     "@formkit/nuxt",
-    "nuxt-auth-utils"
+    "nuxt-auth-utils",
+    "shadcn-nuxt",
+    "@nuxt/eslint",
+    "radix-vue",
+    "@nuxt/image",
+    "@nuxtjs/color-mode",
+    "@nuxt/icon"
   ],
   formkit: {
     // autoImport: true,
@@ -18,6 +24,17 @@ export default defineNuxtConfig({
   tailwindcss: {
     exposeConfig: true,
     editorSupport: true,
-    configPath:"./config/tailwind.config.ts"
+    configPath: "./config/tailwind.config.ts"
+  },
+  shadcn: {
+    /**
+     * Prefix for all the imported component
+     */
+    prefix: '',
+    /**
+     * Directory that the component lives in.
+     * @default "./components/ui"
+     */
+    componentDir: './app/components/ui'
   }
 })

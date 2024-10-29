@@ -57,8 +57,9 @@ const HandleLoginUser = async () => {
 <template>
     <div class='grid place-content-center min-h-screen'>
         <section class='max-w-2xl'>
-            <FormKit id="login-form" type="form" :actions="false" @submit="HandleLoginUser"
-                v-slot="{ state: { valid } }" v-model="loginForm">
+            <FormKit
+id="login-form" v-slot="{ state: { valid } }" v-model="loginForm" type="form"
+                :actions="false" @submit="HandleLoginUser">
                 <FormKitSchema :schema="loginFormSchema" />
                 <FormKit type="submit" label="Login" :disabled="!valid" />
             </FormKit>

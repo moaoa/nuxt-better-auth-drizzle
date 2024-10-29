@@ -13,7 +13,7 @@
 </script>
 
 <template>
-    <section class=" flex flex-col dark:bg-neutral-950 dark:text-slate-400 min-h-svh">
+    <section class="">
         <slot />
     </section>
 </template>

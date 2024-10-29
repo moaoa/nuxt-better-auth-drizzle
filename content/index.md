@@ -30,5 +30,5 @@ head:
       content: How to integrate Nuxt 3 or 4 with Better Auth module.
 ---
 
-
-# Hello from the Content folder!
+::Hero
+::
