@@ -16,10 +16,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-
-import ToggleTheme from "./ToggleTheme.vue";
 const mode = useColorMode();
 mode.value = "dark";
 
@@ -109,7 +105,7 @@ const isOpen = ref<boolean>(false);
           <div>
             <SheetHeader class="mb-4 ml-4">
               <SheetTitle class="flex items-center">
-                <a
+                <NuxtLink
                   href="/"
                   class="flex items-center"
                 >
@@ -118,7 +114,7 @@ const isOpen = ref<boolean>(false);
                     class="bg-gradient-to-tr from-primary/70 via-primary to-primary/70 rounded-lg size-9 mr-2 border text-white"
                   />
                   ShadcnVue
-                </a>
+                </NuxtLink>
               </SheetTitle>
             </SheetHeader>
 
@@ -158,11 +154,11 @@ const isOpen = ref<boolean>(false);
           </NavigationMenuTrigger>
           <NavigationMenuContent>
             <div class="grid w-[600px] grid-cols-2 gap-5 p-4">
-              <img
+              <NuxtImg
                 src="https://www.radix-vue.com/logo.svg"
                 alt="Beach"
                 class="h-full w-full rounded-md object-cover"
-              >
+              />
               <ul class="flex flex-col gap-2">
                 <li
                   v-for="{ title, description } in featureList"
@@ -190,9 +186,9 @@ const isOpen = ref<boolean>(false);
               variant="ghost"
               class="justify-start text-base"
             >
-              <a :href="href">
+              <NuxtLink :href="href" prefetch >
                 {{ label }}
-              </a>
+              </NuxtLink>
             </Button>
           </NavigationMenuLink>
         </NavigationMenuItem>
@@ -208,13 +204,13 @@ const isOpen = ref<boolean>(false);
         variant="ghost"
         aria-label="View on GitHub"
       >
-        <a
+        <NuxtLink
           aria-label="View on GitHub"
           href="https://github.com/leoMirandaa/shadcn-vue-landing-page.git"
           target="_blank"
         >
         <Icon name="mdi:github" />
-        </a>
+        </NuxtLink>
       </Button>
     </div>
   </header>
