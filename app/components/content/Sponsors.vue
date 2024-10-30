@@ -1,101 +1,60 @@
 <script setup lang="ts">
-import { Marquee } from "@selemondev/vue3-marquee";
-import "@selemondev/vue3-marquee/dist/style.css";
-
-import {
-  Crown,
-  Vegan,
-  Ghost,
-  Puzzle,
-  Squirrel,
-  Cookie,
-  Drama,
-} from "lucide-vue-next";
-
-interface sponsorsProps {
-  icon: string;
-  name: string;
-}
-
-const sponsors: sponsorsProps[] = [
+const reviews = [
   {
-    icon: "crown",
-    name: "Acmebrand",
+    name: "Jack",
+    username: "@jack",
+    body: "I've never seen anything like this before. It's amazing. I love it.",
+    img: "https://avatar.vercel.sh/jack",
   },
   {
-    icon: "vegan",
-    name: "Acmelogo",
+    name: "Jill",
+    username: "@jill",
+    body: "I don't know what to say. I'm speechless. This is amazing.",
+    img: "https://avatar.vercel.sh/jill",
   },
   {
-    icon: "ghost",
-    name: "Acmesponsor",
-  },
-  {
-    icon: "puzzle",
-    name: "Acmeipsum",
-  },
-  {
-    icon: "squirrel",
-    name: "Acme",
-  },
-  {
-    icon: "cookie",
-    name: "Accmee",
-  },
-  {
-    icon: "drama",
-    name: "Acmetech",
+    name: "John",
+    username: "@john",
+    body: "I'm at a loss for words. This is amazing. I love it.",
+    img: "https://avatar.vercel.sh/john",
   },
 ];
 
-const iconMap: Record<
-  string,
-  | typeof Crown
-  | typeof Vegan
-  | typeof Ghost
-  | typeof Puzzle
-  | typeof Squirrel
-  | typeof Cookie
-  | typeof Drama
-> = {
-  crown: Crown,
-  vegan: Vegan,
-  ghost: Ghost,
-  puzzle: Puzzle,
-  squirrel: Squirrel,
-  cookie: Cookie,
-  drama: Drama,
-};
+const firstRow = reviews.slice(0, reviews.length / 2);
+const secondRow = reviews.slice(reviews.length / 2);
 </script>
 
 <template>
-  <section
-    id="sponsors"
-    class="max-w-[75%] mx-auto pb-24 sm:pb-32"
+  <div
+    class="relative flex h-[400px] w-[300px] lg:w-full flex-col items-center justify-center overflow-hidden rounded-lg mx-auto container"
   >
-    <h2 class="text-lg md:text-xl text-center mb-6">Our Platinum Sponsors</h2>
-
-    <div class="mx-auto">
-      <Marquee
-        class="gap-[3rem]"
-        :pauseOnHover="true"
-        :fade="true"
-        innerClassName="gap-[3rem]"
-      >
-        <div
-          v-for="{ icon, name } in sponsors"
-          :key="name"
-        >
-          <div class="flex items-center text-xl md:text-2xl font-medium">
-            <component
-              :is="iconMap[icon]"
-              class="mr-2"
-              stroke-width="3"
-            />
-            {{ name }}
-          </div>
-        </div>
-      </Marquee>
-    </div>
-  </section>
+    <Marquee reverse class="[--duration:20s]">
+      <div v-for="{ img, name, username, body } in firstRow" :key="username">
+        <ReviewCard
+          :key="username"
+          :username="username"
+          :img="img"
+          :name="name"
+          :body="body"
+        />
+      </div>
+    </Marquee>
+    <Marquee pause-on-hover class="[--duration:20s]">
+      <div v-for="{ img, name, username, body } in secondRow" :key="username">
+        <ReviewCard
+          :key="username"
+          :username="username"
+          :img="img"
+          :name="name"
+          :body="body"
+        />
+      </div>
+    </Marquee>
+    <div
+      class="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-white dark:from-background"
+    />
+    <div
+      class="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-white dark:from-background"
+    />
+  </div>
 </template>

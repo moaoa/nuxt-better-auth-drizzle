@@ -32,3 +32,7 @@ head:
 
 ::Hero
 ::
+
+
+::Sponsors
+::
