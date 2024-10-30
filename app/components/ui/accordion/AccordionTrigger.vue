@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { cn } from '~~/lib/utils'
-import { ChevronDown } from 'lucide-vue-next'
 import {
   AccordionHeader,
   AccordionTrigger,
@@ -30,7 +29,8 @@ const delegatedProps = computed(() => {
     >
       <slot />
       <slot name="icon">
-        <ChevronDown
+        <Icon
+          name="lucide:plus"
           class="h-4 w-4 shrink-0 transition-transform duration-200"
         />
       </slot>

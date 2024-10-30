@@ -9,7 +9,6 @@ import {
 
 import { Button } from "@/components/ui/button";
 
-import DiscordIcon from "@/icons/DiscordIcon.vue";
 </script>
 
 <template>
@@ -25,9 +24,9 @@ import DiscordIcon from "@/icons/DiscordIcon.vue";
         >
           <CardHeader>
             <CardTitle class="text-4xl md:text-5xl font-bold">
-              <Component
+              <Icon
                 class="w-20 h-20 m-auto mb-4"
-                :is="DiscordIcon"
+                name="lucide:discord"
               />
               Ready to join this
               <span

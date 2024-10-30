@@ -87,7 +87,7 @@ const HowItWorksList: HowItWorksProps[] = [
           :src="image"
           :alt="`Image describing ${title} `"
           className="w-[150px]  md:w-[250px] lg:w-[300px] mx-auto -scale-x-100 "
-        />
+        >
         <div
           :class="[
             '-z-10 absolute right-0 w-44 h-72  lg:w-64 lg:h-80 rounded-full bg-primary/15 dark:bg-primary/10 blur-3xl',
@@ -95,7 +95,7 @@ const HowItWorksList: HowItWorksProps[] = [
               'left-0': index % 2 !== 0,
             },
           ]"
-        ></div>
+        />
       </div>
     </div>
   </section>

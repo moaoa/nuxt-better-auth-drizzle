@@ -7,9 +7,6 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 
-import LinkedInIcon from "@/icons/LinkedInIcon.vue";
-import GithubIcon from "@/icons/GithubIcon.vue";
-import XIcon from "@/icons/XIcon.vue";
 
 interface TeamProps {
   imageUrl: string;
@@ -169,13 +166,16 @@ const teamList: TeamProps[] = [
 const socialIcon = (socialName: string) => {
   switch (socialName) {
     case "LinkedIn":
-      return LinkedInIcon;
+      return 'lucide:linkedin';
 
     case "Github":
-      return GithubIcon;
+      return 'lucide:github';
 
     case "X":
-      return XIcon;
+      return 'logos:x';
+
+    default:
+      return '';
   }
 };
 </script>
@@ -209,7 +209,7 @@ const socialIcon = (socialName: string) => {
       >
         <CardHeader class="p-0 gap-0">
           <div class="h-full overflow-hidden">
-            <img
+            <NuxtImg
               :src="imageUrl"
               alt=""
               class="w-full aspect-square object-cover saturate-0 transition-all duration-200 ease-linear size-full group-hover/hoverimg:saturate-100 group-hover/hoverimg:scale-[1.01]"
@@ -233,16 +233,16 @@ const socialIcon = (socialName: string) => {
         </CardContent>
 
         <CardFooter class="space-x-4 mt-auto">
-          <a
+          <NuxtLink
             v-for="{ name, url } in socialNetworks"
-            key="name"
+            :key="name"
             :href="url"
             target="_blank"
             class="hover:opacity-80 transition-all"
             :aria-label="`Visit our ${name} page`"
           >
-            <component :is="socialIcon(name)" />
-          </a>
+            <Icon :name="socialIcon(name)" />
+          </NuxtLink>
         </CardFooter>
       </Card>
     </div>

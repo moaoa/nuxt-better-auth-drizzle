@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { ChevronsDown } from "lucide-vue-next";
-import Separator from "./ui/separator/Separator.vue";
+import Separator from "../ui/separator/Separator.vue";
 </script>
 
 <template>
@@ -17,7 +16,8 @@ import Separator from "./ui/separator/Separator.vue";
             href="#"
             class="flex font-bold items-center"
           >
-            <ChevronsDown
+            <Icon 
+              name="lucide:arrow-down"
               class="bg-gradient-to-tr from-primary via-primary/70 to-primary rounded-lg w-9 h-9 mr-2 border text-white"
             />
 

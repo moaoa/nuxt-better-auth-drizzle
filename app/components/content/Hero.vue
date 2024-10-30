@@ -70,7 +70,7 @@ const mode = useColorMode();
         <NuxtImg
           class="w-full md:w-[1200px] mx-auto rounded-lg relative rouded-lg leading-none flex items-center border border-t-2 border-t-primary/30 img-border-animation"
           :src="
-            mode.value == 'light' ? 'img/hero-image-light.jpg' : 'img/hero-image-dark.jpg'
+            mode.value == 'light' ? 'https://shadcn-vue-landing-page.vercel.app/hero-image-light.jpg' : 'https://shadcn-vue-landing-page.vercel.app/hero-image-dark.jpg'
           "
           alt="dashboard using shadcn-vue"
         />
