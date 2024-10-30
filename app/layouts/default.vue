@@ -14,6 +14,7 @@
 
 <template>
     <section class="">
+        <Navbar />
         <slot />
     </section>
 </template>

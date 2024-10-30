@@ -12,7 +12,7 @@ export default defineNuxtConfig({
     "nuxt-auth-utils",
     "shadcn-nuxt",
     "@nuxt/eslint",
-    "radix-vue",
+    "radix-vue/nuxt",
     "@nuxt/image",
     "@nuxtjs/color-mode",
     "@nuxt/icon"
@@ -36,5 +36,8 @@ export default defineNuxtConfig({
      * @default "./components/ui"
      */
     componentDir: './app/components/ui'
+  },
+  colorMode: {
+    classSuffix: ''
   }
 })

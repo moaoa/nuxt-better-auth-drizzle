@@ -1,10 +1,4 @@
 <script lang="ts" setup>
-import { ref } from "vue";
-
-import { useColorMode } from "@vueuse/core";
-const mode = useColorMode();
-mode.value = "dark";
-
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -25,9 +19,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
-import { ChevronsDown, Menu } from "lucide-vue-next";
-import GithubIcon from "@/icons/GithubIcon.vue";
 import ToggleTheme from "./ToggleTheme.vue";
+const mode = useColorMode();
+mode.value = "dark";
 
 interface RouteProps {
   href: string;
@@ -76,13 +70,14 @@ const featureList: FeatureProps[] = [
 ];
 
 const isOpen = ref<boolean>(false);
+
 </script>
 
 <template>
   <header
     :class="{
-      'shadow-light': mode === 'light',
-      'shadow-dark': mode === 'dark',
+      'shadow-light': mode.value === 'light',
+      'shadow-dark': mode.value === 'dark',
       'w-[90%] md:w-[70%] lg:w-[75%] lg:max-w-screen-xl top-5 mx-auto sticky border z-40 rounded-2xl flex justify-between items-center p-2 bg-card shadow-md': true,
     }"
   >
@@ -90,7 +85,8 @@ const isOpen = ref<boolean>(false);
       href="/"
       class="font-bold text-lg flex items-center"
     >
-      <ChevronsDown
+      <Icon 
+        name="lucide:arrow-down"
         class="bg-gradient-to-tr from-primary via-primary/70 to-primary rounded-lg w-9 h-9 mr-2 border text-white"
       />
       ShadcnVue</a
@@ -98,10 +94,11 @@ const isOpen = ref<boolean>(false);
     <!-- Mobile -->
     <div class="flex items-center lg:hidden">
       <Sheet v-model:open="isOpen">
-        <SheetTrigger as-child>
-          <Menu
-            @click="isOpen = true"
+        <SheetTrigger as-child as="div">
+          <Icon
+            name="lucide:menu"
             class="cursor-pointer"
+            @click="isOpen = true"
           />
         </SheetTrigger>
 
@@ -116,7 +113,8 @@ const isOpen = ref<boolean>(false);
                   href="/"
                   class="flex items-center"
                 >
-                  <ChevronsDown
+                  <Icon 
+                    name="lucide:arrow-left"
                     class="bg-gradient-to-tr from-primary/70 via-primary to-primary/70 rounded-lg size-9 mr-2 border text-white"
                   />
                   ShadcnVue
@@ -133,8 +131,8 @@ const isOpen = ref<boolean>(false);
                 class="justify-start text-base"
               >
                 <a
-                  @click="isOpen = false"
                   :href="href"
+                  @click="isOpen = false"
                 >
                   {{ label }}
                 </a>
@@ -164,7 +162,7 @@ const isOpen = ref<boolean>(false);
                 src="https://www.radix-vue.com/logo.svg"
                 alt="Beach"
                 class="h-full w-full rounded-md object-cover"
-              />
+              >
               <ul class="flex flex-col gap-2">
                 <li
                   v-for="{ title, description } in featureList"
@@ -184,7 +182,7 @@ const isOpen = ref<boolean>(false);
         </NavigationMenuItem>
 
         <NavigationMenuItem>
-          <NavigationMenuLink asChild>
+          <NavigationMenuLink as-child>
             <Button
               v-for="{ href, label } in routeList"
               :key="label"
@@ -215,7 +213,7 @@ const isOpen = ref<boolean>(false);
           href="https://github.com/leoMirandaa/shadcn-vue-landing-page.git"
           target="_blank"
         >
-          <GithubIcon class="size-5" />
+        <Icon name="mdi:github" />
         </a>
       </Button>
     </div>
