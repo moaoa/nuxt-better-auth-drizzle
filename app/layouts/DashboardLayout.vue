@@ -242,11 +242,11 @@ function setActiveTeam(team: typeof data.teams[number]) {
                   <div
                     class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground"
                   >
-                    <component :is="activeTeam.logo" class="size-4" />
+                    <component :is="activeTeam?.logo" class="size-4" />
                   </div>
                   <div class="grid flex-1 text-left leading-tight">
-                    <span class="truncate font-semibold">{{ activeTeam.name }}</span>
-                    <span class="truncate text-xs">{{ activeTeam.plan }}</span>
+                    <span class="truncate font-semibold">{{ activeTeam?.name }}</span>
+                    <span class="truncate text-xs">{{ activeTeam?.plan }}</span>
                   </div>
                   <ChevronsUpDown class="ml-auto" />
                 </SidebarMenuButton>
