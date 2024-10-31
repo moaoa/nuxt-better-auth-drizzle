@@ -9,7 +9,7 @@ export default <Partial<Config>><unknown>{
   content: [
     "../app/**/*.{vue,js,ts,jsx,tsx,md}",
     "../content/**/*.{json,yml,md}",
-    "../ formkit / formkit.theme.ts",
+    "../formkit/**.{vue,js,ts,jsx,tsx,md}",
     "../pages/**/*.{ts,tsx,vue}",
     "../components/**/*.{ts,tsx,vue}",
     "../app/**/*.{ts,tsx,vue}",

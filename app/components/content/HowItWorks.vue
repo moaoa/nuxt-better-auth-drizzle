@@ -59,7 +59,7 @@ const HowItWorksList: HowItWorksProps[] = [
     <div class="lg:w-[80%] mx-auto relative">
       <div
         v-for="(
-          { badgeTitle, title, description, image }, index
+          { badgeTitle, title, description }, index
         ) in HowItWorksList"
         :key="title"
         :class="[
@@ -83,11 +83,11 @@ const HowItWorksList: HowItWorksProps[] = [
           </CardContent>
         </Card>
 
-        <img
-          :src="image"
+        <NuxtImg
+          src="https://shadcn-vue-landing-page.vercel.app/roboto.png"
           :alt="`Image describing ${title} `"
-          className="w-[150px]  md:w-[250px] lg:w-[300px] mx-auto -scale-x-100 "
-        >
+          class="w-[150px]  md:w-[250px] lg:w-[300px] mx-auto -scale-x-100 "
+        />
         <div
           :class="[
             '-z-10 absolute right-0 w-44 h-72  lg:w-64 lg:h-80 rounded-full bg-primary/15 dark:bg-primary/10 blur-3xl',

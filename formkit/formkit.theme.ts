@@ -10,37 +10,37 @@ import type { FormKitNode } from '@formkit/core'
   * @theme - regenesis
   **/
 
- /**
-  * This is the theme function itself, it should be imported and used as the
-  * config.rootClasses function. For example:
-  *
-  * ```js
-  * import { theme } from './formkit.theme'
-  * import { defineFormKitConfig } from '@formkit/vue'
-  *
-  * export default defineFormKitConfig({
-  *   config: {
-  *     rootClasses: theme
-  *   }
-  * })
-  * ```
-  **/
- export function rootClasses (sectionName: string, node: FormKitNode): Record<string, boolean> {
-   const key = `${node.props.type}__${sectionName}`
-   const semanticKey = `formkit-${sectionName}`
-   const familyKey = node.props.family ? `family:${node.props.family}__${sectionName}` : ''
-   const memoKey = `${key}__${familyKey}`
-   if (!(memoKey in classes)) {
-     const sectionClasses = classes[key] ?? globals[sectionName] ?? {}
-     sectionClasses[semanticKey] = true
-     if (familyKey in classes) {
-       classes[memoKey] = { ...classes[familyKey],  ...sectionClasses }
-     } else {
-       classes[memoKey] = sectionClasses
-     }
-   }
-   return classes[memoKey] ?? { [semanticKey]: true }
- }
+/**
+ * This is the theme function itself, it should be imported and used as the
+ * config.rootClasses function. For example:
+ *
+ * ```js
+ * import { theme } from './formkit.theme'
+ * import { defineFormKitConfig } from '@formkit/vue'
+ *
+ * export default defineFormKitConfig({
+ *   config: {
+ *     rootClasses: theme
+ *   }
+ * })
+ * ```
+ **/
+export function rootClasses(sectionName: string, node: FormKitNode): Record<string, boolean> {
+  const key = `${node.props.type}__${sectionName}`
+  const semanticKey = `formkit-${sectionName}`
+  const familyKey = node.props.family ? `family:${node.props.family}__${sectionName}` : ''
+  const memoKey = `${key}__${familyKey}`
+  if (!(memoKey in classes)) {
+    const sectionClasses = classes[key] ?? globals[sectionName] ?? {}
+    sectionClasses[semanticKey] = true
+    if (familyKey in classes) {
+      classes[memoKey] = { ...classes[familyKey], ...sectionClasses }
+    } else {
+      classes[memoKey] = sectionClasses
+    }
+  }
+  return classes[memoKey] ?? { [semanticKey]: true }
+}
 
 /**
  * These classes have already been merged with globals using tailwind-merge
@@ -215,7 +215,7 @@ const classes: Record<string, Record<string, boolean>> = {
     "rounded": true,
     "border": true,
     "border-neutral-400": true,
-    "bg-white": true,
+    "bg-transparent": true,
     "focus-within:ring-1": true,
     "focus-within:!ring-blue-500": true,
     "focus-within:!border-blue-500": true,

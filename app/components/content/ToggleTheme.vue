@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { Button } from "@/components/ui/button";
 const colorMode = useColorMode();
 
 const HandleThemeChange = () => {
   console.log("mode", colorMode.value);
   
-  colorMode.value = colorMode.value === "light" ? "dark" : "light";
+  colorMode.preference = colorMode.value === "light" ? "dark" : "light";
 };
 </script>
 

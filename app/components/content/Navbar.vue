@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/sheet";
 
 const mode = useColorMode();
-mode.value = "dark";
 
 interface RouteProps {
   href: string;
@@ -215,6 +214,32 @@ const isOpen = ref<boolean>(false);
             target="_blank"
           >
           <Icon name="mdi:github" />
+          </NuxtLink>
+        </Button>
+        <Button
+          as-child
+          size="sm"
+          variant="ghost"
+          aria-label="View on GitHub"
+        >
+          <NuxtLink
+            aria-label="Login"
+            to="/login"
+          >
+          Login
+          </NuxtLink>
+        </Button>
+        <Button
+          as-child
+          size="sm"
+          variant="ghost"
+          aria-label="Register"
+        >
+          <NuxtLink
+            aria-label="Register"
+            to="/register"
+          >
+          Register
           </NuxtLink>
         </Button>
       </div>
