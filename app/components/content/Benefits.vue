@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import {
   Sparkle,
@@ -81,12 +80,12 @@ const iconMap: Record<
       </div>
 
       <div class="grid lg:grid-cols-2 gap-4 w-full">
-        <Card
+        <UiCard
           v-for="({ icon, title, description }, index) in benefitList"
           :key="title"
           class="bg-muted/50 dark:bg-card hover:bg-background dark:hover:bg-background transition-all delay-75 group/number"
         >
-          <CardHeader>
+          <UiCardHeader>
             <div class="flex justify-between">
               <component
                 class="size-8 mb-6 text-primary"
@@ -99,13 +98,13 @@ const iconMap: Record<
               >
             </div>
 
-            <CardTitle>{{ title }}</CardTitle>
-          </CardHeader>
+            <UiCardTitle>{{ title }}</UiCardTitle>
+          </UiCardHeader>
 
-          <CardContent class="text-muted-foreground">
+          <UiCardContent class="text-muted-foreground">
             {{ description }}
-          </CardContent>
-        </Card>
+          </UiCardContent>
+        </UiCard>
       </div>
     </div>
   </section>

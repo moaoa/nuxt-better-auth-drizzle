@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import {
   Paintbrush,
@@ -103,8 +102,8 @@ const iconMap: Record<
         v-for="{ icon, title, description } in featureList"
         :key="title"
       >
-        <Card class="h-full bg-background border-0 shadow-none">
-          <CardHeader class="flex justify-center items-center">
+        <UiCard class="h-full bg-background border-0 shadow-none">
+          <UiCardHeader class="flex justify-center items-center">
             <div
               class="bg-primary/20 p-2 rounded-full ring-8 ring-primary/10 mb-4"
             >
@@ -114,15 +113,15 @@ const iconMap: Record<
               />
             </div>
 
-            <CardTitle>
+            <UiCardTitle>
               {{ title }}
-            </CardTitle>
-          </CardHeader>
+            </UiCardTitle>
+          </UiCardHeader>
 
-          <CardContent class="text-muted-foreground text-center">
+          <UiCardContent class="text-muted-foreground text-center">
             {{ description }}
-          </CardContent>
-        </Card>
+          </UiCardContent>
+        </UiCard>
       </div>
     </div>
   </section>

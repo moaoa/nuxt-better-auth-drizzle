@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import Separator from "../ui/separator/Separator.vue";
 </script>
 
 <template>
@@ -78,7 +77,7 @@ import Separator from "../ui/separator/Separator.vue";
         </div>
       </div>
 
-      <Separator class="my-6" />
+      <UiSeparator class="my-6" />
       <section className="">
         <h3 class="">
           &copy; 2024 Designed and developed by

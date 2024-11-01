@@ -1,21 +1,4 @@
 <script setup lang="ts">
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
 
 import { Star } from "lucide-vue-next";
 
@@ -95,20 +78,20 @@ const reviewList: ReviewProps[] = [
       </h2>
     </div>
 
-    <Carousel
+    <UiCarousel
       :opts="{
         align: 'start',
       }"
       class="relative w-[80%] sm:w-[90%] lg:max-w-screen-xl mx-auto"
     >
-      <CarouselContent>
-        <CarouselItem
+      <UiCarouselContent>
+        <UiCarouselItem
           v-for="review in reviewList"
           :key="review.name"
           class="md:basis-1/2 lg:basis-1/3"
         >
-          <Card class="bg-muted/50 dark:bg-card">
-            <CardContent class="pt-6 pb-0">
+          <UiCard class="bg-muted/50 dark:bg-card">
+            <UiCardContent class="pt-6 pb-0">
               <div class="flex gap-1 pb-6">
                 <Star class="size-4 fill-primary text-primary" />
                 <Star class="size-4 fill-primary text-primary" />
@@ -118,29 +101,29 @@ const reviewList: ReviewProps[] = [
               </div>
 
               "{{ review.comment }}"
-            </CardContent>
+            </UiCardContent>
 
-            <CardHeader>
+            <UiCardHeader>
               <div class="flex flex-row items-center gap-4">
-                <Avatar>
-                  <AvatarImage
+                <UiAvatar>
+                  <UiAvatarImage
                     src="https://www.radix-vue.com/logo.svg"
                     alt="@radix-vue"
                   />
-                  <AvatarFallback>SV</AvatarFallback>
-                </Avatar>
+                  <UiAvatarFallback>SV</UiAvatarFallback>
+                </UiAvatar>
 
                 <div class="flex flex-col">
-                  <CardTitle class="text-lg">{{ review.name }}</CardTitle>
-                  <CardDescription>{{ review.userName }}</CardDescription>
+                  <UiCardTitle class="text-lg">{{ review.name }}</UiCardTitle>
+                  <UiCardDescription>{{ review.userName }}</UiCardDescription>
                 </div>
               </div>
-            </CardHeader>
-          </Card>
-        </CarouselItem>
-      </CarouselContent>
-      <CarouselPrevious />
-      <CarouselNext />
-    </Carousel>
+            </UiCardHeader>
+          </UiCard>
+        </UiCarouselItem>
+      </UiCarouselContent>
+      <UiCarouselPrevious />
+      <UiCarouselNext />
+    </UiCarousel>
   </section>
 </template>

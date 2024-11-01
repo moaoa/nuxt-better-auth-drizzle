@@ -1,13 +1,4 @@
 <script setup lang="ts">
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-  CardContent,
-} from "@/components/ui/card";
-
-import { Button } from "@/components/ui/button";
 
 </script>
 
@@ -16,14 +7,14 @@ import { Button } from "@/components/ui/button";
     id="community"
     class="py-12"
   >
-    <hr />
+    <hr >
     <div class="container py-20 sm:py-20">
       <div class="lg:w-[60%] mx-auto">
-        <Card
+        <UiCard
           class="bg-background shadow-none text-center flex flex-col items-center justify-center border-0"
         >
-          <CardHeader>
-            <CardTitle class="text-4xl md:text-5xl font-bold">
+          <UiCardHeader>
+            <UiCardTitle class="text-4xl md:text-5xl font-bold">
               <Icon
                 class="w-20 h-20 m-auto mb-4"
                 name="lucide:discord"
@@ -34,26 +25,26 @@ import { Button } from "@/components/ui/button";
               >
                 Community?
               </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent class="lg:w-[80%] text-xl text-muted-foreground">
+            </UiCardTitle>
+          </UiCardHeader>
+          <UiCardContent class="lg:w-[80%] text-xl text-muted-foreground">
             Join our vibrant Discord community! Connect, share, and grow with
             like-minded enthusiasts. Click to dive in! 🚀
-          </CardContent>
+          </UiCardContent>
 
-          <CardFooter>
-            <Button as-child>
+          <UiCardFooter>
+            <UiButton as-child>
               <a
                 href="https://discord.com/"
                 target="_blank"
               >
                 Join Discord
               </a>
-            </Button>
-          </CardFooter>
-        </Card>
+            </UiButton>
+          </UiCardFooter>
+        </UiCard>
       </div>
     </div>
-    <hr />
+    <hr >
   </section>
 </template>

@@ -1,11 +1,4 @@
 <script setup lang="ts">
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-
 interface FAQProps {
   question: string;
   answer: string;
@@ -58,21 +51,21 @@ const FAQList: FAQProps[] = [
       </h2>
     </div>
 
-    <Accordion
+    <UiAccordion
       type="single"
       collapsible
       class="AccordionRoot"
     >
-      <AccordionItem
+      <UiAccordionItem
         v-for="{ question, answer, value } in FAQList"
         :key="value"
         :value="value"
       >
-        <AccordionTrigger class="text-left"> {{ question }} </AccordionTrigger>
+        <UiAccordionTrigger class="text-left"> {{ question }} </UiAccordionTrigger>
 
-        <AccordionContent>{{ answer }}</AccordionContent>
-      </AccordionItem>
-    </Accordion>
+        <UiAccordionContent>{{ answer }}</UiAccordionContent>
+      </UiAccordionItem>
+    </UiAccordion>
 
     <h3 class="font-medium mt-4">
       Still have questions?

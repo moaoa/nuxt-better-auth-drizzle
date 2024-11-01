@@ -1,17 +1,4 @@
 <script setup lang="ts">
-import { Card, CardHeader, CardContent, CardFooter } from "../ui/card";
-import { Label } from "../ui/label";
-import { Input } from "../ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
-import { Textarea } from "../ui/textarea";
-import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 
 interface ContactFormeProps {
@@ -30,7 +17,7 @@ const contactForm = reactive<ContactFormeProps>({
   message: "",
 });
 
-const invalidInputForm = ref<boolean>(false);
+const invalidUiInputForm = ref<boolean>(false);
 
 const handleSubmit = () => {
   const { firstName, lastName, email, subject, message } = contactForm;
@@ -102,17 +89,17 @@ const handleSubmit = () => {
       </div>
 
       <!-- form -->
-      <Card class="bg-muted/60 dark:bg-card">
-        <CardHeader class="text-primary text-2xl"/>
-        <CardContent>
+      <UiCard class="bg-muted/60 dark:bg-card">
+        <UiCardHeader class="text-primary text-2xl"/>
+        <UiCardContent>
           <form
             class="grid gap-4"
             @submit.prevent="handleSubmit"
           >
             <div class="flex flex-col md:flex-row gap-8">
               <div class="flex flex-col w-full gap-1.5">
-                <Label for="first-name">First Name</Label>
-                <Input
+                <UiLabel for="first-name">First Name</UiLabel>
+                <UiInput
                   id="first-name"
                   v-model="contactForm.firstName"
                   type="text"
@@ -121,8 +108,8 @@ const handleSubmit = () => {
               </div>
 
               <div class="flex flex-col w-full gap-1.5">
-                <Label for="last-name">Last Name</Label>
-                <Input
+                <UiLabel for="last-name">Last Name</UiLabel>
+                <UiInput
                   id="last-name"
                   v-model="contactForm.lastName"
                   type="text"
@@ -132,8 +119,8 @@ const handleSubmit = () => {
             </div>
 
             <div class="flex flex-col gap-1.5">
-              <Label for="email">Email</Label>
-              <Input
+              <UiLabel for="email">Email</UiLabel>
+              <UiInput
                 id="email"
                 v-model="contactForm.email"
                 type="email"
@@ -142,33 +129,33 @@ const handleSubmit = () => {
             </div>
 
             <div class="flex flex-col gap-1.5">
-              <Label for="subject">Subject</Label>
+              <UiLabel for="subject">Subject</UiLabel>
 
-              <Select v-model="contactForm.subject">
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a subject" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="Web Development">
+              <UiSelect v-model="contactForm.subject">
+                <UiSelectTrigger>
+                  <UiSelectValue placeholder="UiSelect a subject" />
+                </UiSelectTrigger>
+                <UiSelectContent>
+                  <UiSelectGroup>
+                    <UiSelectItem value="Web Development">
                       Web Development
-                    </SelectItem>
-                    <SelectItem value="Mobile Development">
+                    </UiSelectItem>
+                    <UiSelectItem value="Mobile Development">
                       Mobile Development
-                    </SelectItem>
-                    <SelectItem value="Figma Design"> Figma Design </SelectItem>
-                    <SelectItem value="REST API "> REST API </SelectItem>
-                    <SelectItem value="FullStack Project">
+                    </UiSelectItem>
+                    <UiSelectItem value="Figma Design"> Figma Design </UiSelectItem>
+                    <UiSelectItem value="REST API "> REST API </UiSelectItem>
+                    <UiSelectItem value="FullStack Project">
                       FullStack Project
-                    </SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+                    </UiSelectItem>
+                  </UiSelectGroup>
+                </UiSelectContent>
+              </UiSelect>
             </div>
 
             <div class="flex flex-col gap-1.5">
-              <Label for="message">Message</Label>
-              <Textarea
+              <UiLabel for="message">Message</UiLabel>
+              <UiTextarea
                 id="message"
                 v-model="contactForm.message"
                 placeholder="Your message..."
@@ -176,23 +163,23 @@ const handleSubmit = () => {
               />
             </div>
 
-            <Alert
-              v-if="invalidInputForm"
+            <UiAlert
+              v-if="invalidUiInputForm"
               variant="destructive"
             >
               <Icon name="lucide:alert-circle" class="w-4 h-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>
+              <UiAlertTitle>Error</UiAlertTitle>
+              <UiAlertDescription>
                 There is an error in the form. Please check your input.
-              </AlertDescription>
-            </Alert>
+              </UiAlertDescription>
+            </UiAlert>
 
-            <Button class="mt-4">Send message</Button>
+            <UiButton class="mt-4">Send message</UiButton>
           </form>
-        </CardContent>
+        </UiCardContent>
 
-        <CardFooter/>
-      </Card>
+        <UiCardFooter/>
+      </UiCard>
     </section>
   </section>
 </template>

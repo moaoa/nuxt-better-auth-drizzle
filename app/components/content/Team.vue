@@ -1,11 +1,5 @@
 <script setup lang="ts">
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from "@/components/ui/card";
+
 
 
 interface TeamProps {
@@ -196,7 +190,7 @@ const socialIcon = (socialName: string) => {
     <div
       class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
     >
-      <Card
+      <UiCard
         v-for="{
           imageUrl,
           firstName,
@@ -207,7 +201,7 @@ const socialIcon = (socialName: string) => {
         :key="imageUrl"
         class="bg-muted/60 dark:bg-card flex flex-col h-full overflow-hidden group/hoverimg"
       >
-        <CardHeader class="p-0 gap-0">
+        <UiCardHeader class="p-0 gap-0">
           <div class="h-full overflow-hidden">
             <NuxtImg
               :src="imageUrl"
@@ -215,13 +209,13 @@ const socialIcon = (socialName: string) => {
               class="w-full aspect-square object-cover saturate-0 transition-all duration-200 ease-linear size-full group-hover/hoverimg:saturate-100 group-hover/hoverimg:scale-[1.01]"
             />
           </div>
-          <CardTitle class="py-6 pb-4 px-6"
+          <UiCardTitle class="py-6 pb-4 px-6"
             >{{ firstName }}
             <span class="text-primary">{{ lastName }}</span>
-          </CardTitle>
-        </CardHeader>
+          </UiCardTitle>
+        </UiCardHeader>
 
-        <CardContent
+        <UiCardContent
           v-for="(position, index) in positions"
           :key="index"
           :class="{
@@ -230,9 +224,9 @@ const socialIcon = (socialName: string) => {
           }"
         >
           {{ position }}<span v-if="index < positions.length - 1">,</span>
-        </CardContent>
+        </UiCardContent>
 
-        <CardFooter class="space-x-4 mt-auto">
+        <UiCardFooter class="space-x-4 mt-auto">
           <NuxtLink
             v-for="{ name, url } in socialNetworks"
             :key="name"
@@ -243,8 +237,8 @@ const socialIcon = (socialName: string) => {
           >
             <Icon :name="socialIcon(name)" />
           </NuxtLink>
-        </CardFooter>
-      </Card>
+        </UiCardFooter>
+      </UiCard>
     </div>
   </section>
 </template>

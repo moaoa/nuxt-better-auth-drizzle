@@ -2,8 +2,6 @@
 const colorMode = useColorMode();
 
 const HandleThemeChange = () => {
-  console.log("mode", colorMode.value);
-  
   colorMode.preference = colorMode.value === "light" ? "dark" : "light";
 };
 </script>

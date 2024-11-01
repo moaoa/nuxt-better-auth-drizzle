@@ -9,15 +9,15 @@ const mode = useColorMode();
       class="grid place-items-center lg:max-w-screen-xl gap-8 mx-auto py-20 md:py-32"
     >
       <div class="text-center space-y-8">
-        <Badge
+        <UiBadge
           variant="outline"
           class="text-sm py-2"
         >
           <span class="mr-2 text-primary">
-            <Badge>New</Badge>
+            <UiBadge>New</UiBadge>
           </span>
           <span> Design is out now! </span>
-        </Badge>
+        </UiBadge>
 
         <div
           class="max-w-screen-md mx-auto text-center text-5xl md:text-6xl font-bold"
@@ -38,15 +38,15 @@ const mode = useColorMode();
         </p>
 
         <div class="space-y-4 md:space-y-0 md:space-x-4">
-          <Button class="w-5/6 md:w-1/4 font-bold group/arrow">
+          <UiButton class="w-5/6 md:w-1/4 font-bold group/arrow">
             Get Started
             <Icon 
               name="lucide:arrow-right"
               class="size-5 ml-2 group-hover/arrow:translate-x-1 transition-transform"
             />
-          </Button>
+          </UiButton>
 
-          <Button
+          <UiButton
             as-child
             variant="secondary"
             class="w-5/6 md:w-1/4 font-bold"
@@ -57,7 +57,7 @@ const mode = useColorMode();
               >
               Github respository
               </NuxtLink>
-          </Button>
+          </UiButton>
         </div>
       </div>
 

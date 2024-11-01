@@ -13,9 +13,10 @@
 </script>
 
 <template>
-    <section class="">
-        <Navbar />
-        <slot />
-    </section>
+  <main class="">
+    <Navbar />
+    <slot />
+    <TheFooter />
+  </main>
 </template>
 <style scoped></style>

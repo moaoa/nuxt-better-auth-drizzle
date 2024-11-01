@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 
 interface HowItWorksProps {
   badgeTitle: string;
@@ -67,21 +65,21 @@ const HowItWorksList: HowItWorksProps[] = [
           { ' flex-row-reverse': index % 2 !== 0 },
         ]"
       >
-        <Card class="h-full bg-transparent border-0 shadow-none">
-          <CardHeader>
+        <UiCard class="h-full bg-transparent border-0 shadow-none">
+          <UiCardHeader>
             <div class="pb-4">
-              <Badge>{{ badgeTitle }}</Badge>
+              <UiBadge>{{ badgeTitle }}</UiBadge>
             </div>
 
-            <CardTitle>
+            <UiCardTitle>
               {{ title }}
-            </CardTitle>
-          </CardHeader>
+            </UiCardTitle>
+          </UiCardHeader>
 
-          <CardContent class="text-muted-foreground w-[80%]">
+          <UiCardContent class="text-muted-foreground w-[80%]">
             {{ description }}
-          </CardContent>
-        </Card>
+          </UiCardContent>
+        </UiCard>
 
         <NuxtImg
           src="https://shadcn-vue-landing-page.vercel.app/roboto.png"

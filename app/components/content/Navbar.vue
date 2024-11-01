@@ -1,20 +1,4 @@
 <script lang="ts" setup>
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu";
-import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 
 const mode = useColorMode();
 
@@ -93,22 +77,22 @@ const isOpen = ref<boolean>(false);
       </NuxtLink>
       <!-- Mobile -->
       <div class="flex items-center lg:hidden">
-        <Sheet v-model:open="isOpen">
-          <SheetTrigger as-child as="div">
+        <UiSheet v-model:open="isOpen">
+          <UiSheetTrigger as-child as="div">
             <Icon
               name="lucide:menu"
               class="cursor-pointer"
               @click="isOpen = true"
             />
-          </SheetTrigger>
+          </UiSheetTrigger>
 
-          <SheetContent
+          <UiSheetContent
             side="left"
             class="flex flex-col justify-between rounded-tr-2xl rounded-br-2xl bg-card"
           >
             <div>
-              <SheetHeader class="mb-4 ml-4">
-                <SheetTitle class="flex items-center">
+              <UiSheetHeader class="mb-4 ml-4">
+                <UiSheetTitle class="flex items-center">
                   <NuxtLink
                     href="/"
                     class="flex items-center"
@@ -119,11 +103,11 @@ const isOpen = ref<boolean>(false);
                     />
                     ShadcnVue
                   </NuxtLink>
-                </SheetTitle>
-              </SheetHeader>
+                </UiSheetTitle>
+              </UiSheetHeader>
 
               <div class="flex flex-col gap-2">
-                <Button
+                <UiButton
                   v-for="{ href, label } in routeList"
                   :key="label"
                   as-child
@@ -136,27 +120,27 @@ const isOpen = ref<boolean>(false);
                   >
                     {{ label }}
                   </NuxtLink>
-                </Button>
+                </UiButton>
               </div>
             </div>
 
-            <SheetFooter class="flex-col sm:flex-col justify-start items-start">
-              <Separator class="mb-2" />
+            <UiSheetFooter class="flex-col sm:flex-col justify-start items-start">
+              <UiSeparator class="mb-2" />
 
               <ToggleTheme />
-            </SheetFooter>
-          </SheetContent>
-        </Sheet>
+            </UiSheetFooter>
+          </UiSheetContent>
+        </UiSheet>
       </div>
 
       <!-- Desktop -->
-      <NavigationMenu class="hidden lg:block">
-        <NavigationMenuList>
-          <NavigationMenuItem>
-            <NavigationMenuTrigger class="bg-card text-base">
+      <UiNavigationMenu class="hidden lg:block">
+        <UiNavigationMenuList>
+          <UiNavigationMenuItem>
+            <UiNavigationMenuTrigger class="bg-card text-base">
               Features
-            </NavigationMenuTrigger>
-            <NavigationMenuContent>
+            </UiNavigationMenuTrigger>
+            <UiNavigationMenuContent>
               <div class="grid w-[600px] grid-cols-2 gap-5 p-4">
                 <NuxtImg
                   src="https://www.radix-vue.com/logo.svg"
@@ -178,12 +162,12 @@ const isOpen = ref<boolean>(false);
                   </li>
                 </ul>
               </div>
-            </NavigationMenuContent>
-          </NavigationMenuItem>
+            </UiNavigationMenuContent>
+          </UiNavigationMenuItem>
 
-          <NavigationMenuItem>
-            <NavigationMenuLink as-child>
-              <Button
+          <UiNavigationMenuItem>
+            <UiNavigationMenuLink as-child>
+              <UiButton
                 v-for="{ href, label } in routeList"
                 :key="label"
                 as-child
@@ -193,16 +177,16 @@ const isOpen = ref<boolean>(false);
                 <NuxtLink :href="href" prefetch >
                   {{ label }}
                 </NuxtLink>
-              </Button>
-            </NavigationMenuLink>
-          </NavigationMenuItem>
-        </NavigationMenuList>
-      </NavigationMenu>
+              </UiButton>
+            </UiNavigationMenuLink>
+          </UiNavigationMenuItem>
+        </UiNavigationMenuList>
+      </UiNavigationMenu>
 
       <div class="hidden lg:flex">
         <ToggleTheme />
 
-        <Button
+        <UiButton
           as-child
           size="sm"
           variant="ghost"
@@ -215,8 +199,8 @@ const isOpen = ref<boolean>(false);
           >
           <Icon name="mdi:github" />
           </NuxtLink>
-        </Button>
-        <Button
+        </UiButton>
+        <UiButton
           as-child
           size="sm"
           variant="ghost"
@@ -228,8 +212,8 @@ const isOpen = ref<boolean>(false);
           >
           Login
           </NuxtLink>
-        </Button>
-        <Button
+        </UiButton>
+        <UiButton
           as-child
           size="sm"
           variant="ghost"
@@ -241,7 +225,7 @@ const isOpen = ref<boolean>(false);
           >
           Register
           </NuxtLink>
-        </Button>
+        </UiButton>
       </div>
     </header>
   </section>

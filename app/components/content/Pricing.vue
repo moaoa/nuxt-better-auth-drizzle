@@ -1,13 +1,4 @@
 <script setup lang="ts">
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 
 import { Check } from "lucide-vue-next";
 
@@ -91,7 +82,7 @@ const plans: PlanProps[] = [
     </h3>
 
     <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-4">
-      <Card
+      <UiCard
         v-for="{
           title,
           popular,
@@ -106,20 +97,20 @@ const plans: PlanProps[] = [
             popular === PopularPlan?.YES,
         }"
       >
-        <CardHeader>
-          <CardTitle class="pb-2">
+        <UiCardHeader>
+          <UiCardTitle class="pb-2">
             {{ title }}
-          </CardTitle>
+          </UiCardTitle>
 
-          <CardDescription class="pb-4">{{ description }}</CardDescription>
+          <UiCardDescription class="pb-4">{{ description }}</UiCardDescription>
 
           <div>
             <span class="text-3xl font-bold">${{ price }}</span>
             <span class="text-muted-foreground"> /month</span>
           </div>
-        </CardHeader>
+        </UiCardHeader>
 
-        <CardContent class="flex">
+        <UiCardContent class="flex">
           <div class="space-y-4">
             <span
               v-for="benefit in benefitList"
@@ -130,17 +121,17 @@ const plans: PlanProps[] = [
               <h3>{{ benefit }}</h3>
             </span>
           </div>
-        </CardContent>
+        </UiCardContent>
 
-        <CardFooter>
-          <Button
+        <UiCardFooter>
+          <UiButton
             :variant="popular === PopularPlan?.NO ? 'secondary' : 'default'"
             class="w-full"
           >
             {{ buttonText }}
-          </Button>
-        </CardFooter>
-      </Card>
+          </UiButton>
+        </UiCardFooter>
+      </UiCard>
     </div>
   </section>
 </template>

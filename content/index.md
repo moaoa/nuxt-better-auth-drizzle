@@ -70,6 +70,3 @@ head:
 ::
 
 
-
-::The-footer
-::
