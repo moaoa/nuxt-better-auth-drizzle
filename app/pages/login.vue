@@ -48,14 +48,14 @@ const HandleLoginUser = async () => {
 
 <template>
   <div class="grid place-content-center min-h-screen">
-    <Card class="w-full max-w-sm">
-      <CardHeader>
-        <CardTitle class="text-2xl"> Login </CardTitle>
-        <CardDescription>
+    <UiCard class="w-full max-w-sm">
+      <UiCardHeader>
+        <UiCardTitle class="text-2xl"> Login </UiCardTitle>
+        <UiCardDescription>
           Enter your email below to login to your account.
-        </CardDescription>
-      </CardHeader>
-      <CardContent class="grid gap-4">
+        </UiCardDescription>
+      </UiCardHeader>
+      <UiCardContent class="grid gap-4">
         <FormKit
           id="login-form"
           v-slot="{ state: { valid } }"
@@ -65,17 +65,17 @@ const HandleLoginUser = async () => {
           @submit="HandleLoginUser"
         >
           <FormKitSchema :schema="loginFormSchema" />
-          <Button class="w-full" type="submit" :disabled="!valid"> Sign in </Button>
+          <UiButton class="w-full" type="submit" :disabled="!valid"> Sign in </UiButton>
         </FormKit>
-        <Separator />
-        <Button variant="ghost" class="w-full">
+        <UiSeparator />
+        <UiButton variant="ghost" class="w-full">
           <NuxtLink to="/register">
             Don't have an account?
             <span class="underline">Register</span>
           </NuxtLink>
-        </Button>
-      </CardContent>
-    </Card>
+        </UiButton>
+      </UiCardContent>
+    </UiCard>
   </div>
 </template>
 <style scoped></style>

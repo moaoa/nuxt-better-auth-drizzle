@@ -23,10 +23,9 @@ const { data: session, isPending, error } = await useSession(useFetch);
 
 <template>
   <div>
-    <button class="px-5 py-3 border border-slate-400 rounded-lg" @click="HandleSingOut">
+    <UiButton class="px-5 py-3 border border-slate-400 rounded-lg" @click="HandleSingOut">
       Logout
-    </button>
-
+    </UiButton>
     <section>Pending: {{ isPending }}</section>
     <section>Error: {{ error }}</section>
     <section>

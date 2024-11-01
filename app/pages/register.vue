@@ -95,15 +95,15 @@ const HandleRegisterUser = async () => {
         >
           <FormKitSchema :schema="registerForm" />
 
-          <Button class="w-full" type="submit" :disabled="!valid"> Register </Button>
+          <UiButton class="w-full" type="submit" :disabled="!valid"> Register </UiButton>
         </FormKit>
         <Separator />
-        <Button variant="ghost" class="w-full">
+        <UiButton variant="ghost" class="w-full">
           <NuxtLink to="/login">
             Already have an account?
             <span class="underline">Login</span>
           </NuxtLink>
-        </Button>
+        </UiButton>
       </CardContent>
     </Card>
   </div>
