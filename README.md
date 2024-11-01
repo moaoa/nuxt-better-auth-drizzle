@@ -256,3 +256,31 @@ export const tables = schema;
 export const UserInsert = schema.user.$inferInsert;
 export type UserRegisterType = Omit<typeof UserInsert, "createdAt" | "updatedAt" | "id" | "emailVerified">;
 ```
+
+
+
+
+### Fork the project
+
+[shadcn-vue-landing-page](https://shadcn-vue-landing-page.vercel.app/) to Nuxt for the home page
+
+
+
+
+### Home Page
+
+![Home page](./public/HomePage.png)
+
+
+### Login Page
+
+![Login Page](./public/loginPage.png)
+
+### Register Page
+
+![Register Page](./public/RegisterPage.png)
+
+
+### Dashboard 
+
+![Dashboard](./public/Dashboard.png)
