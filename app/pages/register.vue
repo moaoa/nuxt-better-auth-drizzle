@@ -79,12 +79,14 @@ const HandleRegisterUser = async () => {
 
 <template>
   <div class="container py-24">
-    <Card class="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle class="text-2xl"> Register </CardTitle>
-        <CardDescription> Enter your details to create your account. </CardDescription>
-      </CardHeader>
-      <CardContent class="grid gap-4">
+    <UiCard class="w-full max-w-md mx-auto">
+      <UiCardHeader>
+        <UiCardTitle class="text-2xl"> Register </UiCardTitle>
+        <UiCardDescription>
+          Enter your details to create your account.
+        </UiCardDescription>
+      </UiCardHeader>
+      <UiCardContent class="grid gap-4">
         <FormKit
           id="register-form"
           v-slot="{ state: { valid } }"
@@ -104,8 +106,8 @@ const HandleRegisterUser = async () => {
             <span class="underline">Login</span>
           </NuxtLink>
         </UiButton>
-      </CardContent>
-    </Card>
+      </UiCardContent>
+    </UiCard>
   </div>
 </template>
 <style scoped></style>
