@@ -80,4 +80,8 @@ html {
   body {
     @apply bg-background text-foreground;
   }
+
+  .gradient-text {
+    @apply text-transparent bg-gradient-to-r from-[#D247BF] to-primary bg-clip-text;
+  }
 }

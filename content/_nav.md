@@ -1,5 +1,7 @@
 ---
 title: "nav"
+logo: "/logo.png"
+logoAlt: "NuxtZzle Logo"
 MenuLinks:
   - name: "Features"
     href: "#features"

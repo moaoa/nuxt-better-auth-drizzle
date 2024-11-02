@@ -1,6 +1,15 @@
 <script setup lang="ts">
-
-
+/**
+ *
+ * Component Description:Desc
+ *
+ * @author Reflect-Media <reflect.media GmbH>
+ * @version 0.0.1
+ *
+ * @todo [ ] Test the component
+ * @todo [ ] Integration test.
+ * @todo [✔] Update the typescript.
+ */
 interface ContactFormeProps {
   firstName: string;
   lastName: string;
@@ -30,10 +39,7 @@ const handleSubmit = () => {
 </script>
 
 <template>
-  <section
-    id="contact"
-    class="container py-24 sm:py-32"
-  >
+  <section id="contact" class="container py-24 sm:py-32">
     <section class="grid grid-cols-1 md:grid-cols-2 gap-8">
       <div>
         <div class="mb-4">
@@ -42,8 +48,8 @@ const handleSubmit = () => {
           <h2 class="text-3xl md:text-4xl font-bold">Connect With Us</h2>
         </div>
         <p class="mb-8 text-muted-foreground lg:w-5/6">
-          Lorem ipsum dolor sit amet consectetur adipisicing elit. Voluptatum
-          ipsam sint enim exercitationem ex autem corrupti quas tenetur
+          Lorem ipsum dolor sit amet consectetur adipisicing elit. Voluptatum ipsam sint
+          enim exercitationem ex autem corrupti quas tenetur
         </p>
 
         <div class="flex flex-col gap-4">
@@ -90,12 +96,9 @@ const handleSubmit = () => {
 
       <!-- form -->
       <UiCard class="bg-muted/60 dark:bg-card">
-        <UiCardHeader class="text-primary text-2xl"/>
+        <UiCardHeader class="text-primary text-2xl" />
         <UiCardContent>
-          <form
-            class="grid gap-4"
-            @submit.prevent="handleSubmit"
-          >
+          <form class="grid gap-4" @submit.prevent="handleSubmit">
             <div class="flex flex-col md:flex-row gap-8">
               <div class="flex flex-col w-full gap-1.5">
                 <UiLabel for="first-name">First Name</UiLabel>
@@ -137,9 +140,7 @@ const handleSubmit = () => {
                 </UiSelectTrigger>
                 <UiSelectContent>
                   <UiSelectGroup>
-                    <UiSelectItem value="Web Development">
-                      Web Development
-                    </UiSelectItem>
+                    <UiSelectItem value="Web Development"> Web Development </UiSelectItem>
                     <UiSelectItem value="Mobile Development">
                       Mobile Development
                     </UiSelectItem>
@@ -163,10 +164,7 @@ const handleSubmit = () => {
               />
             </div>
 
-            <UiAlert
-              v-if="invalidUiInputForm"
-              variant="destructive"
-            >
+            <UiAlert v-if="invalidUiInputForm" variant="destructive">
               <Icon name="lucide:alert-circle" class="w-4 h-4" />
               <UiAlertTitle>Error</UiAlertTitle>
               <UiAlertDescription>
@@ -178,7 +176,7 @@ const handleSubmit = () => {
           </form>
         </UiCardContent>
 
-        <UiCardFooter/>
+        <UiCardFooter />
       </UiCard>
     </section>
   </section>

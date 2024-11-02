@@ -1,69 +1,79 @@
 <script setup lang="ts">
-
+/**
+ *
+ * Component Description:Desc
+ *
+ * @author Reflect-Media <reflect.media GmbH>
+ * @version 0.0.1
+ *
+ * @todo [ ] Test the component
+ * @todo [ ] Integration test.
+ * @todo [✔] Update the typescript.
+ */
 interface HowItWorksProps {
   badgeTitle: string;
   title: string;
   description: string;
   image: string;
 }
+interface Props {
+  list?: HowItWorksProps[];
+}
 
-const HowItWorksList: HowItWorksProps[] = [
-  {
-    badgeTitle: "Contribute",
-    title: "Make a Difference with Every Contribution",
-    description:
-      "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Voluptatem fugiat, quasi sint reiciendis quidem iure.",
-    image: "roboto.png",
-  },
-  {
-    badgeTitle: "Discover",
-    title: "Create an Impact with Every Choice",
-    description:
-      "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Voluptatem fugiat, sint reiciendis quidem iure veritatis optio facere tenetur.",
-    image: "runner.png",
-  },
-  {
-    badgeTitle: "Innovate",
-    title: "Make Every Action Count",
-    description:
-      "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Voluptatem fugiat, odit similique quasi sint.",
-    image: "pacheco.png",
-  },
-  {
-    badgeTitle: "Collaborate",
-    title: "Tackle this challenge together",
-    description:
-      "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Voluptatem fugiat, quasi sint reiciendis quidem iure.",
-    image: "gamestation.png",
-  },
-];
+const props = withDefaults(defineProps<Props>(), {
+  list: () => [
+    {
+      badgeTitle: "Contribute",
+      title: "Make a Difference with Every Contribution",
+      description:
+        "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Voluptatem fugiat, quasi sint reiciendis quidem iure.",
+      image: "roboto.png",
+    },
+    {
+      badgeTitle: "Discover",
+      title: "Create an Impact with Every Choice",
+      description:
+        "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Voluptatem fugiat, sint reiciendis quidem iure veritatis optio facere tenetur.",
+      image: "runner.png",
+    },
+    {
+      badgeTitle: "Innovate",
+      title: "Make Every Action Count",
+      description:
+        "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Voluptatem fugiat, odit similique quasi sint.",
+      image: "pacheco.png",
+    },
+    {
+      badgeTitle: "Collaborate",
+      title: "Tackle this challenge together",
+      description:
+        "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Voluptatem fugiat, quasi sint reiciendis quidem iure.",
+      image: "gamestation.png",
+    },
+  ],
+});
+const { list } = toRefs(props);
 </script>
 
 <template>
-  <section
-    id="features"
-    class="container py-24 sm:py-32"
-  >
+  <section id="how-it-works" class="container py-24 sm:py-32">
     <div class="text-center mb-8">
       <h2 class="text-lg text-primary text-center mb-2 tracking-wider">
-        How It Works
+        <ContentSlot :use="$slots.title" unwrap="p"> How It Works </ContentSlot>
       </h2>
 
-      <h2 class="text-3xl md:text-4xl text-center font-bold">
-        Step-by-Step Process
-      </h2>
+      <h3 class="text-3xl md:text-4xl text-center font-bold">
+        <ContentSlot :use="$slots.subtitle" unwrap="p">
+          Step-by-Step Process
+        </ContentSlot>
+      </h3>
     </div>
 
     <div class="lg:w-[80%] mx-auto relative">
       <div
-        v-for="(
-          { badgeTitle, title, description }, index
-        ) in HowItWorksList"
+        v-for="({ badgeTitle, title, description }, index) in list"
         :key="title"
-        :class="[
-          'flex mb-8 items-center',
-          { ' flex-row-reverse': index % 2 !== 0 },
-        ]"
+        :class="['flex mb-8 items-center', { ' flex-row-reverse': index % 2 !== 0 }]"
       >
         <UiCard class="h-full bg-transparent border-0 shadow-none">
           <UiCardHeader>
@@ -84,7 +94,9 @@ const HowItWorksList: HowItWorksProps[] = [
         <NuxtImg
           src="https://shadcn-vue-landing-page.vercel.app/roboto.png"
           :alt="`Image describing ${title} `"
-          class="w-[150px]  md:w-[250px] lg:w-[300px] mx-auto -scale-x-100 "
+          class="w-[150px] md:w-[250px] lg:w-[300px] mx-auto -scale-x-100"
+          width="150"
+          height="350"
         />
         <div
           :class="[

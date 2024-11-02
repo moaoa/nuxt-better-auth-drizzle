@@ -1,4 +1,16 @@
 <script setup lang="ts">
+/**
+ *
+ * Component Description:Desc
+ *
+ * @author Reflect-Media <reflect.media GmbH>
+ * @version 0.0.1
+ *
+ * @todo [ ] Test the component
+ * @todo [ ] Integration test.
+ * @todo [✔] Update the typescript.
+ */
+//  TODO: Use the nav file for the footer links
 </script>
 
 <template>

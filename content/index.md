@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Nuxt setup with Better Auth module |  get started with Youtube
+title: Nuxt setup with Better Auth module |  Step by step tutorial
 description: How to get started with Nuxt and Better Auth| Step by step tutorial.
 head:
   htmlAttrs:
@@ -31,8 +31,32 @@ head:
 ---
 
 ::Hero
-::
+---
+badge:
+  label: Hot!
+  content: Explore now
+actions:
+  - label: Get Started
+    href: /register
+    icon: "lucide:arrow-right"
+  - label: Login
+    href: /login
+    variant: secondary
+heroImage:
+  light: "https://shadcn-vue-landing-page.vercel.app/hero-image-light.jpg"
+  dark: "https://shadcn-vue-landing-page.vercel.app/hero-image-dark.jpg"
+  alt: "Dashboard using shadcn-vue and nuxt4"
 
+---
+#title
+The base for your
+  <span class="gradient-text">Nuxt/ BetterAuth &<br/> Drizzle ORM </span>
+  Landing Page!
+
+#description
+Using Nuxt 4 and Better Auth module, Drizzle, TailwindCSS, Nuxt Content & Nuxt SEO modules to build not just another base project, from the ground up.
+
+::
 
 ::Sponsors
 ::

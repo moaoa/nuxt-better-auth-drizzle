@@ -10,11 +10,6 @@ export default <Partial<Config>><unknown>{
     "../app/**/*.{vue,js,ts,jsx,tsx,md}",
     "../content/**/*.{json,yml,md}",
     "../formkit/**.{vue,js,ts,jsx,tsx,md}",
-    "../pages/**/*.{ts,tsx,vue}",
-    "../components/**/*.{ts,tsx,vue}",
-    "../app/**/*.{ts,tsx,vue}",
-    "../content/**/*.{md,mdx}",
-    "../src/**/*.{ts,tsx,vue}",
   ],
   theme: {
     container: {

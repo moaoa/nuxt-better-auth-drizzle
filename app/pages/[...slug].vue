@@ -13,8 +13,8 @@
 </script>
 
 <template>
-    <main>
-        <ContentDoc />
-    </main>
+  <article>
+    <ContentDoc />
+  </article>
 </template>
 <style scoped></style>

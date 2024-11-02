@@ -15,7 +15,8 @@ export default defineNuxtConfig({
     "radix-vue/nuxt",
     "@nuxt/image",
     "@nuxtjs/color-mode",
-    "@nuxt/icon"
+    "@nuxt/icon",
+    '@unlighthouse/nuxt',
   ],
   formkit: {
     // autoImport: true,
@@ -45,5 +46,11 @@ export default defineNuxtConfig({
       path: "~/components",
       pathPrefix: false
     }
-  ]
+  ],
+  site: {
+    url: 'https://example.com',
+    name: 'Nuxt setup with Better Auth module |  Drizzle + Nuxt + Tailwind CSS + content + FormKit',
+    description: 'How to get started with Nuxt 4 and Better Auth| Step by step tutorial.',
+    defaultLocale: 'en', // not needed if you have @nuxtjs/i18n installed
+  }
 })
