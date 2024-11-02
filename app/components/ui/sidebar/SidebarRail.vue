@@ -12,6 +12,7 @@ const { toggleSidebar } = useSidebar();
 
 <template>
   <UiButton
+    variant="ghost"
     data-sidebar="rail"
     aria-label="Toggle Sidebar"
     :tabindex="-1"
@@ -30,6 +31,5 @@ const { toggleSidebar } = useSidebar();
     @click="toggleSidebar"
   >
     <slot />
-    <UiButton
-  /></UiButton>
+  </UiButton>
 </template>

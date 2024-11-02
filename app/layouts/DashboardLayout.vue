@@ -10,52 +10,6 @@
  * @todo [ ] Integration test.
  * @todo [✔] Update the typescript.
  */
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Separator } from "@/components/ui/separator";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarInset,
-  SidebarMenu,
-  SidebarMenuAction,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
-  SidebarProvider,
-  SidebarRail,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
 import {
   AudioWaveform,
   BadgeCheck,
@@ -228,14 +182,14 @@ function setActiveTeam(team: typeof data.teams[number]) {
 </script>
 
 <template>
-  <SidebarProvider>
-    <Sidebar collapsible="icon">
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger as-child>
-                <SidebarMenuButton
+  <UiSidebarProvider>
+    <UiSidebar collapsible="icon">
+      <UiSidebarHeader>
+        <UiSidebarMenu>
+          <UiSidebarMenuItem>
+            <UiDropdownMenu>
+              <UiDropdownMenuTrigger as-child>
+                <UiSidebarMenuButton
                   size="lg"
                   class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
@@ -249,18 +203,18 @@ function setActiveTeam(team: typeof data.teams[number]) {
                     <span class="truncate text-xs">{{ activeTeam?.plan }}</span>
                   </div>
                   <ChevronsUpDown class="ml-auto" />
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
+                </UiSidebarMenuButton>
+              </UiDropdownMenuTrigger>
+              <UiDropdownMenuContent
                 class="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
                 align="start"
                 side="bottom"
                 :side-offset="4"
               >
-                <DropdownMenuLabel class="text-muted-foreground">
+                <UiDropdownMenuLabel class="text-muted-foreground">
                   Teams
-                </DropdownMenuLabel>
-                <DropdownMenuItem
+                </UiDropdownMenuLabel>
+                <UiDropdownMenuItem
                   v-for="(team, index) in data.teams"
                   :key="team.name"
                   class="gap-2 p-2"
@@ -270,205 +224,205 @@ function setActiveTeam(team: typeof data.teams[number]) {
                     <component :is="team.logo" class="size-4 shrink-0" />
                   </div>
                   {{ team.name }}
-                  <DropdownMenuShortcut>⌘{{ index + 1 }}</DropdownMenuShortcut>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem class="gap-2 p-2">
+                  <UiDropdownMenuShortcut>⌘{{ index + 1 }}</UiDropdownMenuShortcut>
+                </UiDropdownMenuItem>
+                <UiDropdownMenuSeparator />
+                <UiDropdownMenuItem class="gap-2 p-2">
                   <div
                     class="flex size-6 items-center justify-center rounded-md border bg-background"
                   >
                     <Plus class="size-4" />
                   </div>
                   <div class="font-medium text-muted-foreground">Add team</div>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Platform</SidebarGroupLabel>
-          <SidebarMenu>
-            <Collapsible
+                </UiDropdownMenuItem>
+              </UiDropdownMenuContent>
+            </UiDropdownMenu>
+          </UiSidebarMenuItem>
+        </UiSidebarMenu>
+      </UiSidebarHeader>
+      <UiSidebarContent>
+        <UiSidebarGroup>
+          <UiSidebarGroupLabel>Platform</UiSidebarGroupLabel>
+          <UiSidebarMenu>
+            <UiCollapsible
               v-for="item in data.navMain"
               :key="item.title"
               as-child
               :default-open="item.isActive"
               class="group/collapsible"
             >
-              <SidebarMenuItem>
-                <CollapsibleTrigger as-child>
-                  <SidebarMenuButton tooltip="item.title">
+              <UiSidebarMenuItem>
+                <UiCollapsibleTrigger as-child>
+                  <UiSidebarMenuButton tooltip="item.title">
                     <component :is="item.icon" />
                     <span>{{ item.title }}</span>
                     <ChevronRight
                       class="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
                     />
-                  </SidebarMenuButton>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <SidebarMenuSub>
-                    <SidebarMenuSubItem
+                  </UiSidebarMenuButton>
+                </UiCollapsibleTrigger>
+                <UiCollapsibleContent>
+                  <UiSidebarMenuSub>
+                    <UiSidebarMenuSubItem
                       v-for="subItem in item.items"
                       :key="subItem.title"
                     >
-                      <SidebarMenuSubButton as-child>
+                      <UiSidebarMenuSubButton as-child>
                         <a :href="subItem.url">
                           <span>{{ subItem.title }}</span>
                         </a>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                  </SidebarMenuSub>
-                </CollapsibleContent>
-              </SidebarMenuItem>
-            </Collapsible>
-          </SidebarMenu>
-        </SidebarGroup>
-        <SidebarGroup class="group-data-[collapsible=icon]:hidden">
-          <SidebarGroupLabel>Projects</SidebarGroupLabel>
-          <SidebarMenu>
-            <SidebarMenuItem v-for="item in data.projects" :key="item.name">
-              <SidebarMenuButton as-child>
+                      </UiSidebarMenuSubButton>
+                    </UiSidebarMenuSubItem>
+                  </UiSidebarMenuSub>
+                </UiCollapsibleContent>
+              </UiSidebarMenuItem>
+            </UiCollapsible>
+          </UiSidebarMenu>
+        </UiSidebarGroup>
+        <UiSidebarGroup class="group-data-[collapsible=icon]:hidden">
+          <UiSidebarGroupLabel>Projects</UiSidebarGroupLabel>
+          <UiSidebarMenu>
+            <UiSidebarMenuItem v-for="item in data.projects" :key="item.name">
+              <UiSidebarMenuButton as-child>
                 <a :href="item.url">
                   <component :is="item.icon" />
                   <span>{{ item.name }}</span>
                 </a>
-              </SidebarMenuButton>
-              <DropdownMenu>
-                <DropdownMenuTrigger as-child>
-                  <SidebarMenuAction show-on-hover>
+              </UiSidebarMenuButton>
+              <UiDropdownMenu>
+                <UiDropdownMenuTrigger as-child>
+                  <UiSidebarMenuAction show-on-hover>
                     <MoreHorizontal />
                     <span class="sr-only">More</span>
-                  </SidebarMenuAction>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent class="w-48 rounded-lg" side="bottom" align="end">
-                  <DropdownMenuItem>
+                  </UiSidebarMenuAction>
+                </UiDropdownMenuTrigger>
+                <UiDropdownMenuContent class="w-48 rounded-lg" side="bottom" align="end">
+                  <UiDropdownMenuItem>
                     <Folder class="text-muted-foreground" />
                     <span>View Project</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  </UiDropdownMenuItem>
+                  <UiDropdownMenuItem>
                     <Forward class="text-muted-foreground" />
                     <span>Share Project</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>
+                  </UiDropdownMenuItem>
+                  <UiDropdownMenuSeparator />
+                  <UiDropdownMenuItem>
                     <Trash2 class="text-muted-foreground" />
                     <span>Delete Project</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton class="text-sidebar-foreground/70">
+                  </UiDropdownMenuItem>
+                </UiDropdownMenuContent>
+              </UiDropdownMenu>
+            </UiSidebarMenuItem>
+            <UiSidebarMenuItem>
+              <UiSidebarMenuButton class="text-sidebar-foreground/70">
                 <MoreHorizontal class="text-sidebar-foreground/70" />
                 <span>More</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
-      </SidebarContent>
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger as-child>
-                <SidebarMenuButton
+              </UiSidebarMenuButton>
+            </UiSidebarMenuItem>
+          </UiSidebarMenu>
+        </UiSidebarGroup>
+      </UiSidebarContent>
+      <UiSidebarFooter>
+        <UiSidebarMenu>
+          <UiSidebarMenuItem>
+            <UiDropdownMenu>
+              <UiDropdownMenuTrigger as-child>
+                <UiSidebarMenuButton
                   size="lg"
                   class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
-                  <Avatar class="h-8 w-8 rounded-lg">
-                    <AvatarImage
+                  <UiAvatar class="h-8 w-8 rounded-lg">
+                    <UiAvatarImage
                       :src="session?.user.image || data.user.avatar"
                       :alt="session?.user.name"
                     />
-                    <AvatarFallback class="rounded-lg"> CN </AvatarFallback>
-                  </Avatar>
+                    <UiAvatarFallback class="rounded-lg"> CN </UiAvatarFallback>
+                  </UiAvatar>
                   <div class="grid flex-1 text-left leading-tight">
                     <span class="truncate font-semibold">{{ session?.user.name }}</span>
                     <span class="truncate text-xs">{{ session?.user.email }}</span>
                   </div>
                   <ChevronsUpDown class="ml-auto size-4" />
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
+                </UiSidebarMenuButton>
+              </UiDropdownMenuTrigger>
+              <UiDropdownMenuContent
                 class="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
                 side="bottom"
                 align="end"
                 :side-offset="4"
               >
-                <DropdownMenuLabel class="p-0 font-normal">
+                <UiDropdownMenuLabel class="p-0 font-normal">
                   <div class="flex items-center gap-2 px-1 py-1.5 text-left">
-                    <Avatar class="h-8 w-8 rounded-lg">
-                      <AvatarImage
+                    <UiAvatar class="h-8 w-8 rounded-lg">
+                      <UiAvatarImage
                         :src="session?.user.image || data.user.avatar"
                         :alt="session?.user.name"
                       />
-                      <AvatarFallback class="rounded-lg"> CN </AvatarFallback>
-                    </Avatar>
+                      <UiAvatarFallback class="rounded-lg"> CN </UiAvatarFallback>
+                    </UiAvatar>
                     <div class="grid flex-1 text-left leading-tight">
                       <span class="truncate font-semibold">{{ session?.user.name }}</span>
                       <span class="truncate text-xs">{{ session?.user.email }}</span>
                     </div>
                   </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem>
+                </UiDropdownMenuLabel>
+                <UiDropdownMenuSeparator />
+                <UiDropdownMenuGroup>
+                  <UiDropdownMenuItem>
                     <Sparkles />
                     Upgrade to Pro
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem>
+                  </UiDropdownMenuItem>
+                </UiDropdownMenuGroup>
+                <UiDropdownMenuSeparator />
+                <UiDropdownMenuGroup>
+                  <UiDropdownMenuItem>
                     <BadgeCheck />
                     Account
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  </UiDropdownMenuItem>
+                  <UiDropdownMenuItem>
                     <CreditCard />
                     Billing
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  </UiDropdownMenuItem>
+                  <UiDropdownMenuItem>
                     <Bell />
                     Notifications
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem @click="HandleSingOut">
+                  </UiDropdownMenuItem>
+                </UiDropdownMenuGroup>
+                <UiDropdownMenuSeparator />
+                <UiDropdownMenuItem @click="HandleSingOut">
                   <LogOut />
                   Log out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
-      <SidebarRail />
-    </Sidebar>
-    <SidebarInset>
+                </UiDropdownMenuItem>
+              </UiDropdownMenuContent>
+            </UiDropdownMenu>
+          </UiSidebarMenuItem>
+        </UiSidebarMenu>
+      </UiSidebarFooter>
+      <UiSidebarRail />
+    </UiSidebar>
+    <UiSidebarInset>
       <header
         class="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12"
       >
         <div class="flex items-center gap-2 px-4">
-          <SidebarTrigger class="-ml-1" />
-          <Separator orientation="vertical" class="mr-2 h-4" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem class="hidden md:block">
-                <BreadcrumbLink href="#"> Building Your Application </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator class="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Data Fetching</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
+          <UiSidebarTrigger class="-ml-1" />
+          <UiSeparator orientation="vertical" class="mr-2 h-4" />
+          <UiBreadcrumb>
+            <UiBreadcrumbList>
+              <UiBreadcrumbItem class="hidden md:block">
+                <UiBreadcrumbLink href="#"> Building Your Application </UiBreadcrumbLink>
+              </UiBreadcrumbItem>
+              <UiBreadcrumbSeparator class="hidden md:block" />
+              <UiBreadcrumbItem>
+                <UiBreadcrumbPage>Data Fetching</UiBreadcrumbPage>
+              </UiBreadcrumbItem>
+            </UiBreadcrumbList>
+          </UiBreadcrumb>
         </div>
       </header>
       <div class="flex flex-1 flex-col gap-4 p-4 pt-0">
         <slot />
       </div>
-    </SidebarInset>
-  </SidebarProvider>
+    </UiSidebarInset>
+  </UiSidebarProvider>
 </template>

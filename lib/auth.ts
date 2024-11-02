@@ -1,4 +1,4 @@
-import { betterAuth, type User } from "better-auth";
+import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import * as schema from "../db/schema";
 import { useDrizzle } from "../server/utils/drizzle";
@@ -29,9 +29,17 @@ export const auth = betterAuth({
             }
         }
     },
+    emailVerification: {
+        async sendVerificationEmail(user, url) {
+            console.log("Sending verification email to", user.email);
+            console.log(url);
+
+        },
+        sendOnSignUp: true,
+    },
     emailAndPassword: {
         enabled: true,
-        async sendResetPassword(url, user) {
+        async sendResetPassword(url) {
             console.log("Reset password url:", url);
         },
     },
