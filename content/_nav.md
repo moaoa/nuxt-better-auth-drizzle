@@ -30,23 +30,23 @@ MenuLinks:
             icon: "lucide:flag"
             href: "/tools/paid/ai"
   - name: "Testimonials"
-    href: "#testimonials"
+    href: "/#testimonials"
   - name: "Blogs"
     href: "/blog"
   - name: "Contact"
-    href: "#contact"
+    href: "/#contact"
   - name: "FAQ"
-    href: "#faq"
+    href: "/#faq"
 
 ShortLinks:
-  - name: "Tools"
-    href: "/tools"
-  - name: "Press"
-    href: "#"
-  - name: "Careers"
-    href: "#"
-  - name: "Legal"
-    href: "#"
+  - name: "Home"
+    href: "/"
+  - name: "Blogs"
+    href: "/blog"
+  - name: "Login"
+    href: "/login"
+  - name: "Sign Up"
+    href: "/register"
   - name: "Support"
     href: "#"
   - name: "Sitemap"
@@ -65,26 +65,49 @@ socialMedias:
     url: https://www.instagram.com/leamsigc
     icon: "instagram"
 footerLinks:
-  - title: About Us
-    links:
-      - name: About Us
-        url: /about
-      - name: Careers
-        url: /careers
-      - name: Blog
-        url: /blog
-      - name: Videos
-        url: /videos
-  - title: Legal
-    links:
-      - name: Terms
-        url: /terms
-      - name: Privacy
-        url: /privacy
   - title: Contact
     links:
-      - name: Contact
+      - name: Github
+        url: https://github.com/leamsigc/nuxt-better-auth-drizzle
+        icon: "lucide:github"
+      - name: Twitter
+        url: https://twitter.com/leamsigc
+        icon: "lucide:twitter"
+      - name: instagram
+        url: https://www.instagram.com/leamsigc
+        icon: "lucide:instagram"
+      - name: Youtube
+        url: https://www.youtube.com/@leamsigc
+        icon: "lucide:youtube"
+  - title: Platform
+    links:
+      - name: iOS
+        url: /
+      - name: Android
+        url: /
+      - name: Web
+        url: /
+  - title: Help
+    links:
+      - name: Contact us
         url: /contact
-      - name: Support
-        url: /support
+      - name: FAQ
+        url: /#faq
+      - name: Feedback
+        url: /#feedback
+
+actions:
+  - name: ''
+    href: https://github.com/leamsigc/nuxt-better-auth-drizzle
+    icon: "lucide:github"
+    label: "View on GitHub"
+    target: _blank
+  - name: 'Login'
+    href: "/login"
+    icon: ""
+    label: "Login to your account"
+  - name: 'Register'
+    href: "/register"
+    label: "Register an account"
+    icon: ""
 ---

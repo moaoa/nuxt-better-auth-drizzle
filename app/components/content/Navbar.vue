@@ -26,21 +26,12 @@ const { data } = await useAsyncData("nav_en", () =>
     :class="{
       'shadow-light': mode.value === 'light',
       'shadow-dark': mode.value === 'dark',
-    }"
-  >
-    <header
-      :class="{
-        'w-[90%] md:w-[70%] lg:w-[75%] lg:max-w-screen-2xl mx-auto sticky z-40  flex justify-between items-center p-2 ': true,
-      }"
-    >
+    }">
+    <header :class="{
+      'w-[90%] md:w-[70%] lg:w-[75%] lg:max-w-screen-2xl mx-auto sticky z-40  flex justify-between items-center p-2 ': true,
+    }">
       <NuxtLink v-if="data" href="/" class="font-bold text-lg flex items-center">
-        <NuxtImg
-          :src="data.logo"
-          :alt="data.logoAlt"
-          class="w-40 rounded-full"
-          width="160"
-          height="60"
-        />
+        <NuxtImg :src="data.logo" :alt="data.logoAlt" class="w-40 rounded-full" width="160" height="60" />
       </NuxtLink>
       <!-- Mobile -->
       <div class="flex items-center xl:hidden">
@@ -49,34 +40,20 @@ const { data } = await useAsyncData("nav_en", () =>
             <Icon name="lucide:menu" class="cursor-pointer" @click="isOpen = true" />
           </UiSheetTrigger>
 
-          <UiSheetContent
-            side="left"
-            class="flex flex-col justify-between rounded-tr-2xl rounded-br-2xl bg-card"
-          >
+          <UiSheetContent side="left" class="flex flex-col justify-between rounded-tr-2xl rounded-br-2xl bg-card">
             <div>
               <UiSheetHeader class="mb-4 ml-4">
                 <UiSheetTitle class="flex items-center">
                   <NuxtLink href="/" class="flex items-center">
-                    <NuxtImg
-                      v-if="data"
-                      :src="data.logo"
-                      :alt="data.logoAlt"
-                      class="w-40 rounded-full"
-                      width="160"
-                      height="60"
-                    />
+                    <NuxtImg v-if="data" :src="data.logo" :alt="data.logoAlt" class="w-40 rounded-full" width="160"
+                      height="60" />
                   </NuxtLink>
                 </UiSheetTitle>
               </UiSheetHeader>
 
               <div v-if="data" class="flex flex-col gap-2">
-                <UiButton
-                  v-for="{ href, name } in data.ShortLinks"
-                  :key="name"
-                  as-child
-                  variant="ghost"
-                  class="justify-start text-base"
-                >
+                <UiButton v-for="{ href, name } in data.ShortLinks" :key="name" as-child variant="ghost"
+                  class="justify-start text-base">
                   <NuxtLink :href="href" @click="isOpen = false">
                     {{ name }}
                   </NuxtLink>
@@ -112,40 +89,23 @@ const { data } = await useAsyncData("nav_en", () =>
               </UiNavigationMenuTrigger>
               <UiNavigationMenuContent>
                 <div
-                  class="grid grid-cols-1 gap-5 bg-background p-6 py-5 ring-1 ring-muted lg:w-[750px] lg:grid-cols-2 xl:w-[1000px] xl:grid-cols-3"
-                >
-                  <NuxtImg
-                    :src="menuLink.image"
-                    alt="Beach"
-                    class="h-full w-full rounded-md object-cover"
-                  />
-                  <div
-                    v-for="(item, index) in menuLink.children"
-                    :key="`${item.name}-${index}`"
-                  >
+                  class="grid grid-cols-1 gap-5 bg-background p-6 py-5 ring-1 ring-muted lg:w-[750px] lg:grid-cols-2 xl:w-[1000px] xl:grid-cols-3">
+                  <NuxtImg :src="menuLink.image" alt="Beach" class="h-full w-full rounded-md object-cover" />
+                  <div v-for="(item, index) in menuLink.children" :key="`${item.name}-${index}`">
                     <p class="mb-5 text-sm font-semibold capitalize text-primary">
                       {{ item.name }}
                     </p>
                     <ul class="flex w-full flex-col gap-2">
                       <li v-for="(child, k) in item.children" :key="k">
                         <UiNavigationMenuLink class="data-[active]:bg-muted/80" as-child>
-                          <NuxtLink
-                            :to="child.href"
-                            class="flex gap-4 rounded-md p-3 transition hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                          >
-                            <Icon
-                              v-if="child.icon"
-                              :name="child.icon"
-                              class="mt-px h-5 w-5 shrink-0 text-primary"
-                            />
+                          <NuxtLink :to="child.href"
+                            class="flex gap-4 rounded-md p-3 transition hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+                            <Icon v-if="child.icon" :name="child.icon" class="mt-px h-5 w-5 shrink-0 text-primary" />
                             <div class="flex flex-col gap-1.5 leading-none">
                               <p class="text-sm font-semibold">
                                 {{ child.name }}
                               </p>
-                              <p
-                                class="text-sm text-muted-foreground"
-                                v-html="child.description"
-                              />
+                              <p class="text-sm text-muted-foreground" v-html="child.description" />
                             </div>
                           </NuxtLink>
                         </UiNavigationMenuLink>
@@ -162,20 +122,11 @@ const { data } = await useAsyncData("nav_en", () =>
       <div class="hidden lg:flex">
         <ToggleTheme />
 
-        <UiButton as-child size="sm" variant="ghost" aria-label="View on GitHub">
-          <NuxtLink
-            aria-label="View on GitHub"
-            href="https://github.com/leoMirandaa/shadcn-vue-landing-page.git"
-            target="_blank"
-          >
-            <Icon name="mdi:github" />
+        <UiButton as-child size="sm" variant="ghost" :aria-label="action.label" v-for="action in data.actions">
+          <NuxtLink :aria-label="action.label" :href="action.href" :target="_blank">
+            <Icon :name="action.icon" />
+            {{ action.name }}
           </NuxtLink>
-        </UiButton>
-        <UiButton as-child size="sm" variant="ghost" aria-label="View on GitHub">
-          <NuxtLink aria-label="Login" to="/login"> Login </NuxtLink>
-        </UiButton>
-        <UiButton as-child size="sm" variant="ghost" aria-label="Register">
-          <NuxtLink aria-label="Register" to="/register"> Register </NuxtLink>
         </UiButton>
       </div>
     </header>

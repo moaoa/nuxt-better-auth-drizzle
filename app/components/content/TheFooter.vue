@@ -10,7 +10,11 @@
  * @todo [ ] Integration test.
  * @todo [✔] Update the typescript.
  */
-//  TODO: Use the nav file for the footer links
+const { data } = await useAsyncData("footer_links", () =>
+  queryContent("/").where({ _partial: true, title: "nav" })
+    .only(["footerLinks", "logo", "logoAlt"])
+    .findOne()
+);
 </script>
 
 <template>
@@ -19,72 +23,18 @@
       <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-x-12 gap-y-8">
         <div class="col-span-full xl:col-span-2">
           <a href="#" class="flex font-bold items-center">
-            <Icon
-              name="lucide:arrow-down"
-              class="bg-gradient-to-tr from-primary via-primary/70 to-primary rounded-lg w-9 h-9 mr-2 border text-white"
-            />
-
-            <h3 class="text-2xl">Shadcn-Vue</h3>
+            <NuxtLink v-if="data" href="/" class="font-bold text-lg flex items-center">
+              <NuxtImg :src="data.logo" :alt="data.logoAlt" class="w-64 rounded-full" width="160" height="60" />
+            </NuxtLink>
           </a>
         </div>
 
-        <div class="flex flex-col gap-2">
-          <h3 class="font-bold text-lg">Contact</h3>
-          <div>
-            <a href="#" class="opacity-60 hover:opacity-100"> Github </a>
-          </div>
-
-          <div>
-            <a href="#" class="opacity-60 hover:opacity-100"> Twitter </a>
-          </div>
-
-          <div>
-            <a href="#" class="opacity-60 hover:opacity-100"> Instagram </a>
-          </div>
-        </div>
-
-        <div class="flex flex-col gap-2">
-          <h3 class="font-bold text-lg">Platforms</h3>
-          <div>
-            <a href="#" class="opacity-60 hover:opacity-100"> iOS </a>
-          </div>
-
-          <div>
-            <a href="#" class="opacity-60 hover:opacity-100"> Android </a>
-          </div>
-
-          <div>
-            <a href="#" class="opacity-60 hover:opacity-100"> Web </a>
-          </div>
-        </div>
-
-        <div class="flex flex-col gap-2">
-          <h3 class="font-bold text-lg">Help</h3>
-          <div>
-            <a href="#" class="opacity-60 hover:opacity-100"> Contact Us </a>
-          </div>
-
-          <div>
-            <a href="#" class="opacity-60 hover:opacity-100"> FAQ </a>
-          </div>
-
-          <div>
-            <a href="#" class="opacity-60 hover:opacity-100"> Feedback </a>
-          </div>
-        </div>
-
-        <div class="flex flex-col gap-2">
-          <h3 class="font-bold text-lg">Socials</h3>
-          <div>
-            <a href="#" class="opacity-60 hover:opacity-100"> Twitch </a>
-          </div>
-
-          <div>
-            <a href="#" class="opacity-60 hover:opacity-100"> Discord </a>
-          </div>
-
-          <div>
-            <a href="#" class="opacity-60 hover:opacity-100"> Dribbble </a>
+        <div class="flex flex-col gap-2 " v-for="{ title, links } in data.footerLinks" :key="title">
+          <h3 class="font-bold text-lg">{{ title }}</h3>
+          <div v-for="{ name, url, icon } in links" :key="name">
+            <NuxtLink :href="url" class="opacity-60 hover:opacity-100">
+              {{ name }}
+            </NuxtLink>
           </div>
         </div>
       </div>
@@ -93,19 +43,13 @@
       <section className="">
         <h3 class="">
           &copy; 2024 Designed and developed by
-          <a
-            target="_blank"
-            href="https://github.com/leoMirandaa"
-            className="text-primary transition-all border-primary hover:border-b-2"
-          >
+          <a target="_blank" href="https://github.com/leoMirandaa"
+            className="text-primary transition-all border-primary hover:border-b-2">
             Leo Miranda
           </a>
           Port to nuxt 4 by
-          <a
-            target="_blank"
-            href="https://github.com/leamsigc"
-            className="text-primary transition-all border-primary hover:border-b-2"
-          >
+          <a target="_blank" href="https://github.com/leamsigc"
+            className="text-primary transition-all border-primary hover:border-b-2">
             Leamsigc
           </a>
         </h3>
