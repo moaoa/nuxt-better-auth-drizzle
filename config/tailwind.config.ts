@@ -1,6 +1,6 @@
 import type { Config } from "tailwindcss";
 import animate from "tailwindcss-animate"
-
+import prose from "@tailwindcss/typography"
 
 export default <Partial<Config>><unknown>{
   darkMode: ["class"],
@@ -98,5 +98,5 @@ export default <Partial<Config>><unknown>{
       },
     },
   },
-  plugins: [animate],
+  plugins: [animate, prose],
 }

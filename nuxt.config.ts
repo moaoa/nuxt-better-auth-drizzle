@@ -48,9 +48,12 @@ export default defineNuxtConfig({
     }
   ],
   site: {
-    url: 'https://example.com',
+    url: 'https://nuxt-better-auth-drizzle.vercel.app',
     name: 'Nuxt setup with Better Auth module |  Drizzle + Nuxt + Tailwind CSS + content + FormKit',
     description: 'How to get started with Nuxt 4 and Better Auth| Step by step tutorial.',
     defaultLocale: 'en', // not needed if you have @nuxtjs/i18n installed
+  },
+  content: {
+    documentDriven: true,
   }
 })
