@@ -1,4 +1,10 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+
+import { checkEnv } from "./config/env.config"
+import { env } from "node:process";
+
+checkEnv(env);
+
 export default defineNuxtConfig({
   compatibilityDate: '2024-04-03',
   future: { compatibilityVersion: 4 },

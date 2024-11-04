@@ -40,21 +40,18 @@ const registerForm = computed(() => [
     $formkit: "text",
     name: "email",
     label: "Email",
-    help: "This will be used for your account.",
     validation: "required|email",
   },
   {
     $formkit: "password",
     name: "password",
     label: "Password",
-    help: "Enter your new password.",
     validation: "required|length:5,16",
   },
   {
     $formkit: "password",
     name: "password_confirm",
     label: "Confirm password",
-    help: "Enter your new password again to confirm it.",
     validation: "required|confirm",
     validationLabel: "password confirmation",
   },
@@ -87,14 +84,8 @@ const HandleRegisterUser = async () => {
         </UiCardDescription>
       </UiCardHeader>
       <UiCardContent class="grid gap-4">
-        <FormKit
-          id="register-form"
-          v-slot="{ state: { valid } }"
-          v-model="userInformation"
-          type="form"
-          :actions="false"
-          @submit="HandleRegisterUser"
-        >
+        <FormKit id="register-form" v-slot="{ state: { valid } }" v-model="userInformation" type="form" :actions="false"
+          @submit="HandleRegisterUser">
           <FormKitSchema :schema="registerForm" />
 
           <UiButton class="w-full" type="submit" :disabled="!valid"> Register </UiButton>

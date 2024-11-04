@@ -22,14 +22,12 @@ const loginFormSchema = [
     $formkit: "text",
     name: "email",
     label: "Email",
-    help: "This will be used for your account.",
     validation: "required|email",
   },
   {
     $formkit: "password",
     name: "password",
     label: "Password",
-    help: "Enter your new password.",
     validation: "required|length:5,16",
   },
 ];
@@ -56,14 +54,8 @@ const HandleLoginUser = async () => {
         </UiCardDescription>
       </UiCardHeader>
       <UiCardContent class="grid gap-4">
-        <FormKit
-          id="login-form"
-          v-slot="{ state: { valid } }"
-          v-model="loginForm"
-          type="form"
-          :actions="false"
-          @submit="HandleLoginUser"
-        >
+        <FormKit id="login-form" v-slot="{ state: { valid } }" v-model="loginForm" type="form" :actions="false"
+          @submit="HandleLoginUser">
           <FormKitSchema :schema="loginFormSchema" />
           <UiButton class="w-full" type="submit" :disabled="!valid"> Sign in </UiButton>
         </FormKit>

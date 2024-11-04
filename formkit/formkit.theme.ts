@@ -224,7 +224,7 @@ const classes: Record<string, Record<string, boolean>> = {
     "group-data-[invalid]:ring-red-500": true,
     "group-data-[disabled]:bg-neutral-100": true,
     "group-data-[disabled]:!cursor-not-allowed": true,
-    "shadow": true,
+    "shadow": false,
     "group-[]/repeater:shadow-none": true,
     "group-[]/multistep:shadow-none": true,
     "dark:bg-transparent": true,

@@ -122,12 +122,14 @@ const { data } = await useAsyncData("nav_en", () =>
       <div class="hidden lg:flex">
         <ToggleTheme />
 
-        <UiButton as-child size="sm" variant="ghost" :aria-label="action.label" v-for="action in data.actions">
-          <NuxtLink :aria-label="action.label" :href="action.href" :target="_blank">
-            <Icon :name="action.icon" />
-            {{ action.name }}
-          </NuxtLink>
-        </UiButton>
+        <template v-if="data">
+          <UiButton as-child size="sm" variant="ghost" :aria-label="action.label" v-for="action in data.actions">
+            <NuxtLink :aria-label="action.label" :href="action.href" :target="action.target || ''">
+              <Icon :name="action.icon" />
+              {{ action.name }}
+            </NuxtLink>
+          </UiButton>
+        </template>
       </div>
     </header>
   </section>
