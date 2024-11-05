@@ -23,6 +23,7 @@ export default defineNuxtConfig({
     "@nuxtjs/color-mode",
     "@nuxt/icon",
     '@unlighthouse/nuxt',
+    "nuxt-content-assets"
   ],
   formkit: {
     // autoImport: true,
@@ -59,7 +60,16 @@ export default defineNuxtConfig({
     description: 'How to get started with Nuxt 4 and Better Auth| Step by step tutorial.',
     defaultLocale: 'en', // not needed if you have @nuxtjs/i18n installed
   },
+  image: {
+    quality: 75,
+    format: ['webp'],
+  },
   content: {
     documentDriven: true,
+    ignores: [
+      "/login",
+      "/register",
+      "/app/"
+    ]
   }
 })

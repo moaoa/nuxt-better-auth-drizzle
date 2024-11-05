@@ -14,9 +14,11 @@
 
 <template>
   <main class="">
-    <Navbar />
-    <slot />
-    <TheFooter />
+    <UiToastProvider>
+      <Navbar />
+      <slot />
+      <TheFooter />
+    </UiToastProvider>
   </main>
 </template>
 <style scoped></style>

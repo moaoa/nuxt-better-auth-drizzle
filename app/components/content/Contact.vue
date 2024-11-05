@@ -22,7 +22,7 @@ const contactForm = reactive<ContactFormeProps>({
   firstName: "",
   lastName: "",
   email: "",
-  subject: "Web Development",
+  subject: "",
   message: "",
 });
 
@@ -102,41 +102,26 @@ const handleSubmit = () => {
             <div class="flex flex-col md:flex-row gap-8">
               <div class="flex flex-col w-full gap-1.5">
                 <UiLabel for="first-name">First Name</UiLabel>
-                <UiInput
-                  id="first-name"
-                  v-model="contactForm.firstName"
-                  type="text"
-                  placeholder="Leopoldo"
-                />
+                <UiInput id="first-name" v-model="contactForm.firstName" type="text" placeholder="Leopoldo" />
               </div>
 
               <div class="flex flex-col w-full gap-1.5">
                 <UiLabel for="last-name">Last Name</UiLabel>
-                <UiInput
-                  id="last-name"
-                  v-model="contactForm.lastName"
-                  type="text"
-                  placeholder="Miranda"
-                />
+                <UiInput id="last-name" v-model="contactForm.lastName" type="text" placeholder="Miranda" />
               </div>
             </div>
 
             <div class="flex flex-col gap-1.5">
               <UiLabel for="email">Email</UiLabel>
-              <UiInput
-                id="email"
-                v-model="contactForm.email"
-                type="email"
-                placeholder="leomirandadev@gmail.com"
-              />
+              <UiInput id="email" v-model="contactForm.email" type="email" placeholder="leomirandadev@gmail.com" />
             </div>
 
             <div class="flex flex-col gap-1.5">
               <UiLabel for="subject">Subject</UiLabel>
 
               <UiSelect v-model="contactForm.subject">
-                <UiSelectTrigger>
-                  <UiSelectValue placeholder="UiSelect a subject" />
+                <UiSelectTrigger aria-label="Customise options">
+                  <UiSelectValue placeholder="Select a subject" aria-label="Select a subject" />
                 </UiSelectTrigger>
                 <UiSelectContent>
                   <UiSelectGroup>
@@ -156,12 +141,7 @@ const handleSubmit = () => {
 
             <div class="flex flex-col gap-1.5">
               <UiLabel for="message">Message</UiLabel>
-              <UiTextarea
-                id="message"
-                v-model="contactForm.message"
-                placeholder="Your message..."
-                rows="5"
-              />
+              <UiTextarea id="message" v-model="contactForm.message" placeholder="Your message..." rows="5" />
             </div>
 
             <UiAlert v-if="invalidUiInputForm" variant="destructive">

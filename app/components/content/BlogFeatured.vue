@@ -27,7 +27,8 @@ const { data: featuredArticles } = await useAsyncData("featured_posts", () =>
       <NuxtLink
         class="object-contain aspect-video rounded-xl overflow-hidden flex items-center justify-center transition-all dark:group-hover:opacity-80 hover:hue-rotate-90"
         :href="article._path">
-        <NuxtImg class="w-full h-full" :src="article.image.src" :alt="article.image.alt" width="600" height="300" />
+        <NuxtPicture loading="lazy" class="w-full h-full" :src="article.image.src" :alt="article.image.alt" width="600"
+          height="300" />
       </NuxtLink>
       <div class="space-y-3 md:space-y-5 pr-3 flex-1">
         <NuxtLink :href="article._path">

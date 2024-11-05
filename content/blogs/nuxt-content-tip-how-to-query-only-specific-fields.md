@@ -39,7 +39,7 @@ tags:
 author:
   name: Leamsigc
   role: Full Stack Developer
-  avatar: https://leamsigc.com/ismaelProfileImage.6ce6a31e.png
+  avatar: /users/leamsigc.jpg
   social: https://x.com/leamsigc
 image:
   src: https://leamsigc.com/daytonaDevs.20af4cec.png

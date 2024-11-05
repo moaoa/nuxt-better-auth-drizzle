@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { useToast } from "~/components/ui/toast/use-toast";
 import { signIn } from "~~/lib/auth-client";
 /**
  *
@@ -32,20 +33,30 @@ const loginFormSchema = [
   },
 ];
 
+const { toast } = useToast();
+
 const HandleLoginUser = async () => {
   await signIn.email({
     email: loginForm.value.email,
     password: loginForm.value.password,
     callbackURL: "/app/",
     fetchOptions: {
-      onError: (err) => console.log(err),
+      onError: (context) => {
+        toast({
+          title: "Please try again",
+          description: context?.error?.message || "Please check your email and password",
+          variant: "destructive",
+        });
+      },
     },
   });
 };
+
 </script>
 
 <template>
   <div class="grid place-content-center min-h-screen">
+    <UiToaster />
     <UiCard class="w-full max-w-sm">
       <UiCardHeader>
         <UiCardTitle class="text-2xl"> Login </UiCardTitle>

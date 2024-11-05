@@ -41,7 +41,7 @@ const { data } = await useAsyncData(`${router.currentRoute.value.path}`, () =>
         <div class="mx-auto max-w-5xl px-8 mb-10">
             <div
                 class="object-contain bg-[#26303B] aspect-video rounded-xl overflow-hidden flex items-center justify-center">
-                <NuxtImg :alt="data.title" loading="lazy" width="1080" height="720" class="w-full h-full"
+                <NuxtPicture :alt="data.title" loading="eager" width="1080" height="720" class="w-full h-full"
                     style="color: transparent;" :src="data.image.src" />
             </div>
         </div>

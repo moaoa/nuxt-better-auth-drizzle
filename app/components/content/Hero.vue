@@ -35,8 +35,8 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   badge: () => ({ label: "New", content: "Design is out" }),
   heroImage: () => ({
-    light: "https://shadcn-vue-landing-page.vercel.app/hero-image-light.jpg",
-    dark: "https://shadcn-vue-landing-page.vercel.app/hero-image-dark.jpg",
+    light: "img/hero-image-light.jpg",
+    dark: "img/hero-image-dark.jpg",
     alt: "Dashboard using shadcn-vue and nuxt4",
   }),
   actions: () => [
@@ -88,20 +88,12 @@ const mode = useColorMode();
 
         <div class="space-y-4 md:space-y-0 md:space-x-4">
           <slot name="actions">
-            <UiButton
-              v-for="action in actions"
-              :key="action.label"
-              class="w-5/6 md:w-1/4 font-bold group/arrow"
-              :variant="action.variant as ButtonVariants['variant']"
-              as-child
-            >
-              <NuxtLink :href="action.href" :target="action.target || ''">
+            <UiButton v-for="action in actions" :key="action.label" class="w-5/6 md:w-1/4 font-bold group/arrow"
+              :variant="action.variant as ButtonVariants['variant']" as-child>
+              <NuxtLink :href="action.href" :target="action.target || ''" :aria-label="action.label">
                 {{ action.label }}
-                <Icon
-                  v-if="action.icon"
-                  :name="action.icon"
-                  class="size-5 ml-2 group-hover/arrow:translate-x-1 transition-transform"
-                />
+                <Icon v-if="action.icon" :name="action.icon"
+                  class="size-5 ml-2 group-hover/arrow:translate-x-1 transition-transform" />
               </NuxtLink>
             </UiButton>
           </slot>
@@ -111,21 +103,16 @@ const mode = useColorMode();
       <div v-if="heroImage" class="relative group mt-14">
         <!-- gradient shadow -->
         <div
-          class="absolute -top-6 right-12 w-[90%] h-12 lg:h-[80%] bg-primary/50 blur-3xl rounded-full img-shadow-animation"
-        />
+          class="absolute -top-6 right-12 w-[90%] h-12 lg:h-[80%] bg-primary/50 blur-3xl rounded-full img-shadow-animation" />
 
-        <NuxtImg
+        <NuxtPicture
           class="w-full md:w-[1200px] mx-auto rounded-lg relative rouded-lg leading-none flex items-center border border-t-2 border-t-primary/30 img-border-animation"
-          :src="mode.value == 'light' ? heroImage.light : heroImage.dark"
-          :alt="heroImage.alt"
-          width="1200"
-          height="800"
-        />
+          :src="mode.value == 'light' ? heroImage.light : heroImage.dark" :alt="heroImage.alt" width="1200" height="800"
+          loading="lazy" />
 
         <!-- gradient effect img -->
         <div
-          class="absolute bottom-0 left-0 w-full h-20 md:h-28 bg-gradient-to-b from-background/0 via-background/50 to-background rounded-lg"
-        />
+          class="absolute bottom-0 left-0 w-full h-20 md:h-28 bg-gradient-to-b from-background/0 via-background/50 to-background rounded-lg" />
       </div>
     </div>
   </section>
@@ -159,6 +146,7 @@ const mode = useColorMode();
     transform: translateY(0px);
   }
 }
+
 @keyframes img-border-animation {
   from {
     @apply border-t-primary/10;

@@ -292,7 +292,7 @@ export type UserRegisterType = Omit<typeof UserInsert, "createdAt" | "updatedAt"
 ## TODO
 
 - [x] When a new user registered, send a verification email to the user
-- [ ] If the user is not verified show a verification screen
+- [x] If the user is not verified show a verification screen
 ```ts
 await authClient.signIn.emailAndPassword({
     email: "email@example.com",
@@ -307,7 +307,7 @@ await authClient.signIn.emailAndPassword({
 });
 ```
 
-- [ ] Enforce email verification
+- [x] Enforce email verification
 ```ts
 export const auth = betterAuth({
     emailAndPassword: {

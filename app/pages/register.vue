@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { useToast } from "~/components/ui/toast/use-toast";
 import { signUp } from "~~/lib/auth-client";
 /**
  *
@@ -56,7 +57,7 @@ const registerForm = computed(() => [
     validationLabel: "password confirmation",
   },
 ]);
-
+const { toast } = useToast();
 const HandleRegisterUser = async () => {
   await signUp.email({
     email: userInformation.value.email,
@@ -68,7 +69,13 @@ const HandleRegisterUser = async () => {
     lastName: userInformation.value.lastName,
     callbackURL: "/app/",
     fetchOptions: {
-      onError: (err) => console.log(err),
+      onError: (context) => {
+        toast({
+          title: "Please try again",
+          description: context?.error?.message || "Please check your email and password",
+          variant: "destructive",
+        });
+      },
     },
   });
 };
@@ -76,6 +83,7 @@ const HandleRegisterUser = async () => {
 
 <template>
   <div class="container py-24">
+    <UiToaster />
     <UiCard class="w-full max-w-md mx-auto">
       <UiCardHeader>
         <UiCardTitle class="text-2xl"> Register </UiCardTitle>
