@@ -37,7 +37,11 @@ export const useMailgun = (): EmailService => {
         if (html) formData.append("html", html);
 
         try {
-            const encodedCredentials = Buffer.from(`api:${MAILGUN_API_KEY}`).toString("base64");
+            const unencodedCredential = `api:${MAILGUN_API_KEY}`;
+            const encodedCredentials = typeof Buffer !== "undefined"
+                ? Buffer.from(unencodedCredential).toString("base64")
+                // Use `btoa` in non-Node environments
+                : btoa(unencodedCredential)
 
             await $fetch(MAILGUN_API_URL, {
                 method: "POST",

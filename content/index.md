@@ -43,8 +43,8 @@ actions:
     href: /login
     variant: secondary
 heroImage:
-  light: "https://shadcn-vue-landing-page.vercel.app/hero-image-light.jpg"
-  dark: "https://shadcn-vue-landing-page.vercel.app/hero-image-dark.jpg"
+  light: "img/hero-image-light.jpg"
+  dark: "img/hero-image-dark.jpg"
   alt: "Dashboard using shadcn-vue and nuxt4"
 
 ---
