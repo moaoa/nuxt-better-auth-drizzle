@@ -48,11 +48,11 @@ ShortLinks:
   - name: "Sign Up"
     href: "/register"
   - name: "Support"
-    href: "#"
+    href: "/"
   - name: "Sitemap"
-    href: "#"
+    href: "/sitemap.xml"
   - name: "Cookie settings"
-    href: "#"
+    href: "/"
 
 socialMedias:
   - name: facebook
@@ -94,7 +94,7 @@ footerLinks:
       - name: FAQ
         url: /#faq
       - name: Feedback
-        url: /#feedback
+        url: /#faq
 
 actions:
   - name: ''

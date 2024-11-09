@@ -52,6 +52,22 @@ const HandleLoginUser = async () => {
   });
 };
 
+const signInWithGoogle = async () => {
+  await signIn.social({
+    provider: "google",
+    callbackURL: "/app/",
+    fetchOptions: {
+      onError: (context) => {
+        toast({
+          title: "Please try again",
+          description: context?.error?.message || "Please check your email and password",
+          variant: "destructive",
+        });
+      },
+    }
+  })
+}
+
 </script>
 
 <template>
@@ -69,6 +85,11 @@ const HandleLoginUser = async () => {
           @submit="HandleLoginUser">
           <FormKitSchema :schema="loginFormSchema" />
           <UiButton class="w-full" type="submit" :disabled="!valid"> Sign in </UiButton>
+          <UiSeparator label="OR" class="my-8" />
+          <UiButton variant="outline" type="button" @click="signInWithGoogle" class="w-full">
+            <Icon class="size-4" name="logos:google-icon" />
+            <span class="ml-2">Continue with Google</span>
+          </UiButton>
         </FormKit>
         <UiSeparator />
         <UiButton variant="ghost" class="w-full">

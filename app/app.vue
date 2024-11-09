@@ -10,16 +10,15 @@
  * @todo [ ] Integration test.
  * @todo [✔] Update the typescript.
  */
- import { ConfigProvider } from 'radix-vue'
+import { ConfigProvider } from 'radix-vue'
 </script>
 <template>
   <main>
-
-  <ConfigProvider>
-    <NuxtLoadingIndicator />
-    <NuxtLayout>
-      <NuxtPage />
-    </NuxtLayout>
-  </ConfigProvider>
+    <ConfigProvider>
+      <NuxtLoadingIndicator />
+      <NuxtLayout>
+        <NuxtPage />
+      </NuxtLayout>
+    </ConfigProvider>
   </main>
 </template>

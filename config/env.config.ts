@@ -9,6 +9,8 @@ export function checkEnv(env: NodeJS.ProcessEnv) {
         "MAILGUN_API_KEY",
         "MAILGUN_DOMAIN",
         "MAIL_FROM_EMAIL",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
 
     ];
 

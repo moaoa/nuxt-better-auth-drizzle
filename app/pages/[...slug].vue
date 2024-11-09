@@ -14,6 +14,8 @@
 
 <template>
   <article>
+
+    <OgImage />
     <ContentDoc />
   </article>
 </template>

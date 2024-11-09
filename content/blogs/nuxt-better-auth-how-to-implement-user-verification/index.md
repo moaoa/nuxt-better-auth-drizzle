@@ -45,6 +45,7 @@ author:
 image:
   src: /media/NuxtZzle-home.png
   alt: Home page of NuxtZzle
+
 ogImage:
   component: BlogOgImage
   props:

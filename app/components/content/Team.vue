@@ -213,7 +213,8 @@ const socialIcon = (socialName: string) => {
           <div class="h-full overflow-hidden">
             <NuxtImg
               :src="imageUrl"
-              alt=""
+              :alt="firstName + ' ' + lastName"
+              loading="lazy"
               class="w-full aspect-square object-cover saturate-0 transition-all duration-200 ease-linear size-full group-hover/hoverimg:saturate-100 group-hover/hoverimg:scale-[1.01]"
             />
           </div>
@@ -242,6 +243,7 @@ const socialIcon = (socialName: string) => {
             target="_blank"
             class="hover:opacity-80 transition-all"
             :aria-label="`Visit our ${name} page`"
+            title="Visit our social network"
           >
             <Icon :name="socialIcon(name)" />
           </NuxtLink>

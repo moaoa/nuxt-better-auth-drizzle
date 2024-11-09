@@ -32,7 +32,7 @@ const { data } = await useAsyncData("footer_links", () =>
         <div class="flex flex-col gap-2 " v-for="{ title, links } in data.footerLinks" :key="title">
           <h3 class="font-bold text-lg">{{ title }}</h3>
           <div v-for="{ name, url, icon } in links" :key="name">
-            <NuxtLink :href="url" class="opacity-60 hover:opacity-100">
+            <NuxtLink :href="url" class="opacity-60 hover:opacity-100" :arial-label="name" :title="name">
               {{ name }}
             </NuxtLink>
           </div>

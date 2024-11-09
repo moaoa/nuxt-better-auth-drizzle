@@ -1,3 +1,4 @@
+import { OgImage } from './.nuxt/components.d';
 // https://nuxt.com/docs/api/configuration/nuxt-config
 
 import { checkEnv } from "./config/env.config"
@@ -23,7 +24,8 @@ export default defineNuxtConfig({
     "@nuxtjs/color-mode",
     "@nuxt/icon",
     '@unlighthouse/nuxt',
-    "nuxt-content-assets"
+    "nuxt-content-assets",
+    "@nuxt/fonts"
   ],
   formkit: {
     // autoImport: true,
@@ -63,6 +65,11 @@ export default defineNuxtConfig({
   image: {
     quality: 75,
     format: ['webp'],
+  },
+  ogImage: {
+    componentOptions: {
+      global: true
+    }
   },
   content: {
     documentDriven: true,

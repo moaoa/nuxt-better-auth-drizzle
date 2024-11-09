@@ -27,10 +27,9 @@ const { data } = await useAsyncData("nav_en", () =>
       'shadow-light': mode.value === 'light',
       'shadow-dark': mode.value === 'dark',
     }">
-    <header :class="{
-      'w-[90%] md:w-[70%] lg:w-[75%] lg:max-w-screen-2xl mx-auto sticky z-40  flex justify-between items-center p-2 ': true,
-    }">
-      <NuxtLink v-if="data" href="/" class="font-bold text-lg flex items-center">
+    <header
+      class="w-[90%] md:w-[70%] lg:w-[75%] lg:max-w-screen-2xl mx-auto sticky z-40  flex justify-between items-center p-2 ">
+      <NuxtLink v-if="data" href="/" class="font-bold text-lg flex items-center" aria-label="Home">
         <NuxtImg :src="data.logo" :alt="data.logoAlt" class="w-40 rounded-full" width="160" height="60" />
       </NuxtLink>
       <!-- Mobile -->
@@ -124,7 +123,7 @@ const { data } = await useAsyncData("nav_en", () =>
 
         <template v-if="data">
           <UiButton as-child size="sm" variant="ghost" :aria-label="action.label" v-for="action in data.actions">
-            <NuxtLink :aria-label="action.label" :href="action.href" :target="action.target || ''">
+            <NuxtLink :aria-label="action.label" :href="action.href" :target="action.target || ''" :prefetch="false">
               <Icon :name="action.icon" />
               {{ action.name }}
             </NuxtLink>

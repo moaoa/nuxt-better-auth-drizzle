@@ -2,6 +2,14 @@
 layout: default
 title: Nuxt setup with Better Auth module |  Step by step tutorial
 description: How to get started with Nuxt and Better Auth| Step by step tutorial.
+
+ogImage:
+  component: Pergel
+  props:
+    title: Nuxt setup with Better Auth module
+    description: How to get started with Nuxt and Better Auth.
+    heading: Nuxt 4
+
 head:
   htmlAttrs:
     lang: en

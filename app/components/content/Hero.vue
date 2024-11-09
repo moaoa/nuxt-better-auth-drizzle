@@ -89,7 +89,7 @@ const mode = useColorMode();
         <div class="space-y-4 md:space-y-0 md:space-x-4">
           <slot name="actions">
             <UiButton v-for="action in actions" :key="action.label" class="w-5/6 md:w-1/4 font-bold group/arrow"
-              :variant="action.variant as ButtonVariants['variant']" as-child>
+              :variant="action.variant as ButtonVariants['variant']" as-child :prefetch="false">
               <NuxtLink :href="action.href" :target="action.target || ''" :aria-label="action.label">
                 {{ action.label }}
                 <Icon v-if="action.icon" :name="action.icon"
