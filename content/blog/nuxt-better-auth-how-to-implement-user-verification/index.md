@@ -51,14 +51,14 @@ ogImage:
   props:
     image: /blog/3-months-of-europe.png
     readingMins: 5
-publishedAt: 2024-10-02
+publishedAt: 2024-11-02
 ---
+
 ::Blog-hero
 ::
 
-<div class="max-w-3xl mx-auto">
   
-  ### After user sing up, he can verify his email address by clicking on the link in his email.
+### After user sing up, he can verify his email address by clicking on the link in his email.
 
  - But we need to trigger that email verification.
 
@@ -141,4 +141,3 @@ The email for the verification is the following:
 
 ![Email verification screenshot](/media/email-screenshot.png)
 
-</div> 

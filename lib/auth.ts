@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth";
+import { admin } from "better-auth/plugins"
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import * as schema from "../db/schema";
 import { useDrizzle } from "../server/utils/drizzle";
@@ -28,10 +29,13 @@ export const auth = betterAuth({
                 input: true,
                 required: true,
             }
+        },
+        deleteUser: {
+            enabled: true,
         }
     },
     emailVerification: {
-        async sendVerificationEmail(user, url) {
+        async sendVerificationEmail({ user, url }) {
             await sendUserVerificationEmail(user, url);
         },
         sendOnSignUp: true,
@@ -48,5 +52,13 @@ export const auth = betterAuth({
             clientId: process.env.GOOGLE_CLIENT_ID as string,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET as string
         }
-    }
+    },
+    plugins: [
+        admin({
+            defaultRole: "user",
+            defaultBanExpiresIn: 7 * 24 * 60 * 60,
+            defaultBanReason: "Spamming",
+            impersonationSessionDuration: 1 * 24 * 60 * 60
+        })
+    ]
 })

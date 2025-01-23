@@ -7,9 +7,8 @@ export default <Partial<Config>><unknown>{
   safelist: ["dark"],
   prefix: "",
   content: [
-    "../app/**/*.{vue,js,ts,jsx,tsx,md}",
-    "../content/**/*.{json,yml,md}",
-    "../formkit/**.{vue,js,ts,jsx,tsx,md}",
+    "./app/**/*.{vue,js,ts,jsx,tsx,md}",
+    "./formkit/**.ts",
   ],
   theme: {
     container: {

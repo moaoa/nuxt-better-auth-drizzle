@@ -1,16 +1,6 @@
 
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 
-export const tools = sqliteTable("tool", {
-	id: integer("id").primaryKey({ autoIncrement: true }),
-	name: text("name").notNull(),
-	url: text("url"),
-	description: text("description"),
-	likes: integer("likes"),
-	tags: text("tags"),
-	pricing: text("pricing"),
-	imageUrl: text("image_url"),
-});
 
 export const user = sqliteTable("user", {
 	id: text("id").primaryKey(),
@@ -22,6 +12,10 @@ export const user = sqliteTable("user", {
 		mode: "boolean"
 	}).notNull(),
 	image: text('image'),
+	role: text('role', { enum: ["user", "admin"] }).notNull().default("user"),
+	banned: integer('banned', { mode: "boolean" }).notNull().default(false),
+	banReason: text('ban_reason'),
+	banExpires: integer('ban_expires', { mode: "timestamp" }),
 	createdAt: integer('createdAt', {
 		mode: "timestamp"
 	}).notNull(),
@@ -35,9 +29,13 @@ export const session = sqliteTable("session", {
 	expiresAt: integer('expiresAt', {
 		mode: "timestamp"
 	}).notNull(),
+	token: text('token').notNull().unique(),
+	createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+	updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
 	ipAddress: text('ipAddress'),
 	userAgent: text('userAgent'),
-	userId: text('userId').notNull().references(() => user.id)
+	userId: text('userId').notNull().references(() => user.id),
+	impersonatedBy: text('impersonated_by').references(() => user.id),
 });
 
 export const account = sqliteTable("account", {
@@ -48,10 +46,12 @@ export const account = sqliteTable("account", {
 	accessToken: text('accessToken'),
 	refreshToken: text('refreshToken'),
 	idToken: text('idToken'),
-	expiresAt: integer('expiresAt', {
-		mode: "timestamp"
-	}),
-	password: text('password')
+	accessTokenExpiresAt: integer('access_token_expires_at', { mode: 'timestamp' }),
+	refreshTokenExpiresAt: integer('refresh_token_expires_at', { mode: 'timestamp' }),
+	scope: text('scope'),
+	password: text('password'),
+	createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+	updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull()
 });
 
 export const verification = sqliteTable("verification", {
@@ -60,5 +60,21 @@ export const verification = sqliteTable("verification", {
 	value: text('value').notNull(),
 	expiresAt: integer('expiresAt', {
 		mode: "timestamp"
-	}).notNull()
+	}).notNull(),
+	createdAt: integer('created_at', { mode: 'timestamp' }),
+	updatedAt: integer('updated_at', { mode: 'timestamp' })
+});
+
+/***
+* Custom table here 
+**/
+export const tools = sqliteTable("tool", {
+	id: integer("id").primaryKey({ autoIncrement: true }),
+	name: text("name").notNull(),
+	url: text("url"),
+	description: text("description"),
+	likes: integer("likes"),
+	tags: text("tags"),
+	pricing: text("pricing"),
+	imageUrl: text("image_url"),
 });

@@ -49,12 +49,10 @@ publishedAt: 2024-10-02
 ::Blog-hero
 ::
 
-<div class="max-w-3xl mx-auto">
   
-  ## How to add a GIF for the cover image for your dev.to post
+## How to add a GIF for the cover image for your dev.to post
 
-  While working on a couple articles for this week, 
-  I notice that the best articles or the articles that get the most attention are the ones that have a nice GIF as the cover image.
+While working on a couple articles for this week, 
+I notice that the best articles or the articles that get the most attention are the ones that have a nice GIF as the cover image.
 
-  ## So I was like let me copy them and see how far I can get or if that actually get more reach than just a normal Image for the Cover image.
-</div> 
+## So I was like let me copy them and see how far I can get or if that actually get more reach than just a normal Image for the Cover image.
