@@ -1,6 +1,9 @@
 import { defineContentConfig, defineCollection } from '@nuxt/content'
 import { z } from 'zod'
 
+
+import { asSeoCollection } from '@nuxtjs/seo/content'
+
 const linkZodDefinition = z.object({
     name: z.string(),
     href: z.string(),
@@ -19,7 +22,7 @@ const mainLink = linkZodDefinition.and(
     })
 );
 export const collections = {
-    content: defineCollection({
+    content: defineCollection(asSeoCollection({
         type: 'page',
         source: {
             include: '**.md',
@@ -65,8 +68,8 @@ export const collections = {
                 })
             })
         })
-    }),
-    navigation: defineCollection({
+    })),
+    navigation: defineCollection(asSeoCollection({
         type: 'data',
         source: 'nav/**.yml',
         schema: z.object({
@@ -96,5 +99,5 @@ export const collections = {
                 }))
             }))
         })
-    })
+    }))
 }

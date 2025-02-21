@@ -1,8 +1,8 @@
 import { betterAuth } from "better-auth";
 import { admin } from "better-auth/plugins"
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import * as schema from "../db/schema";
-import { useDrizzle } from "../server/utils/drizzle";
+import * as schema from "~~/db/schema";
+import { useDrizzle } from "~~/server/utils/drizzle";
 
 import { sendUserVerificationEmail } from "~~/server/utils/email";
 

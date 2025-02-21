@@ -1,4 +1,5 @@
 
+import type { InferSelectModel } from "drizzle-orm";
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 
 
@@ -78,3 +79,6 @@ export const tools = sqliteTable("tool", {
 	pricing: text("pricing"),
 	imageUrl: text("image_url"),
 });
+
+
+export type User = InferSelectModel<typeof user>;
