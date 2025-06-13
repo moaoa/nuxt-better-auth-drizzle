@@ -1,4 +1,4 @@
-import { migrate } from "drizzle-orm/libsql/migrator";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
 import config from "~~/config/drizzle.config";
 import { useDrizzle } from "~~/server/utils/drizzle";
 
