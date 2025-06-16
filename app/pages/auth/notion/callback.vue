@@ -14,6 +14,8 @@
 </template>
 
 <script setup lang="ts">
+import { useNotionAuth } from "~~/composables/useNotionAuth";
+
 const route = useRoute();
 const { handleCallback } = useNotionAuth();
 
@@ -32,9 +34,11 @@ onMounted(async () => {
 
   try {
     const response = await handleCallback(code);
-    token.value = response.access_token;
+    // alert(response.access_token);
+    // token.value = response;
   } catch (e) {
-    error.value = "Failed to exchange code for token";
+    error.value =
+      e instanceof Error ? e.message : "Failed to exchange code for token";
     console.error(e);
   } finally {
     loading.value = false;

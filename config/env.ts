@@ -17,7 +17,7 @@ export const config = {
       "secret_x4pRlEBIZnqzlPk2EZogY2rWNXuck9OnKqlg8gMGzdJ",
     redirectUri:
       env?.NOTION_OAUTH_REDIRECT_URI ||
-      "http://localhost:3000/api/auth/notion/callback",
+      "http://localhost:3000/auth/notion/callback",
   },
   auth: {
     secret: env?.BETTER_AUTH_SECRET,
