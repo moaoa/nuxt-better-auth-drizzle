@@ -1,9 +1,18 @@
-import { notionConfig } from "../config/notion.config";
-
 export const useNotionAuth = () => {
+  const config = useRuntimeConfig();
+
+  const notionConfig = {
+    clientId: config.public.NOTION_OAUTH_CLIENT_ID,
+    clientSecret: config.NOTION_OAUTH_CLIENT_SECRET,
+    redirectUri: config.public.NOTION_OAUTH_REDIRECT_URI,
+    scopes: ["read_user", "write_user", "read_blocks", "write_blocks"],
+    authUrl: config.public.NOTION_AUTH_URL,
+    notionTokenUrl: config.public.NOTION_TOKEN_URL,
+  };
+
   const initiateAuth = () => {
     const params = new URLSearchParams({
-      client_id: notionConfig.clientId!,
+      client_id: notionConfig.clientId,
       redirect_uri: notionConfig.redirectUri,
       response_type: "code",
       owner: "user",
@@ -17,7 +26,6 @@ export const useNotionAuth = () => {
 
     params.append("scope", combinedScopes);
 
-    // alert(JSON.stringify(notionConfig));
     window.location.href = `${notionConfig.authUrl}?${params.toString()}`;
   };
 

@@ -1,11 +1,6 @@
 import { OgImage } from "./.nuxt/components.d";
 // https://nuxt.com/docs/api/configuration/nuxt-config
 
-import { checkEnv } from "./config/env.config";
-import { env } from "node:process";
-
-checkEnv(env);
-
 export default defineNuxtConfig({
   compatibilityDate: "2024-04-03",
   future: { compatibilityVersion: 4 },
@@ -102,6 +97,15 @@ export default defineNuxtConfig({
           },
         },
       },
+    },
+  },
+  runtimeConfig: {
+    NOTION_OAUTH_CLIENT_SECRET: process.env.NOTION_OAUTH_CLIENT_SECRET,
+    public: {
+      NOTION_OAUTH_REDIRECT_URI: process.env.NOTION_OAUTH_REDIRECT_URI,
+      NOTION_OAUTH_CLIENT_ID: process.env.NOTION_OAUTH_CLIENT_ID,
+      NOTION_TOKEN_URL: process.env.NOTION_TOKEN_URL,
+      NOTION_AUTH_URL: process.env.NOTION_AUTH_URL,
     },
   },
 });

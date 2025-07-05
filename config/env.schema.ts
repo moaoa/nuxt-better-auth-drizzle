@@ -26,15 +26,12 @@ export type Env = z.infer<typeof envSchema>;
 export const validateEnv = () => {
   const parsed = envSchema.safeParse(process.env);
 
-  // if (!parsed.success) {
-  //   console.log(JSON.stringify(process.env));
-  //   console.error("❌ Invalid environment variables:", parsed.error);
-  //   throw new Error("hi: " + JSON.stringify(process.env));
-  //   throw new Error(
-  //     "❌ Invalid environment variables:" +
-  //       JSON.stringify(parsed.error, null, 2)
-  //   );
-  // }
+  if (!parsed.success) {
+    throw new Error(
+      "❌ Invalid environment variables:" +
+        JSON.stringify(parsed.error, null, 2)
+    );
+  }
 
   return parsed.data;
 };
