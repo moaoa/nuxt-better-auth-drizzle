@@ -6,7 +6,10 @@ const connectionString = process.env.DATABASE_URL!;
 const client = postgres(connectionString);
 
 export const useDrizzle = () => {
-  return drizzle(client, { schema });
+  return drizzle(client, {
+    schema,
+    logger: process.env.NODE_ENV !== "production",
+  });
 };
 
 export const tables = schema;

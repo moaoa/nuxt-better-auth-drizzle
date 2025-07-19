@@ -1,3 +1,5 @@
+import { desc } from "drizzle-orm";
+import { notionOAuthRecord } from "~~/db/schema";
 import { NotionOAuthResponse } from "~~/types/notion";
 
 export default defineEventHandler(async (event) => {
@@ -36,6 +38,27 @@ export default defineEventHandler(async (event) => {
         body,
       }
     );
+
+    const db = useDrizzle();
+
+    const lastRecord = await db
+      .select()
+      .from(notionOAuthRecord)
+      .orderBy(desc(notionOAuthRecord.id))
+      .limit(1);
+
+    const lastId = lastRecord?.at(0)?.id ?? 0;
+
+    await db.insert(notionOAuthRecord).values({
+      id: lastId + 1,
+      ...response,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    console.log(response);
+
+    // fill the many to many table (between records and users)
 
     return response;
   } catch (error) {

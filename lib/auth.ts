@@ -1,10 +1,14 @@
 import { betterAuth } from "better-auth";
 import { admin } from "better-auth/plugins";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import * as schema from "~~/db/schema";
-import { useDrizzle } from "~~/server/utils/drizzle";
+// import * as schema from "~~/db/schema";
+import * as schema from "../db/schema";
+// import { useDrizzle } from "~~/server/utils/drizzle";
+import { useDrizzle } from "../server/utils/drizzle";
 
-import { sendUserVerificationEmail } from "~~/server/utils/email";
+import { sendUserVerificationEmail } from "../server/utils/email";
+
+console.log("hi: ", process.env.BETTER_AUTH_URL);
 
 export const auth = betterAuth({
   database: drizzleAdapter(useDrizzle(), {
@@ -49,8 +53,12 @@ export const auth = betterAuth({
   },
   socialProviders: {
     google: {
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+      clientId: process.env.NUXT_GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.NUXT_GOOGLE_CLIENT_SECRET as string,
+      mapProfile: (profile: { given_name: string; family_name: string }) => ({
+        firstName: profile.given_name,
+        lastName: profile.family_name,
+      }),
     },
   },
   plugins: [

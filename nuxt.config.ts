@@ -101,6 +101,7 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     NOTION_OAUTH_CLIENT_SECRET: process.env.NOTION_OAUTH_CLIENT_SECRET,
+    // BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
     public: {
       NOTION_OAUTH_REDIRECT_URI: process.env.NOTION_OAUTH_REDIRECT_URI,
       NOTION_OAUTH_CLIENT_ID: process.env.NOTION_OAUTH_CLIENT_ID,

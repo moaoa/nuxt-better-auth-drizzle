@@ -6,50 +6,57 @@ import {
   boolean,
   varchar,
   serial,
+  uuid,
+  json,
+  integer,
 } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
-  firstName: text("firstName"),
-  lastName: text("lastName"),
   email: text("email").notNull().unique(),
-  emailVerified: boolean("emailVerified").notNull(),
+  emailVerified: boolean("email_verified")
+    .$defaultFn(() => false)
+    .notNull(),
   image: text("image"),
-  role: text("role", { enum: ["user", "admin"] })
-    .notNull()
-    .default("user"),
-  banned: boolean("banned").notNull().default(false),
+  createdAt: timestamp("created_at")
+    .$defaultFn(() => /* @__PURE__ */ new Date())
+    .notNull(),
+  updatedAt: timestamp("updated_at")
+    .$defaultFn(() => /* @__PURE__ */ new Date())
+    .notNull(),
+  role: text("role"),
+  banned: boolean("banned"),
   banReason: text("ban_reason"),
   banExpires: timestamp("ban_expires"),
-  createdAt: timestamp("createdAt").notNull(),
-  updatedAt: timestamp("updatedAt").notNull(),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
 });
 
 export const session = pgTable("session", {
   id: text("id").primaryKey(),
-  expiresAt: timestamp("expiresAt").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
   token: text("token").notNull().unique(),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
-  ipAddress: text("ipAddress"),
-  userAgent: text("userAgent"),
-  userId: text("userId")
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  userId: text("user_id")
     .notNull()
-    .references(() => user.id),
-  impersonatedBy: text("impersonated_by").references(() => user.id),
+    .references(() => user.id, { onDelete: "cascade" }),
+  impersonatedBy: text("impersonated_by"),
 });
 
 export const account = pgTable("account", {
   id: text("id").primaryKey(),
-  accountId: text("accountId").notNull(),
-  providerId: text("providerId").notNull(),
-  userId: text("userId")
+  accountId: text("account_id").notNull(),
+  providerId: text("provider_id").notNull(),
+  userId: text("user_id")
     .notNull()
-    .references(() => user.id),
-  accessToken: text("accessToken"),
-  refreshToken: text("refreshToken"),
-  idToken: text("idToken"),
+    .references(() => user.id, { onDelete: "cascade" }),
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  idToken: text("id_token"),
   accessTokenExpiresAt: timestamp("access_token_expires_at"),
   refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
   scope: text("scope"),
@@ -62,23 +69,33 @@ export const verification = pgTable("verification", {
   id: text("id").primaryKey(),
   identifier: text("identifier").notNull(),
   value: text("value").notNull(),
-  expiresAt: timestamp("expiresAt").notNull(),
-  createdAt: timestamp("created_at"),
-  updatedAt: timestamp("updated_at"),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").$defaultFn(
+    () => /* @__PURE__ */ new Date()
+  ),
+  updatedAt: timestamp("updated_at").$defaultFn(
+    () => /* @__PURE__ */ new Date()
+  ),
 });
 
-/***
- * Custom table here
- **/
-export const tools = pgTable("tool", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  url: text("url"),
-  description: text("description"),
-  likes: serial("likes"),
-  tags: text("tags"),
-  pricing: text("pricing"),
-  imageUrl: text("image_url"),
+export const notionOAuthRecord = pgTable("notion_oauth_record", {
+  id: integer("id").primaryKey(),
+  uuid: uuid("uuid"),
+  bot_id: uuid("bot_id"),
+  workspace_id: uuid("workspace_id"),
+  workspace_name: text("workspace_name"),
+  workspace_icon: text("workspace_icon"),
+  duplicated_template_id: uuid("duplicated_template_id"),
+  request_id: uuid("request_id"),
+  owner: json("owner"),
+  access_token: text("access_token"),
+  createdAt: timestamp("createdAt").notNull(),
+  updatedAt: timestamp("updatedAt").notNull(),
+});
+
+export const notionOAuthRecordsUsers = pgTable("notion_oauth_records_users", {
+  user_id: integer("user_id"),
+  notion_oauth_record_id: integer("notion_oauth_record_id"),
 });
 
 export type User = InferSelectModel<typeof user>;
