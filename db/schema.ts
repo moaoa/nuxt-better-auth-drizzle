@@ -94,7 +94,7 @@ export const notionOAuthRecord = pgTable("notion_oauth_record", {
 });
 
 export const notionOAuthRecordsUsers = pgTable("notion_oauth_records_users", {
-  user_id: integer("user_id"),
+  user_id: text("user_id"),
   notion_oauth_record_id: integer("notion_oauth_record_id"),
 });
 

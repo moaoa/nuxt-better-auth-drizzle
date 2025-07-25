@@ -55,10 +55,15 @@ export const auth = betterAuth({
     google: {
       clientId: process.env.NUXT_GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.NUXT_GOOGLE_CLIENT_SECRET as string,
-      mapProfile: (profile: { given_name: string; family_name: string }) => ({
-        firstName: profile.given_name,
-        lastName: profile.family_name,
-      }),
+      mapProfileToUser: (profile: {
+        given_name: string;
+        family_name: string;
+      }) => {
+        return {
+          firstName: profile.given_name,
+          lastName: profile.family_name,
+        };
+      },
     },
   },
   plugins: [

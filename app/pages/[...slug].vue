@@ -10,25 +10,27 @@
  * @todo [ ] Integration test.
  * @todo [✔] Update the typescript.
  */
-const route = useRoute()
-
+const route = useRoute();
 
 const { data: page } = await useAsyncData(route.path, () => {
-  return queryCollection("content").path(route.path).first()
-})
+  return queryCollection("content").path(route.path).first();
+});
 
-useHead(page.value?.head || {})
-useSeoMeta(page.value?.seo || {}) 
-defineOgImageComponent('BlogOgImage', {
-  title: `${page.value?.title.replace("NuxtZzle starterkit |", "").slice(0, 50)}...`,
+useHead(page.value?.head || {});
+useSeoMeta(page.value?.seo || {});
+defineOgImageComponent("BlogOgImage", {
+  title: `${page.value?.title
+    .replace("NuxtZzle starterkit |", "")
+    .slice(0, 50)}...`,
   description: `${page.value?.description.slice(0, 200)}...`,
-  headline: '👋 Hello from LEAMSIGC',
-})
+  headline: "👋 Hello from LEAMSIGC",
+});
 </script>
 
 <template>
   <article>
-    <ContentRenderer v-if="page" :value="page" />
+    <!-- <ContentRenderer v-if="page" :value="page" /> -->
+    <div v-if="page">{{ page }}</div>
     <NotFoundView v-else />
   </article>
 </template>
