@@ -78,24 +78,40 @@ export const verification = pgTable("verification", {
   ),
 });
 
-export const notionOAuthRecord = pgTable("notion_oauth_record", {
+export const notionOAuth = pgTable("notion_oauth", {
   id: integer("id").primaryKey(),
   uuid: uuid("uuid"),
+  access_token: text("access_token"),
+  token_type: text("token_type"),
+  notion_workspace_id: uuid("notion_workspace_id")
+    .notNull()
+    .references(() => workspace.uuid),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
+});
+
+export const workspace = pgTable("workspace", {
+  id: integer("id").primaryKey(),
+  uuid: uuid("uuid").notNull().unique(),
   bot_id: uuid("bot_id"),
-  workspace_id: uuid("workspace_id"),
+  notion_workspace_id: uuid("notion_workspace_id"),
   workspace_name: text("workspace_name"),
   workspace_icon: text("workspace_icon"),
   duplicated_template_id: uuid("duplicated_template_id"),
   request_id: uuid("request_id"),
   owner: json("owner"),
-  access_token: text("access_token"),
   createdAt: timestamp("createdAt").notNull(),
   updatedAt: timestamp("updatedAt").notNull(),
 });
 
-export const notionOAuthRecordsUsers = pgTable("notion_oauth_records_users", {
-  user_id: text("user_id"),
-  notion_oauth_record_id: integer("notion_oauth_record_id"),
+export const notionOAuthUsers = pgTable("notion_oauth_users", {
+  user_id: text("user_id").references(() => user.id),
+  notion_oauth_id: integer("notion_oauth_id").references(() => notionOAuth.id),
+});
+
+export const workspaceUsers = pgTable("workspace_users", {
+  user_id: text("user_id").references(() => user.id),
+  workspace_id: integer("workspace_id").references(() => workspace.id),
 });
 
 export type User = InferSelectModel<typeof user>;
