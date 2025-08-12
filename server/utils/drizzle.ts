@@ -1,6 +1,16 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "../../db/schema";
+import winston from "winston";
+
+const logger = winston.createLogger({
+  level: "info",
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.simple()
+  ),
+  transports: [new winston.transports.File({ filename: "drizzle.log" })],
+});
 
 const connectionString = process.env.DATABASE_URL!;
 const client = postgres(connectionString);
@@ -8,7 +18,11 @@ const client = postgres(connectionString);
 export const useDrizzle = () => {
   return drizzle(client, {
     schema,
-    logger: process.env.NODE_ENV !== "production",
+    logger: {
+      logQuery(query, params) {
+        logger.info(query, params);
+      },
+    },
   });
 };
 

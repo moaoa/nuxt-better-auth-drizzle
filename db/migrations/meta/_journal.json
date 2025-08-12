@@ -15,6 +15,27 @@
       "when": 1753636047443,
       "tag": "0001_motionless_loki",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1753636278483,
+      "tag": "0002_spicy_blonde_phantom",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1754848072880,
+      "tag": "0003_legal_grim_reaper",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1755019113543,
+      "tag": "0004_yummy_argent",
+      "breakpoints": true
     }
   ]
 }

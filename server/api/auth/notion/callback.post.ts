@@ -1,5 +1,10 @@
 import { desc } from "drizzle-orm";
-import { notionOAuth, notionOAuthUsers, workspace } from "~~/db/schema";
+import {
+  notionOAuth,
+  notionOAuthUsers,
+  workspace,
+  workspaceUsers,
+} from "~~/db/schema";
 import { NotionOAuthResponse } from "~~/types/notion";
 import { auth } from "~~/lib/auth";
 import { getNextId } from "~~/lib/utils";
@@ -53,11 +58,21 @@ export default defineEventHandler(async (event) => {
     if (!session) throw new Error("Session not found");
 
     await db.transaction(async (tx) => {
+      await tx.insert(workspace).values({
+        id: nextWorkspaceId,
+        uuid: response.workspace_id,
+        workspace_name: response.workspace_name,
+        workspace_icon: response.workspace_icon,
+        notion_workspace_id: response.workspace_id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
       await tx.insert(notionOAuth).values({
         id: nextOauthId,
         uuid: response.workspace_id,
         access_token: response.access_token,
-        notion_workspace_id: response.workspace_id,
+        notion_workspace_id: nextWorkspaceId,
         token_type: response.token_type,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -68,13 +83,9 @@ export default defineEventHandler(async (event) => {
         user_id: session.user.id,
       });
 
-      await tx.insert(workspace).values({
-        id: nextWorkspaceId,
-        uuid: response.workspace_id,
-        workspace_name: response.workspace_name,
-        workspace_icon: response.workspace_icon,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+      await tx.insert(workspaceUsers).values({
+        user_id: session.user.id,
+        workspace_id: nextWorkspaceId,
       });
     });
 

@@ -83,9 +83,9 @@ export const notionOAuth = pgTable("notion_oauth", {
   uuid: uuid("uuid"),
   access_token: text("access_token"),
   token_type: text("token_type"),
-  notion_workspace_id: uuid("notion_workspace_id")
+  notion_workspace_id: integer("notion_workspace_id")
     .notNull()
-    .references(() => workspace.uuid),
+    .references(() => workspace.id),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
 });
