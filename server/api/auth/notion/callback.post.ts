@@ -1,4 +1,4 @@
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import {
   notionOAuth,
   notionOAuthUsers,
@@ -56,6 +56,14 @@ export default defineEventHandler(async (event) => {
     });
 
     if (!session) throw new Error("Session not found");
+
+    const item = await db.query.workspace.findFirst({
+      where: eq(workspace.uuid, response.workspace_id),
+    });
+
+    if (item) {
+      return;
+    }
 
     await db.transaction(async (tx) => {
       await tx.insert(workspace).values({
