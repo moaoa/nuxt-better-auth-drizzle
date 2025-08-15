@@ -78,6 +78,51 @@ export const verification = pgTable("verification", {
   ),
 });
 
+export const automation = pgTable("automation", {
+  id: integer("id").primaryKey(),
+  uuid: uuid("uuid").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
+});
+
+export const automationUsers = pgTable("automation_users", {
+  user_id: text("user_id").references(() => user.id),
+  automation_id: integer("automation_id").references(() => automation.id),
+});
+
+export const notionDatabase = pgTable("notion_database", {
+  id: integer("id").primaryKey(),
+  uuid: uuid("uuid").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
+});
+
+export const connection = pgTable("connection", {
+  id: integer("id").primaryKey(),
+  uuid: uuid("uuid").notNull().unique(),
+  service_id: integer("service_id").notNull(),
+  user_id: text("user_id").references(() => user.id),
+  user_name: text("user_name").notNull(),
+  connection_oauth_id: text("connection_oauth_id"),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
+});
+
+export const service = pgTable("service", {
+  id: integer("id").primaryKey(),
+  uuid: uuid("uuid").notNull().unique(),
+  service_key: text("service_key").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  icon: text("icon"),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
+});
+
 export const notionOAuth = pgTable("notion_oauth", {
   id: integer("id").primaryKey(),
   uuid: uuid("uuid"),
