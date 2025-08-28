@@ -13,3 +13,4 @@ Notion Integrations is built using the following technologies:
 - [PostgreSQL](https://www.postgresql.org/): A powerful, open source relational database system.
 - [Vue Shadcn Components](https://shadcn.com/docs/ui/): A set of Vue.js components built on top of Tailwind CSS that provide a consistent and visually appealing UI.
 - [BetterAuth](https://github.com/leamsigc/better-auth): using BetterAuth for authentication and authorization.
+- [Notion SDK](https://github.com/leamsigc/better-auth): using Notion SDK for interacting with Notion API.
