@@ -10,7 +10,8 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event);
-  const { name } = body;
+  const { name, service_uuid } = body;
+  //TODO: based on teh service create the appropriate db props
 
   if (!name) {
     throw createError({
@@ -65,6 +66,7 @@ export default defineEventHandler(async (event) => {
         Name: {
           title: {},
         },
+        //TODO: put the props based on the service
       },
     });
     return response;
