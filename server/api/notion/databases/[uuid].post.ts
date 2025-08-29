@@ -1,6 +1,6 @@
 import { Client } from "@notionhq/client";
 import { auth } from "~~/lib/auth";
-import { serviceAccount } from "~~/db/schema";
+import { serviceAccount, workspace } from "~~/db/schema";
 import { eq } from "drizzle-orm";
 
 export default defineEventHandler(async (event) => {
@@ -19,7 +19,20 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  const workspaceUUID = event.context.params?.uuid;
+
   const db = useDrizzle();
+
+  const _workspace = await db.query.workspace.findFirst({
+    where: eq(workspace.uuid, workspaceUUID ?? ""),
+  });
+
+  if (!workspaceUUID || !_workspace) {
+    throw createError({
+      statusCode: 404,
+      message: "Workspace not found.",
+    });
+  }
 
   const userServiceAccount = await db.query.serviceAccount.findFirst({
     where: eq(serviceAccount.user_id, session.user.id),
@@ -38,7 +51,7 @@ export default defineEventHandler(async (event) => {
     const response = await notion.databases.create({
       parent: {
         type: "page_id",
-        page_id: userServiceAccount.uuid,
+        page_id: _workspace.notion_workspace_id,
       },
       title: [
         {
