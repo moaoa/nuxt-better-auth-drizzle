@@ -10,7 +10,7 @@
  * @todo [ ] Integration test.
  * @todo [✔] Update the typescript.
  */
-import { Badge } from "@/components/ui/badge";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 enum ProService {
   YES = 1,
@@ -74,13 +74,13 @@ const { list } = toRefs(props);
 
     <div class="grid sm:grid-cols-2 lg:grid-cols-2 gap-4 w-full lg:w-[60%] mx-auto">
       <div v-for="{ title, description, pro } in list" :key="title">
-        <UiCard class="bg-muted/60 dark:bg-card h-full relative">
-          <UiCardHeader>
-            <UiCardTitle>{{ title }}</UiCardTitle>
-            <UiCardDescription>{{ description }}</UiCardDescription>
-          </UiCardHeader>
+        <Card class="bg-muted/60 dark:bg-card h-full relative">
+          <CardHeader>
+            <CardTitle>{{ title }}</CardTitle>
+            <CardDescription>{{ description }}</CardDescription>
+          </CardHeader>
           <Badge v-if="pro === ProService.YES" variant="secondary" class="absolute -top-2 -right-3">PRO</Badge>
-        </UiCard>
+        </Card>
       </div>
     </div>
   </section>

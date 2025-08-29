@@ -1,5 +1,4 @@
-import { ref } from "vue";
-import { useNuxtApp } from "#app";
+import { useQuery } from "@tanstack/vue-query";
 
 interface ApiWorkspace {
   id: number;
@@ -30,46 +29,26 @@ export interface Workspace {
 }
 
 export const useWorkspaces = () => {
-  const workspaces = ref<Workspace[]>([]);
-  const loading = ref(false);
-  const error = ref<Error | null>(null);
-  const { $api } = useNuxtApp();
-
-  const fetchWorkspaces = async () => {
-    loading.value = true;
-    error.value = null;
-
-    try {
+  const { data: workspaces, isLoading: loading, error } = useQuery({
+    queryKey: ['workspaces'],
+    queryFn: async () => {
       const data = await $fetch("/api/workspaces", {
         method: "GET",
       });
 
-      console.log("data: ", data);
-
-      workspaces.value = (data.workspaces || []).map((w) => ({
+      return (data.workspaces || []).map((w) => ({
         id: String(w.workspace.id),
         notion_workspace_id: w.workspace.notion_workspace_id,
         name: w.workspace.workspace_name,
         icon: w.workspace.workspace_icon,
         created_at: w.workspace.createdAt,
       }));
-
-      console.log(
-        "====================================================================================="
-      );
-      console.log(workspaces.value);
-    } catch (err) {
-      console.error("Failed to fetch workspaces:", err);
-      error.value = err as Error;
-    } finally {
-      loading.value = false;
     }
-  };
+  });
 
   return {
     workspaces,
     loading,
     error,
-    fetchWorkspaces,
   };
 };

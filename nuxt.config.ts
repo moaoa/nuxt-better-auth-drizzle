@@ -22,7 +22,20 @@ export default defineNuxtConfig({
     "@nuxt/fonts",
     "@vueuse/motion/nuxt",
     "@nuxtjs/i18n",
+    "@hebilicious/vue-query-nuxt",
   ],
+  vueQuery: {
+    // useState key used by nuxt-vue-query
+    stateKey: "vue-query-state",
+    // Nuxt Vue Query configuration options
+    queryClientOptions: {
+      defaultOptions: {
+        queries: {
+          staleTime: 5000,
+        },
+      },
+    },
+  },
   i18n: {
     vueI18n: "./i18n.config.ts",
     locales: ["en"],

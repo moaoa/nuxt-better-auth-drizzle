@@ -1,12 +1,8 @@
 <script lang="ts" setup>
 import type { User } from "~~/db/schema";
 
-const emit = defineEmits<{
-  refresh: [];
-}>();
-
 const { isCreateOpen, closeCreateUser } = useUser();
-const { createUserAsAdmin, isLoading, fetchUsers } = useUserManagement();
+const { createUserAsAdmin, isLoading } = useUserManagement();
 
 const userForm = ref<Omit<User, 'id' | 'createdAt' | 'updatedAt'>>({
   email: "",

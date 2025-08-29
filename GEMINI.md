@@ -14,3 +14,17 @@ Notion Integrations is built using the following technologies:
 - [Vue Shadcn Components](https://shadcn.com/docs/ui/): A set of Vue.js components built on top of Tailwind CSS that provide a consistent and visually appealing UI.
 - [BetterAuth](https://github.com/leamsigc/better-auth): using BetterAuth for authentication and authorization.
 - [Notion SDK](https://github.com/leamsigc/better-auth): using Notion SDK for interacting with Notion API.
+- [Vue query](https://tanstack.com/query/v5): using Vue query for data fetching and caching.
+
+## Repository pattern
+
+- Repository pattern to wrap the api fetch logic, the repo should be an object that contains multiple methods, each method should be responsible for a specific action.
+
+## Pages code
+
+- We should use vue query to fetch data in pages, the vue query composables should be used with the corresponding repo for the page
+
+## UI Components
+
+- UiButton
+- UiInput

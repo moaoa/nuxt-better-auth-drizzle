@@ -16,6 +16,7 @@ export const useNotionAuth = () => {
       redirect_uri: notionConfig.redirectUri,
       response_type: "code",
       owner: "user",
+      state: "notion",
     });
 
     let combinedScopes = "";

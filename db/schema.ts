@@ -83,31 +83,43 @@ export const automation = pgTable("automation", {
   uuid: uuid("uuid").notNull().unique(),
   name: text("name").notNull(),
   description: text("description"),
+  user_id: text("user_id").references(() => user.id),
+  service_id: integer("service_id")
+    .notNull()
+    .references(() => service.id),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
-});
-
-export const automationUsers = pgTable("automation_users", {
-  user_id: text("user_id").references(() => user.id),
-  automation_id: integer("automation_id").references(() => automation.id),
 });
 
 export const notionDatabase = pgTable("notion_database", {
   id: integer("id").primaryKey(),
   uuid: uuid("uuid").notNull().unique(),
+  notion_db_uuid: uuid("notion_db_uuid").notNull(),
   name: text("name").notNull(),
   description: text("description"),
+  service_account_id: integer("service_account_id")
+    .notNull()
+    .references(() => serviceAccount.id),
+  user_id: text("user_id").references(() => user.id),
+  service_id: integer("service_id")
+    .notNull()
+    .references(() => service.id),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
 });
 
-export const connection = pgTable("connection", {
-  id: integer("id").primaryKey(),
+export const serviceAccount = pgTable("service_account", {
+  id: integer("id").primaryKey().notNull(),
   uuid: uuid("uuid").notNull().unique(),
   service_id: integer("service_id").notNull(),
-  user_id: text("user_id").references(() => user.id),
+  user_id: text("user_id")
+    .notNull()
+    .references(() => user.id),
   user_name: text("user_name").notNull(),
-  connection_oauth_id: text("connection_oauth_id"),
+  access_token: text("access_token").notNull(),
+  refresh_token: text("refresh_token"),
+  token_type: text("token_type").notNull(),
+  revoked_at: timestamp("revoked_at"),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
 });
@@ -123,18 +135,6 @@ export const service = pgTable("service", {
   updatedAt: timestamp("updated_at").notNull(),
 });
 
-export const notionOAuth = pgTable("notion_oauth", {
-  id: integer("id").primaryKey(),
-  uuid: uuid("uuid"),
-  access_token: text("access_token"),
-  token_type: text("token_type"),
-  notion_workspace_id: integer("notion_workspace_id")
-    .notNull()
-    .references(() => workspace.id),
-  createdAt: timestamp("created_at").notNull(),
-  updatedAt: timestamp("updated_at").notNull(),
-});
-
 export const workspace = pgTable("workspace", {
   id: integer("id").primaryKey(),
   uuid: uuid("uuid").notNull().unique(),
@@ -142,21 +142,14 @@ export const workspace = pgTable("workspace", {
   notion_workspace_id: uuid("notion_workspace_id").notNull(),
   workspace_name: text("workspace_name").notNull(),
   workspace_icon: text("workspace_icon"),
+  service_account_id: integer("service_account_id")
+    .references(() => serviceAccount.id)
+    .notNull(),
   duplicated_template_id: uuid("duplicated_template_id"),
   request_id: uuid("request_id"),
   owner: json("owner"),
   createdAt: timestamp("createdAt").notNull(),
   updatedAt: timestamp("updatedAt").notNull(),
-});
-
-export const notionOAuthUsers = pgTable("notion_oauth_users", {
-  user_id: text("user_id").references(() => user.id),
-  notion_oauth_id: integer("notion_oauth_id").references(() => notionOAuth.id),
-});
-
-export const workspaceUsers = pgTable("workspace_users", {
-  user_id: text("user_id").references(() => user.id),
-  workspace_id: integer("workspace_id").references(() => workspace.id),
 });
 
 export type User = InferSelectModel<typeof user>;

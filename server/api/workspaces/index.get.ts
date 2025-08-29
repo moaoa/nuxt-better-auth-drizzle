@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { workspace, workspaceUsers } from "~~/db/schema";
+import { serviceAccount, workspace } from "~~/db/schema";
 import { auth } from "~~/lib/auth";
 import { useDrizzle } from "~~/server/utils/drizzle";
 
@@ -17,11 +17,18 @@ export default defineEventHandler(async (event) => {
 
   const db = useDrizzle();
 
-  const workspaces = await db
-    .select()
+  const result = await db
+    .select({
+      uuid: workspace.uuid,
+      name: workspace.workspace_name,
+      icon: workspace.workspace_icon,
+    })
     .from(workspace)
-    .innerJoin(workspaceUsers, eq(workspaceUsers.workspace_id, workspace.id))
-    .where(eq(workspaceUsers.user_id, session.user.id));
+    .innerJoin(
+      serviceAccount,
+      eq(workspace.service_account_id, serviceAccount.id)
+    )
+    .where(eq(serviceAccount.user_id, session.user.id));
 
-  return { workspaces };
+  return { workspaces: result };
 });

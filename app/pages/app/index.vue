@@ -28,11 +28,9 @@
           v-else-if="error"
           class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-4"
         >
-          <p>Error loading workspaces: {{ error.message }}</p>
+          <p>Error loading workspaces: {{ error }}</p>
           <button
-            @click="fetchWorkspaces"
-            class="mt-2 text-sm text-red-600 hover:text-red-800 font-medium"
-          >
+            @click="() => {}" class="mt-2 text-sm text-red-600 hover:text-red-800 font-medium">
             Retry
           </button>
         </div>
@@ -116,12 +114,7 @@ import { useNotionAuth } from "~~/composables/useNotionAuth";
 import { useWorkspaces } from "~~/composables/useWorkspaces";
 
 const { initiateAuth } = useNotionAuth();
-const { workspaces, loading, error, fetchWorkspaces } = useWorkspaces();
-
-// Fetch workspaces when component mounts
-onMounted(() => {
-  fetchWorkspaces();
-});
+const { workspaces, loading, error } = useWorkspaces();
 
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString("en-US", {

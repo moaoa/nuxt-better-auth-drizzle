@@ -1,10 +1,5 @@
 import { desc, eq } from "drizzle-orm";
-import {
-  notionOAuth,
-  notionOAuthUsers,
-  workspace,
-  workspaceUsers,
-} from "~~/db/schema";
+import { service, serviceAccount, workspace } from "~~/db/schema";
 import { NotionOAuthResponse } from "~~/types/notion";
 import { auth } from "~~/lib/auth";
 import { getNextId } from "~~/lib/utils";
@@ -33,6 +28,22 @@ export default defineEventHandler(async (event) => {
       code,
     });
 
+    const db = useDrizzle();
+
+    const notionService = await db.query.service.findFirst({
+      where: eq(service.service_key, "notion"),
+      columns: {
+        id: true,
+      },
+    });
+
+    if (!notionService) {
+      throw createError({
+        statusCode: 404,
+        message: "Service not found.",
+      });
+    }
+
     const response = await $fetch<NotionOAuthResponse>(
       config.public.NOTION_TOKEN_URL,
       {
@@ -46,9 +57,7 @@ export default defineEventHandler(async (event) => {
       }
     );
 
-    const db = useDrizzle();
-
-    const nextOauthId = await getNextId(db, notionOAuth, notionOAuth.id);
+    const nextOauthId = await getNextId(db, serviceAccount, serviceAccount.id);
     const nextWorkspaceId = await getNextId(db, workspace, workspace.id);
 
     const session = await auth.api.getSession({
@@ -72,28 +81,27 @@ export default defineEventHandler(async (event) => {
         workspace_name: response.workspace_name,
         workspace_icon: response.workspace_icon,
         notion_workspace_id: response.workspace_id,
+        service_account_id: nextOauthId,
+        bot_id: response.bot_id,
+        duplicated_template_id: response.duplicated_template_id,
+        owner: response.owner,
+        request_id: response.request_id,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
 
-      await tx.insert(notionOAuth).values({
+      await tx.insert(serviceAccount).values({
         id: nextOauthId,
         uuid: response.workspace_id,
         access_token: response.access_token,
-        notion_workspace_id: nextWorkspaceId,
         token_type: response.token_type,
+        service_id: notionService.id,
+        user_id: session.user.id,
+        user_name: response.owner.user.name,
+        revoked_at: null,
+        refresh_token: null,
         createdAt: new Date(),
         updatedAt: new Date(),
-      });
-
-      await tx.insert(notionOAuthUsers).values({
-        notion_oauth_id: nextOauthId,
-        user_id: session.user.id,
-      });
-
-      await tx.insert(workspaceUsers).values({
-        user_id: session.user.id,
-        workspace_id: nextWorkspaceId,
       });
     });
 

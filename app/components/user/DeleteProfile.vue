@@ -10,8 +10,8 @@
  * @todo [ ] Integration test.
  * @todo [✔] Update the typescript.
  */
-import { signOut, useSession } from "~~/lib/auth-client";
-const { data: session } = await useSession(useFetch);
+import { useAuthSession } from "~~/composables/useAuthSession";
+const { data: session } = useAuthSession();
 
 const { openEditUser, openDeleteUser } = useUser();
 const user = computed(() => {
