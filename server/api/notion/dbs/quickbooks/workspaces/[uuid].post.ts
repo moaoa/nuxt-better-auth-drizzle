@@ -1,6 +1,6 @@
 import { Client } from "@notionhq/client";
 import { auth } from "~~/lib/auth";
-import { serviceAccount, workspace } from "~~/db/schema";
+import { workspace } from "~~/db/schema";
 import { eq } from "drizzle-orm";
 
 export default defineEventHandler(async (event) => {
@@ -10,8 +10,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event);
-  const { name, service_uuid } = body;
-  //TODO: based on teh service create the appropriate db props
+  const { name } = body;
 
   if (!name) {
     throw createError({
@@ -26,6 +25,13 @@ export default defineEventHandler(async (event) => {
 
   const _workspace = await db.query.workspace.findFirst({
     where: eq(workspace.uuid, workspaceUUID ?? ""),
+    with: {
+      serviceAccount: {
+        columns: {
+          access_token: true,
+        },
+      },
+    },
   });
 
   if (!workspaceUUID || !_workspace) {
@@ -35,18 +41,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const userServiceAccount = await db.query.serviceAccount.findFirst({
-    where: eq(serviceAccount.user_id, session.user.id),
-  });
-
-  if (!userServiceAccount) {
-    throw createError({
-      statusCode: 404,
-      message: "User not associated with any account.",
-    });
-  }
-
-  const notion = new Client({ auth: userServiceAccount.access_token });
+  const notion = new Client({ auth: _workspace.serviceAccount.access_token });
 
   try {
     const response = await notion.databases.create({

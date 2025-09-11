@@ -17,6 +17,7 @@ export default defineEventHandler(async (event) => {
 
   const db = useDrizzle();
 
+  // TODO: Save the workspaces before returning them (if they don't exist)
   const result = await db
     .select({
       uuid: workspace.uuid,

@@ -1,11 +1,9 @@
-import type { InferSelectModel } from "drizzle-orm";
+import { relations, type InferSelectModel } from "drizzle-orm";
 import {
   pgTable,
   text,
   timestamp,
   boolean,
-  varchar,
-  serial,
   uuid,
   json,
   integer,
@@ -91,12 +89,15 @@ export const automation = pgTable("automation", {
   updatedAt: timestamp("updated_at").notNull(),
 });
 
-export const notionDatabase = pgTable("notion_database", {
+export const notionEntities = pgTable("notion_entities", {
   id: integer("id").primaryKey(),
   uuid: uuid("uuid").notNull().unique(),
-  notion_db_uuid: uuid("notion_db_uuid").notNull(),
+  notion_entity_uuid: uuid("notion_entity_uuid").notNull(),
   name: text("name").notNull(),
   description: text("description"),
+  type: text("type").notNull(),
+  parent_id: integer("parent_id"),
+  workspace_id: integer("workspace_id").references(() => workspace.id),
   service_account_id: integer("service_account_id")
     .notNull()
     .references(() => serviceAccount.id),
@@ -111,7 +112,9 @@ export const notionDatabase = pgTable("notion_database", {
 export const serviceAccount = pgTable("service_account", {
   id: integer("id").primaryKey().notNull(),
   uuid: uuid("uuid").notNull().unique(),
-  service_id: integer("service_id").notNull(),
+  service_id: integer("service_id")
+    .notNull()
+    .references(() => service.id),
   user_id: text("user_id")
     .notNull()
     .references(() => user.id),
@@ -153,3 +156,17 @@ export const workspace = pgTable("workspace", {
 });
 
 export type User = InferSelectModel<typeof user>;
+
+export const workspace_relation = relations(workspace, ({ one }) => ({
+  serviceAccount: one(serviceAccount, {
+    fields: [workspace.service_account_id],
+    references: [serviceAccount.id],
+  }),
+}));
+
+export const notionEntitiesRelations = relations(notionEntities, ({ one }) => ({
+  parent: one(notionEntities, {
+    fields: [notionEntities.parent_id],
+    references: [notionEntities.id],
+  }),
+}));

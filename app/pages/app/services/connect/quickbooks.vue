@@ -102,7 +102,7 @@ const initiateQuickbooksAuth = async () => {
           <SelectContent>
             <SelectGroup>
               <SelectLabel>Databases</SelectLabel>
-              <SelectItem v-for="db in databases" :key="db.id" :value="db.id">
+              <SelectItem v-for="db in databases" :key="db.uuid" :value="db.id">
                 {{ db.id }}
               </SelectItem>
             </SelectGroup>

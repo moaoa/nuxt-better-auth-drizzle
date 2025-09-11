@@ -30,13 +30,15 @@
         >
           <p>Error loading workspaces: {{ error }}</p>
           <button
-            @click="() => {}" class="mt-2 text-sm text-red-600 hover:text-red-800 font-medium">
+            @click="() => {}"
+            class="mt-2 text-sm text-red-600 hover:text-red-800 font-medium"
+          >
             Retry
           </button>
         </div>
 
         <!-- Empty State -->
-        <div v-else-if="!workspaces.length" class="text-center py-8">
+        <div v-else-if="!workspaces?.length" class="text-center py-8">
           <p class="text-gray-600 mb-4">No workspaces found</p>
           <button
             @click="initiateNotionAuth"
