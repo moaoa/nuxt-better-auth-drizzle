@@ -16,9 +16,9 @@ async function main() {
         updatedAt: new Date(),
       },
       {
-        name: "Trello",
+        name: "Notion",
         uuid: "36670194-231f-4a30-8427-643b951aaad9",
-        service_key: "trello",
+        service_key: "notion",
         id: 2,
         description: "",
         icon: "",
