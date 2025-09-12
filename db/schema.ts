@@ -134,6 +134,7 @@ export const service = pgTable("service", {
   name: text("name").notNull(),
   description: text("description"),
   icon: text("icon"),
+  disabled: boolean("disabled").notNull().default(false),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
 });

@@ -1,5 +1,14 @@
 <template>
   <div class="flex flex-col">
+    <div class="flex justify-between items-center mb-4">
+      <h1 class="text-2xl font-bold">My Automations</h1>
+      <NuxtLink
+        to="/app/services"
+        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+      >
+        New Automation
+      </NuxtLink>
+    </div>
     <table
       v-if="status === 'success'"
       class="table-auto min-w-full divide-y divide-gray-200"
@@ -24,22 +33,38 @@
           >
             Created
           </th>
+          <th scope="col" class="relative px-6 py-3">
+            <span class="sr-only">Actions</span>
+          </th>
         </tr>
       </thead>
       <tbody class="bg-white divide-y divide-gray-200">
         <tr
-          v-for="automation in automations?.automations ?? []"
-          :key="automation.automation.uuid"
+          v-for="automation in automations?.data ?? []"
+          :key="automation.uuid"
           class="hover:bg-gray-50"
         >
           <td class="px-6 py-4 whitespace-nowrap">
-            {{ automation.automation.name }}
+            {{ automation.name }}
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-            {{ automation.automation.description }}
+            {{ automation.description }}
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-            {{ formatDate(automation.automation.createdAt) }}
+            {{ formatDate(automation.createdAt) }}
+          </td>
+          <td
+            class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
+          >
+            <DropdownMenu>
+              <DropdownMenuTrigger as-child>
+                <Button variant="ghost">...</Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem>Edit</DropdownMenuItem>
+                <DropdownMenuItem>Delete</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </td>
         </tr>
       </tbody>
@@ -53,13 +78,15 @@
 </template>
 
 <script setup lang="ts">
-const {
-  data: automations,
-  status,
-  error,
-} = await useFetch("/api/automations", {
-  method: "GET",
-});
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
+import { Button } from "~/components/ui/button";
+
+const { data: automations, status, error } = await useFetch("/api/automations");
 
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString("en-US", {

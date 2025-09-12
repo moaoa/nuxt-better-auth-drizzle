@@ -1,11 +1,18 @@
 <script setup lang="ts">
-import { columns } from "~~/app/components/table/services/columns";
-import DataTable from "~~/app/components/table/DataTable.vue";
-import { ShieldQuestionIcon, StopCircle } from "lucide-vue-next";
+// import { columns } from "~~/app/components/table/services/columns";
+// import DataTable from "~~/app/components/table/DataTable.vue";
+// import { ShieldQuestionIcon, StopCircle } from "lucide-vue-next";
 
 const { data } = await useFetch("/api/services");
 
 const services = data.value?.services || [];
+
+const serviceKeyRouteMap = {
+  notion: "/app/services/connect/notion",
+  quickbooks: "/app/services/connect/quickbooks",
+};
+
+type Key = keyof typeof serviceKeyRouteMap;
 </script>
 
 <template>
@@ -13,11 +20,14 @@ const services = data.value?.services || [];
     class="container mx-auto py-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
   >
     <div
-      v-for="{ name, icon, description, service_key } in services"
+      v-for="{ name, icon, description, service_key, disabled } in services"
       :key="name"
       class="bg-muted/60 dark:bg-card h-full relative rounded-lg p-4"
     >
-      <RouterLink :to="`/app/services/connect/${service_key}`">
+      <RouterLink
+        :disabled="disabled"
+        :to="serviceKeyRouteMap[service_key as Key]"
+      >
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center">
             <Icon
