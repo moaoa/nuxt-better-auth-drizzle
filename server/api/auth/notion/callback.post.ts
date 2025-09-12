@@ -66,6 +66,7 @@ export default defineEventHandler(async (event) => {
 
     if (!session) throw new Error("Session not found");
 
+    //TODO: check if we authorized a new page to the user, will the old saved token be able to access the new page?
     const item = await db.query.workspace.findFirst({
       where: eq(workspace.uuid, response.workspace_id),
     });

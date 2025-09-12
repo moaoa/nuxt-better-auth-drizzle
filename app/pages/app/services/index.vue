@@ -1,9 +1,5 @@
 <script setup lang="ts">
-import type { serviceKeyRouteMap } from "~~/lib/utils";
-
-// import { columns } from "~~/app/components/table/services/columns";
-// import DataTable from "~~/app/components/table/DataTable.vue";
-// import { ShieldQuestionIcon, StopCircle } from "lucide-vue-next";
+import { serviceKeyRouteMap } from "~~/lib/utils";
 
 const { data } = await useFetch("/api/services");
 

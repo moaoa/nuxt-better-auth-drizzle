@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import Stepper from "@/components/stepper/Stepper.vue";
 import NotionConnectStep from "@/components/stepper/NotionConnectStep.vue";
@@ -7,9 +7,17 @@ import QuickbooksConnectStep from "@/components/stepper/QuickbooksConnectStep.vu
 import NotionDatabaseStep from "@/components/stepper/NotionDatabaseStep.vue";
 import { quickbooksRepository } from "~~/repositories/quickbooks";
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { servicesRepo } from "~~/repositories/services";
 
 const queryClient = useQueryClient();
 const route = useRoute();
+
+const serviceKey = route.params.key;
+
+const { data: notionConnected } = useQuery({
+  queryKey: ["services", "notion", "isConnected"],
+  queryFn: async () => await servicesRepo.isConnected("notion"),
+});
 
 onMounted(() => {
   localStorage.setItem("selectedService", "quickbooks");
@@ -23,13 +31,7 @@ const steps = [
 
 const currentStepIndex = ref(0);
 
-const notionConnected = computed(() => {
-  return route.query.state === "notion" && route.query.code;
-});
-
-const quickbooksConnected = computed(() => {
-  return route.query.state === "quickbooks" && route.query.code;
-});
+const quickbooksConnected = ref(false);
 
 const selectedDatabaseId = ref<string | null>(null);
 
@@ -60,13 +62,15 @@ const onDatabaseSelected = (dbId: string) => {
   saveServiceMutation.mutate(dbId);
 };
 
-// Logic to advance stepper based on OAuth callbacks
-if (notionConnected.value && currentStepIndex.value === 0) {
-  currentStepIndex.value = 1;
-}
-if (quickbooksConnected.value && currentStepIndex.value === 1) {
-  currentStepIndex.value = 2;
-}
+watch([notionConnected, quickbooksConnected], () => {
+  if (notionConnected.value) {
+    currentStepIndex.value = 1;
+  }
+
+  if (quickbooksConnected.value) {
+    currentStepIndex.value = 2;
+  }
+});
 </script>
 
 <template>
