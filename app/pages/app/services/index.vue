@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { serviceKeyRouteMap } from "~~/lib/utils";
+
 // import { columns } from "~~/app/components/table/services/columns";
 // import DataTable from "~~/app/components/table/DataTable.vue";
 // import { ShieldQuestionIcon, StopCircle } from "lucide-vue-next";
@@ -6,11 +8,6 @@
 const { data } = await useFetch("/api/services");
 
 const services = data.value?.services || [];
-
-const serviceKeyRouteMap = {
-  notion: "/app/services/connect/notion",
-  quickbooks: "/app/services/connect/quickbooks",
-};
 
 type Key = keyof typeof serviceKeyRouteMap;
 </script>
@@ -20,7 +17,13 @@ type Key = keyof typeof serviceKeyRouteMap;
     class="container mx-auto py-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
   >
     <div
-      v-for="{ name, icon, description, service_key, disabled } in services"
+      v-for="{
+        name,
+        icon,
+        description,
+        service_key,
+        disabled,
+      } in services.filter((item) => !item.isHidden)"
       :key="name"
       class="bg-muted/60 dark:bg-card h-full relative rounded-lg p-4"
     >

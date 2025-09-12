@@ -75,6 +75,20 @@ export default defineEventHandler(async (event) => {
     }
 
     await db.transaction(async (tx) => {
+      await tx.insert(serviceAccount).values({
+        id: nextOauthId,
+        uuid: crypto.randomUUID(),
+        access_token: response.access_token,
+        token_type: response.token_type,
+        service_id: notionService.id,
+        user_id: session.user.id,
+        user_name: response.owner.user.name,
+        revoked_at: null,
+        refresh_token: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
       await tx.insert(workspace).values({
         id: nextWorkspaceId,
         uuid: response.workspace_id,
@@ -86,20 +100,6 @@ export default defineEventHandler(async (event) => {
         duplicated_template_id: response.duplicated_template_id,
         owner: response.owner,
         request_id: response.request_id,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-
-      await tx.insert(serviceAccount).values({
-        id: nextOauthId,
-        uuid: response.workspace_id,
-        access_token: response.access_token,
-        token_type: response.token_type,
-        service_id: notionService.id,
-        user_id: session.user.id,
-        user_name: response.owner.user.name,
-        revoked_at: null,
-        refresh_token: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });

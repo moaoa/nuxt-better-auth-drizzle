@@ -1,37 +1,22 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import NotionConnectStep from './NotionConnectStep.vue';
-import QuickbooksConnectStep from './QuickbooksConnectStep.vue';
-import NotionDatabaseStep from './NotionDatabaseStep.vue';
-import AutomationRecordStep from './AutomationRecordStep.vue';
-import ConnectionRecordStep from './ConnectionRecordStep.vue';
+import { computed } from 'vue';
+import { Button } from '@/components/ui/button';
 
-const steps = [
-  { name: 'Connect with Notion', component: NotionConnectStep },
-  { name: 'Connect with QuickBooks', component: QuickbooksConnectStep },
-  { name: 'Create or Select Notion Database', component: NotionDatabaseStep },
-  { name: 'Create Automation Record', component: AutomationRecordStep },
-  { name: 'Create Connection Record', component: ConnectionRecordStep },
-];
+const props = defineProps({
+  steps: {
+    type: Array as () => Array<{ name: string }>, // Define type for steps prop
+    required: true,
+  },
+  currentStepIndex: {
+    type: Number,
+    required: true,
+  },
+});
 
-const currentStepIndex = ref(0);
+const emit = defineEmits(['next', 'prev']);
 
-const currentStepComponent = computed(() => steps[currentStepIndex.value].component);
-
-const nextStep = () => {
-  if (currentStepIndex.value < steps.length - 1) {
-    currentStepIndex.value++;
-  }
-};
-
-const prevStep = () => {
-  if (currentStepIndex.value > 0) {
-    currentStepIndex.value--;
-  }
-};
-
-const isLastStep = computed(() => currentStepIndex.value === steps.length - 1);
-const isFirstStep = computed(() => currentStepIndex.value === 0);
+const isLastStep = computed(() => props.currentStepIndex === props.steps.length - 1);
+const isFirstStep = computed(() => props.currentStepIndex === 0);
 </script>
 
 <template>
@@ -51,12 +36,12 @@ const isFirstStep = computed(() => currentStepIndex.value === 0);
     </div>
 
     <div class="stepper-content">
-      <component :is="currentStepComponent" @next="nextStep" @prev="prevStep" />
+      <slot :name="`step-${currentStepIndex}`"></slot>
     </div>
 
     <div class="stepper-navigation">
-      <Button @click="prevStep" :disabled="isFirstStep">Previous</Button>
-      <Button @click="nextStep" :disabled="isLastStep">Next</Button>
+      <Button @click="$emit('prev')" :disabled="isFirstStep">Previous</Button>
+      <Button @click="$emit('next')" :disabled="isLastStep">Next</Button>
     </div>
   </div>
 </template>

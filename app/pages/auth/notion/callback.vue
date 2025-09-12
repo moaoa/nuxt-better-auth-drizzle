@@ -15,7 +15,10 @@
 
 <script setup lang="ts">
 import { useNotionAuth } from "~~/composables/useNotionAuth";
+import { useRouter } from "vue-router";
+import { serviceKeyRouteMap } from "~~/lib/utils";
 
+const router = useRouter();
 const route = useRoute();
 const { handleCallback } = useNotionAuth();
 
@@ -33,8 +36,16 @@ onMounted(async () => {
   }
 
   try {
-    const response = await handleCallback(code);
-    // alert(response.access_token);
+    await handleCallback(code);
+    const selectedService = localStorage.getItem("selectedService");
+    type Key = keyof typeof serviceKeyRouteMap;
+    if (selectedService && serviceKeyRouteMap[selectedService as Key]) {
+      const redirectRoute = serviceKeyRouteMap[selectedService as Key];
+      localStorage.removeItem("selectedService");
+      router.push(redirectRoute);
+    } else {
+      router.push("/app/services");
+    }
   } catch (e) {
     error.value =
       e instanceof Error ? e.message : "Failed to exchange code for token";

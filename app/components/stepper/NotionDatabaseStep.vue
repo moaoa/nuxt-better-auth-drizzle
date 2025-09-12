@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const emit = defineEmits(['next', 'prev']);
+const emit = defineEmits(['next', 'prev', 'database-selected']);
 const queryClient = useQueryClient();
 
 const selectedDatabase = ref<string | null>(null);
@@ -28,6 +28,7 @@ const createDatabaseMutation = useMutation({
   onSuccess: (data) => {
     queryClient.invalidateQueries({ queryKey: ['notionDatabases'] });
     selectedDatabase.value = data.id; // Select the newly created database
+    emit('database-selected', data.id);
     // Optionally, move to the next step here if creation implies completion of this step
     // emit('next');
   },
@@ -40,6 +41,7 @@ const createDatabaseMutation = useMutation({
 // Handle selection of an existing database
 const handleDatabaseSelection = (dbId: string) => {
   selectedDatabase.value = dbId;
+  emit('database-selected', dbId);
   // Optionally, move to the next step here if selection implies completion of this step
   // emit('next');
 };

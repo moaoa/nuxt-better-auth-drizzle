@@ -1,120 +1,92 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/vue-query";
+import { ref, computed, onMounted } from "vue";
+import { useRoute } from "vue-router";
+import Stepper from "@/components/stepper/Stepper.vue";
+import NotionConnectStep from "@/components/stepper/NotionConnectStep.vue";
+import QuickbooksConnectStep from "@/components/stepper/QuickbooksConnectStep.vue";
+import NotionDatabaseStep from "@/components/stepper/NotionDatabaseStep.vue";
 import { quickbooksRepository } from "~~/repositories/quickbooks";
-import { useQuickbooksAuth } from "~~/composables/useQuickbooksAuth";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
 
 const queryClient = useQueryClient();
+const route = useRoute();
 
-const { code, state } = useRoute().query;
-const selectedDatabaseId = ref<string>();
-const newDatabaseName = ref("");
-
-const notionAuthSuccess = computed(() => {
-  return typeof code === "string" && state === "notion";
+onMounted(() => {
+  localStorage.setItem("selectedService", "quickbooks");
 });
 
-const quickbooksAuthSuccess = computed(() => {
-  return typeof code === "string" && state === "quickbooks";
+const steps = [
+  { name: "Connect Notion", component: NotionConnectStep },
+  { name: "Connect QuickBooks", component: QuickbooksConnectStep },
+  { name: "Select Database", component: NotionDatabaseStep },
+];
+
+const currentStepIndex = ref(0);
+
+const notionConnected = computed(() => {
+  return route.query.state === "notion" && route.query.code;
 });
 
-const {
-  data: databases,
-  isLoading: isDatabasesLoading,
-  error: databasesError,
-} = useQuery({
-  queryKey: ["notionDatabases"],
-  queryFn: quickbooksRepository.getDatabases,
-  enabled: quickbooksAuthSuccess,
+const quickbooksConnected = computed(() => {
+  return route.query.state === "quickbooks" && route.query.code;
 });
+
+const selectedDatabaseId = ref<string | null>(null);
 
 const saveServiceMutation = useMutation({
   mutationFn: async (notion_db_id: string) => {
-    const data = await quickbooksRepository.saveService(
-      "quickbooks",
-      notion_db_id
-    );
-    return data;
+    return quickbooksRepository.saveService("quickbooks", notion_db_id);
   },
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ["notionDatabases"] });
+    // Optionally, you can move to a final "completed" step
   },
 });
 
-const createDatabaseMutation = useMutation({
-  mutationFn: async (name: string) => {
-    const data = await quickbooksRepository.createDatabase(name);
-    return data;
-  },
-  onSuccess: (data) => {
-    queryClient.invalidateQueries({ queryKey: ["notionDatabases"] });
-    selectedDatabaseId.value = data.id;
-    saveServiceMutation.mutate(data.id);
-  },
-});
+const onStepNext = () => {
+  if (currentStepIndex.value < steps.length - 1) {
+    currentStepIndex.value++;
+  }
+};
 
-const handleDatabaseSelection = async (dbId: string) => {
+const onStepPrev = () => {
+  if (currentStepIndex.value > 0) {
+    currentStepIndex.value--;
+  }
+};
+
+const onDatabaseSelected = (dbId: string) => {
+  selectedDatabaseId.value = dbId;
   saveServiceMutation.mutate(dbId);
 };
 
-const handleCreateDatabase = async () => {
-  createDatabaseMutation.mutate(newDatabaseName.value);
-};
-
-const initiateQuickbooksAuth = async () => {
-  const { initiateAuth } = useQuickbooksAuth();
-  initiateAuth();
-};
+// Logic to advance stepper based on OAuth callbacks
+if (notionConnected.value && currentStepIndex.value === 0) {
+  currentStepIndex.value = 1;
+}
+if (quickbooksConnected.value && currentStepIndex.value === 1) {
+  currentStepIndex.value = 2;
+}
 </script>
 
 <template>
-  <div class="flex flex-col items-center justify-center h-full">
-    <div class="w-full max-w-md">
-      <div>
-        <UiButton
-          @click="initiateQuickbooksAuth"
-          :disabled="quickbooksAuthSuccess"
-        >
-          {{ quickbooksAuthSuccess ? "Connected" : "Connect to QuickBooks" }}
-        </UiButton>
-      </div>
-      <div>
-        <div v-if="isDatabasesLoading">Loading databases...</div>
-        <div v-else-if="databasesError">
-          Error: {{ databasesError.message }}
-        </div>
-        <Select
-          v-else
-          v-model="selectedDatabaseId"
-          @update:modelValue="handleDatabaseSelection"
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select a database" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectLabel>Databases</SelectLabel>
-              <SelectItem v-for="db in databases" :key="db.uuid" :value="db.id">
-                {{ db.id }}
-              </SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-        <div class="mt-4">
-          <UiInput v-model="newDatabaseName" placeholder="New database name" />
-          <UiButton @click="handleCreateDatabase" class="mt-2">
-            Create New Database
-          </UiButton>
-        </div>
-      </div>
-    </div>
+  <div class="container mx-auto p-4">
+    <h1 class="text-2xl font-bold mb-6">Connect to QuickBooks</h1>
+    <Stepper
+      :steps="steps"
+      :current-step-index="currentStepIndex"
+      @next="onStepNext"
+      @prev="onStepPrev"
+    >
+      <template #step-0>
+        <NotionConnectStep @next="onStepNext" />
+      </template>
+      <template #step-1>
+        <QuickbooksConnectStep @next="onStepNext" />
+      </template>
+      <template #step-2>
+        <NotionDatabaseStep @database-selected="onDatabaseSelected" />
+      </template>
+    </Stepper>
   </div>
 </template>

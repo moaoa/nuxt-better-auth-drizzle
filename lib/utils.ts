@@ -35,3 +35,8 @@ export async function getNextId(
 
   return (lastRecord?.at(0)?.id ?? 0) + 1;
 }
+
+export const serviceKeyRouteMap = {
+  notion: "/app/services/connect/notion",
+  quickbooks: "/app/services/connect/quickbooks",
+};
