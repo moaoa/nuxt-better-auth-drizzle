@@ -63,11 +63,11 @@ const onDatabaseSelected = (dbId: string) => {
 };
 
 watch([notionConnected, quickbooksConnected], () => {
-  if (notionConnected.value) {
+  if (notionConnected.value.connected) {
     currentStepIndex.value = 1;
   }
 
-  if (quickbooksConnected.value) {
+  if (quickbooksConnected.value.connected) {
     currentStepIndex.value = 2;
   }
 });

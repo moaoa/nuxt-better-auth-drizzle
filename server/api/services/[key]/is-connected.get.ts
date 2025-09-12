@@ -3,6 +3,7 @@ import { and, eq } from 'drizzle-orm'
 import { serviceAccount, service } from '~~/db/schema'
 import { useDrizzle } from '~~/server/utils/drizzle'
 import { auth } from '~~/lib/auth'
+import { serviceKeys, type ServiceKey } from '~~/types/services'
 
 export default defineEventHandler(async (event) => {
   const session = await auth.api.getSession({
@@ -22,6 +23,13 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       message: 'Service key is required',
+    })
+  }
+
+  if (!serviceKeys.includes(serviceKey as ServiceKey)) {
+    throw createError({
+      statusCode: 400,
+      message: 'Invalid service key',
     })
   }
 
