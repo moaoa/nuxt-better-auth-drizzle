@@ -1,8 +1,8 @@
-import { desc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { service, serviceAccount, workspace } from "~~/db/schema";
 import { NotionOAuthResponse } from "~~/types/notion";
 import { auth } from "~~/lib/auth";
-import { getNextId } from "~~/lib/utils";
+import { notionSyncQueue } from "~~/server/queues/notion-sync";
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
@@ -57,9 +57,6 @@ export default defineEventHandler(async (event) => {
       }
     );
 
-    const nextOauthId = await getNextId(db, serviceAccount, serviceAccount.id);
-    const nextWorkspaceId = await getNextId(db, workspace, workspace.id);
-
     const session = await auth.api.getSession({
       headers: event.headers,
     });
@@ -75,28 +72,29 @@ export default defineEventHandler(async (event) => {
       return;
     }
 
-    await db.transaction(async (tx) => {
-      await tx.insert(serviceAccount).values({
-        id: nextOauthId,
-        uuid: crypto.randomUUID(),
-        access_token: response.access_token,
-        token_type: response.token_type,
-        service_id: notionService.id,
-        user_id: session.user.id,
-        user_name: response.owner.user.name,
-        revoked_at: null,
-        refresh_token: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+    const { serviceAccountId } = await db.transaction(async (tx) => {
+      const [{ serviceAccountId }] = await tx
+        .insert(serviceAccount)
+        .values({
+          uuid: crypto.randomUUID(),
+          access_token: response.access_token,
+          token_type: response.token_type,
+          service_id: notionService.id,
+          user_id: session.user.id,
+          user_name: `${response.owner.user.name} (${response.workspace_name})`,
+          revoked_at: null,
+          refresh_token: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning({ serviceAccountId: serviceAccount.id });
 
       await tx.insert(workspace).values({
-        id: nextWorkspaceId,
         uuid: response.workspace_id,
         workspace_name: response.workspace_name,
         workspace_icon: response.workspace_icon,
         notion_workspace_id: response.workspace_id,
-        service_account_id: nextOauthId,
+        service_account_id: serviceAccountId,
         bot_id: response.bot_id,
         duplicated_template_id: response.duplicated_template_id,
         owner: response.owner,
@@ -104,6 +102,13 @@ export default defineEventHandler(async (event) => {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
+
+      return { serviceAccountId };
+    });
+
+    await notionSyncQueue.add("notion-sync-job", {
+      userId: session.user.id,
+      serviceAccountId: serviceAccountId,
     });
 
     return response;

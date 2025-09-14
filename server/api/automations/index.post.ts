@@ -1,6 +1,5 @@
 import { auth } from "~~/lib/auth";
-import { automation, service } from "~~/db/schema";
-import { getNextId } from "~~/lib/utils";
+import { automation, service, user } from "~~/db/schema";
 import { eq } from "drizzle-orm";
 
 export default defineEventHandler(async (event) => {
@@ -24,12 +23,9 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const nextAutomationId = await getNextId(db, automation, automation.id);
-
     const newAutomation = await db
       .insert(automation)
       .values({
-        id: nextAutomationId,
         uuid: crypto.randomUUID(),
         name: "QuickBooks to Notion Sync",
         description: "Automated synchronization of QuickBooks data to Notion.",

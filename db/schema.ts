@@ -6,7 +6,7 @@ import {
   boolean,
   uuid,
   json,
-  integer,
+  serial,
 } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
@@ -77,12 +77,14 @@ export const verification = pgTable("verification", {
 });
 
 export const automation = pgTable("automation", {
-  id: integer("id").primaryKey(),
+  id: serial("id").primaryKey().notNull().unique(),
   uuid: uuid("uuid").notNull().unique(),
   name: text("name").notNull(),
   description: text("description"),
-  user_id: text("user_id").references(() => user.id),
-  service_id: integer("service_id")
+  user_id: text("user_id")
+    .notNull()
+    .references(() => user.id),
+  service_id: serial("service_id")
     .notNull()
     .references(() => service.id),
   createdAt: timestamp("created_at").notNull(),
@@ -90,19 +92,23 @@ export const automation = pgTable("automation", {
 });
 
 export const notionEntities = pgTable("notion_entities", {
-  id: integer("id").primaryKey(),
+  id: serial("id").primaryKey().notNull().unique(),
   uuid: uuid("uuid").notNull().unique(),
   notion_entity_uuid: uuid("notion_entity_uuid").notNull(),
   name: text("name").notNull(),
   description: text("description"),
   type: text("type").notNull(),
-  parent_id: integer("parent_id"),
-  workspace_id: integer("workspace_id").references(() => workspace.id),
-  service_account_id: integer("service_account_id")
+  parent_id: text("parent_id").notNull(),
+  is_child_of_workspace: boolean("is_child_of_workspace")
+    .notNull()
+    .default(false),
+  service_account_id: serial("service_account_id")
     .notNull()
     .references(() => serviceAccount.id),
-  user_id: text("user_id").references(() => user.id),
-  service_id: integer("service_id")
+  user_id: text("user_id")
+    .notNull()
+    .references(() => user.id),
+  service_id: serial("service_id")
     .notNull()
     .references(() => service.id),
   createdAt: timestamp("created_at").notNull(),
@@ -110,9 +116,9 @@ export const notionEntities = pgTable("notion_entities", {
 });
 
 export const serviceAccount = pgTable("service_account", {
-  id: integer("id").primaryKey().notNull(),
+  id: serial("id").primaryKey().notNull().unique(),
   uuid: uuid("uuid").notNull().unique(),
-  service_id: integer("service_id")
+  service_id: serial("service_id")
     .notNull()
     .references(() => service.id),
   user_id: text("user_id")
@@ -128,7 +134,7 @@ export const serviceAccount = pgTable("service_account", {
 });
 
 export const service = pgTable("service", {
-  id: integer("id").primaryKey(),
+  id: serial("id").primaryKey().notNull().unique(),
   uuid: uuid("uuid").notNull().unique(),
   service_key: text("service_key").notNull(),
   name: text("name").notNull(),
@@ -136,18 +142,18 @@ export const service = pgTable("service", {
   icon: text("icon"),
   disabled: boolean("disabled").notNull().default(false),
   isHidden: boolean("is_hidden").notNull().default(false),
-  createdAt: timestamp("created_at").notNull(),
-  updatedAt: timestamp("updated_at").notNull(),
+  createdAt: timestamp("createdAt").notNull(),
+  updatedAt: timestamp("updatedAt").notNull(),
 });
 
 export const workspace = pgTable("workspace", {
-  id: integer("id").primaryKey(),
+  id: serial("id").primaryKey().notNull().unique(),
   uuid: uuid("uuid").notNull().unique(),
   bot_id: uuid("bot_id"),
   notion_workspace_id: uuid("notion_workspace_id").notNull(),
   workspace_name: text("workspace_name").notNull(),
   workspace_icon: text("workspace_icon"),
-  service_account_id: integer("service_account_id")
+  service_account_id: serial("service_account_id")
     .references(() => serviceAccount.id)
     .notNull(),
   duplicated_template_id: uuid("duplicated_template_id"),
@@ -170,5 +176,18 @@ export const notionEntitiesRelations = relations(notionEntities, ({ one }) => ({
   parent: one(notionEntities, {
     fields: [notionEntities.parent_id],
     references: [notionEntities.id],
+  }),
+}));
+
+export const serviceAccountRelations = relations(serviceAccount, ({ one }) => ({
+  service: one(service, {
+    fields: [serviceAccount.service_id],
+    references: [service.id],
+  }),
+}));
+
+export const serviceRelations = relations(service, ({ many }) => ({
+  serviceAccounts: many(serviceAccount, {
+    relationName: "serviceAccounts",
   }),
 }));

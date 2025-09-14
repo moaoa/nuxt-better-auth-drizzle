@@ -17,6 +17,11 @@ export const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
+
+  // Redis
+  REDIS_HOST: z.string().min(1),
+  REDIS_PORT: z.string().transform(Number).default("6379"),
+  REDIS_PASSWORD: z.string().optional(),
 });
 
 // Create a type from the schema

@@ -67,9 +67,9 @@ watch([notionConnected, quickbooksConnected], () => {
     currentStepIndex.value = 1;
   }
 
-  if (quickbooksConnected.value.connected) {
-    currentStepIndex.value = 2;
-  }
+  // if (quickbooksConnected.value.connected) {
+  //   currentStepIndex.value = 2;
+  // }
 });
 </script>
 
