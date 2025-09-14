@@ -98,7 +98,7 @@ export const notionEntities = pgTable("notion_entities", {
   name: text("name").notNull(),
   description: text("description"),
   type: text("type").notNull(),
-  parent_id: text("parent_id").notNull(),
+  parent_id: text("parent_id"),
   is_child_of_workspace: boolean("is_child_of_workspace")
     .notNull()
     .default(false),
