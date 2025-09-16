@@ -88,7 +88,6 @@ export default defineEventHandler(async (event) => {
           uuid: crypto.randomUUID(),
           access_token: response.access_token,
           token_type: response.token_type,
-          service_id: notionService.id,
           user_id: session.user.id,
           user_name: `${response.owner.user.name}`,
           revoked_at: null,
