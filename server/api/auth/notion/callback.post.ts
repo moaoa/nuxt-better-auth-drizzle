@@ -45,6 +45,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const response = await $fetch<NotionOAuthResponse>(
+      // @ts-expect-error TODO: fix types
       config.public.NOTION_TOKEN_URL,
       {
         method: "POST",
@@ -73,6 +74,34 @@ export default defineEventHandler(async (event) => {
     }
 
     const { notionAccountId } = await db.transaction(async (tx) => {
+      const workspaceItem = await tx.query.workspace.findFirst({
+        where: eq(workspace.uuid, response.workspace_id),
+      });
+
+      let workspaceId = -1;
+
+      if (!workspaceItem) {
+        const [{ id }] = await tx
+          .insert(workspace)
+          .values({
+            uuid: response.workspace_id,
+            workspace_name: response.workspace_name,
+            workspace_icon: response.workspace_icon,
+            notion_workspace_id: response.workspace_id,
+            bot_id: response.bot_id,
+            duplicated_template_id: response.duplicated_template_id,
+            owner: response.owner,
+            request_id: response.request_id,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .returning({ id: workspace.id });
+
+        workspaceId = id;
+      } else {
+        workspaceId = workspaceItem.id;
+      }
+
       const [{ notionAccountId }] = await tx
         .insert(notionAccount)
         .values({
@@ -86,22 +115,9 @@ export default defineEventHandler(async (event) => {
           refresh_token: null,
           createdAt: new Date(),
           updatedAt: new Date(),
+          workspace_id: workspaceId,
         })
         .returning({ notionAccountId: notionAccount.id });
-
-      await tx.insert(workspace).values({
-        uuid: response.workspace_id,
-        workspace_name: response.workspace_name,
-        workspace_icon: response.workspace_icon,
-        notion_workspace_id: response.workspace_id,
-        notion_account_id: notionAccountId,
-        bot_id: response.bot_id,
-        duplicated_template_id: response.duplicated_template_id,
-        owner: response.owner,
-        request_id: response.request_id,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
 
       return { notionAccountId };
     });

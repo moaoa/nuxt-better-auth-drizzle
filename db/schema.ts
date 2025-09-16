@@ -124,7 +124,6 @@ export const workspace = pgTable("workspace", {
   notion_workspace_id: uuid("notion_workspace_id").notNull(),
   workspace_name: text("workspace_name").notNull(),
   workspace_icon: text("workspace_icon"),
-  notion_account_id: serial("notion_account_id").notNull(),
   duplicated_template_id: uuid("duplicated_template_id"),
   request_id: uuid("request_id"),
   owner: json("owner"),
@@ -168,13 +167,6 @@ export const service = pgTable("service", {
 
 export type User = InferSelectModel<typeof user>;
 
-export const workspace_relation = relations(workspace, ({ one }) => ({
-  notionAccount: one(notionAccount, {
-    fields: [workspace.notion_account_id],
-    references: [notionAccount.id],
-  }),
-}));
-
 export const notionEntitiesRelations = relations(notionEntities, ({ one }) => ({
   parent: one(notionEntities, {
     fields: [notionEntities.parent_id],
@@ -195,9 +187,8 @@ export const serviceRelations = relations(service, ({ many }) => ({
   }),
 }));
 
-export const workspaceRelations = relations(workspace, ({ one }) => ({
-  notionAccount: one(notionAccount, {
-    fields: [workspace.notion_account_id],
-    references: [notionAccount.id],
+export const workspaceRelations = relations(workspace, ({ many }) => ({
+  notionAccounts: many(notionAccount, {
+    relationName: "notionAccounts",
   }),
 }));
