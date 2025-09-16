@@ -7,6 +7,7 @@ import {
   uuid,
   json,
   serial,
+  integer,
 } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
@@ -99,12 +100,13 @@ export const notionEntities = pgTable("notion_entities", {
   description: text("description"),
   type: text("type").notNull(),
   parent_id: text("parent_id"),
+  //TODO: check if we want to store teh workspace id or remove it all together
   is_child_of_workspace: boolean("is_child_of_workspace")
     .notNull()
     .default(false),
-  service_account_id: serial("service_account_id")
+  notion_account_id: serial("notion_account_id")
     .notNull()
-    .references(() => serviceAccount.id),
+    .references(() => notionAccount.id),
   user_id: text("user_id")
     .notNull()
     .references(() => user.id),
@@ -115,7 +117,22 @@ export const notionEntities = pgTable("notion_entities", {
   updatedAt: timestamp("updated_at").notNull(),
 });
 
-export const serviceAccount = pgTable("service_account", {
+export const workspace = pgTable("workspace", {
+  id: serial("id").primaryKey().notNull().unique(),
+  uuid: uuid("uuid").notNull().unique(),
+  bot_id: uuid("bot_id"),
+  notion_workspace_id: uuid("notion_workspace_id").notNull(),
+  workspace_name: text("workspace_name").notNull(),
+  workspace_icon: text("workspace_icon"),
+  notion_account_id: serial("notion_account_id").notNull(),
+  duplicated_template_id: uuid("duplicated_template_id"),
+  request_id: uuid("request_id"),
+  owner: json("owner"),
+  createdAt: timestamp("createdAt").notNull(),
+  updatedAt: timestamp("updatedAt").notNull(),
+});
+
+export const notionAccount = pgTable("notion_account", {
   id: serial("id").primaryKey().notNull().unique(),
   uuid: uuid("uuid").notNull().unique(),
   service_id: serial("service_id")
@@ -129,6 +146,9 @@ export const serviceAccount = pgTable("service_account", {
   refresh_token: text("refresh_token"),
   token_type: text("token_type").notNull(),
   revoked_at: timestamp("revoked_at"),
+  workspace_id: integer("workspace_id")
+    .notNull()
+    .references(() => workspace.id),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
 });
@@ -146,29 +166,12 @@ export const service = pgTable("service", {
   updatedAt: timestamp("updatedAt").notNull(),
 });
 
-export const workspace = pgTable("workspace", {
-  id: serial("id").primaryKey().notNull().unique(),
-  uuid: uuid("uuid").notNull().unique(),
-  bot_id: uuid("bot_id"),
-  notion_workspace_id: uuid("notion_workspace_id").notNull(),
-  workspace_name: text("workspace_name").notNull(),
-  workspace_icon: text("workspace_icon"),
-  service_account_id: serial("service_account_id")
-    .references(() => serviceAccount.id)
-    .notNull(),
-  duplicated_template_id: uuid("duplicated_template_id"),
-  request_id: uuid("request_id"),
-  owner: json("owner"),
-  createdAt: timestamp("createdAt").notNull(),
-  updatedAt: timestamp("updatedAt").notNull(),
-});
-
 export type User = InferSelectModel<typeof user>;
 
 export const workspace_relation = relations(workspace, ({ one }) => ({
-  serviceAccount: one(serviceAccount, {
-    fields: [workspace.service_account_id],
-    references: [serviceAccount.id],
+  notionAccount: one(notionAccount, {
+    fields: [workspace.notion_account_id],
+    references: [notionAccount.id],
   }),
 }));
 
@@ -179,15 +182,22 @@ export const notionEntitiesRelations = relations(notionEntities, ({ one }) => ({
   }),
 }));
 
-export const serviceAccountRelations = relations(serviceAccount, ({ one }) => ({
+export const notionAccountRelations = relations(notionAccount, ({ one }) => ({
   service: one(service, {
-    fields: [serviceAccount.service_id],
+    fields: [notionAccount.service_id],
     references: [service.id],
   }),
 }));
 
 export const serviceRelations = relations(service, ({ many }) => ({
-  serviceAccounts: many(serviceAccount, {
-    relationName: "serviceAccounts",
+  notionAccounts: many(notionAccount, {
+    relationName: "notionAccounts",
+  }),
+}));
+
+export const workspaceRelations = relations(workspace, ({ one }) => ({
+  notionAccount: one(notionAccount, {
+    fields: [workspace.notion_account_id],
+    references: [notionAccount.id],
   }),
 }));

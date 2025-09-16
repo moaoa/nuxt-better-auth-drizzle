@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
   const account = await db.query.workspace.findFirst({
     where: eq(workspace.uuid, workspaceUUID ?? ""),
     with: {
-      serviceAccount: {
+      notionAccount: {
         columns: {
           access_token: true,
         },
@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const notion = new Client({ auth: account.serviceAccount.access_token });
+  const notion = new Client({ auth: account.notionAccount.access_token });
 
   try {
     const response = await notion.search({

@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { service, serviceAccount, workspace } from "~~/db/schema";
+import { service, notionAccount, workspace } from "~~/db/schema";
 import { NotionOAuthResponse } from "~~/types/notion";
 import { auth } from "~~/lib/auth";
 import { notionSyncQueue } from "~~/server/queues/notion-sync";
@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
     if (!notionService) {
       throw createError({
         statusCode: 404,
-        message: "Service not found.",
+        message: "Notion Service not found.",
       });
     }
 
@@ -72,9 +72,9 @@ export default defineEventHandler(async (event) => {
       return;
     }
 
-    const { serviceAccountId } = await db.transaction(async (tx) => {
-      const [{ serviceAccountId }] = await tx
-        .insert(serviceAccount)
+    const { notionAccountId } = await db.transaction(async (tx) => {
+      const [{ notionAccountId }] = await tx
+        .insert(notionAccount)
         .values({
           uuid: crypto.randomUUID(),
           access_token: response.access_token,
@@ -87,14 +87,14 @@ export default defineEventHandler(async (event) => {
           createdAt: new Date(),
           updatedAt: new Date(),
         })
-        .returning({ serviceAccountId: serviceAccount.id });
+        .returning({ notionAccountId: notionAccount.id });
 
       await tx.insert(workspace).values({
         uuid: response.workspace_id,
         workspace_name: response.workspace_name,
         workspace_icon: response.workspace_icon,
         notion_workspace_id: response.workspace_id,
-        service_account_id: serviceAccountId,
+        notion_account_id: notionAccountId,
         bot_id: response.bot_id,
         duplicated_template_id: response.duplicated_template_id,
         owner: response.owner,
@@ -103,12 +103,12 @@ export default defineEventHandler(async (event) => {
         updatedAt: new Date(),
       });
 
-      return { serviceAccountId };
+      return { notionAccountId };
     });
 
     await notionSyncQueue.add("notion-sync-job", {
       userId: session.user.id,
-      serviceAccountId: serviceAccountId,
+      notionAccountId: notionAccountId,
     });
 
     return response;

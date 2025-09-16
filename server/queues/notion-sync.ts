@@ -1,7 +1,7 @@
 import { Queue, Worker } from "bullmq";
 import { env } from "~~/config/env";
 import { Client } from "@notionhq/client";
-import { serviceAccount, notionEntities } from "~~/db/schema";
+import { notionAccount, notionEntities } from "~~/db/schema";
 import { useDrizzle } from "~~/server/utils/drizzle";
 import { eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
@@ -16,7 +16,7 @@ export const notionSyncQueue = new Queue("notion-sync", { connection });
 
 interface NotionSyncJobData {
   userId: string;
-  serviceAccountId: number;
+  notionAccountId: number;
 }
 
 interface NotionSyncJobResult {
@@ -30,12 +30,12 @@ export const notionSyncWorker = new Worker<
 >(
   "notion-sync",
   async (job) => {
-    const { userId, serviceAccountId } = job.data;
+    const { userId, notionAccountId } = job.data;
     const db = useDrizzle();
 
     try {
-      const account = await db.query.serviceAccount.findFirst({
-        where: eq(serviceAccount.id, serviceAccountId),
+      const account = await db.query.notionAccount.findFirst({
+        where: eq(notionAccount.id, notionAccountId),
       });
 
       if (!account) {
@@ -76,7 +76,7 @@ export const notionSyncWorker = new Worker<
             name: "",
             parent_id: "",
             type: result.object,
-            service_account_id: serviceAccountId,
+            notion_account_id: notionAccountId,
             user_id: userId,
             service_id: account.service_id,
             is_child_of_workspace: result.object === "page",

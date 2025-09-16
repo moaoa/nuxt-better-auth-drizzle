@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { serviceAccount, workspace } from "~~/db/schema";
+import { notionAccount, workspace } from "~~/db/schema";
 import { auth } from "~~/lib/auth";
 import { useDrizzle } from "~~/server/utils/drizzle";
 
@@ -25,11 +25,8 @@ export default defineEventHandler(async (event) => {
       icon: workspace.workspace_icon,
     })
     .from(workspace)
-    .innerJoin(
-      serviceAccount,
-      eq(workspace.service_account_id, serviceAccount.id)
-    )
-    .where(eq(serviceAccount.user_id, session.user.id));
+    .innerJoin(notionAccount, eq(workspace.notion_account_id, notionAccount.id))
+    .where(eq(notionAccount.user_id, session.user.id));
 
   return { workspaces: result };
 });
