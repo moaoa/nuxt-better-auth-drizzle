@@ -1,6 +1,6 @@
 import { defineEventHandler, getRouterParam } from "h3";
-import { and, eq } from "drizzle-orm";
-import { notionAccount, service } from "~~/db/schema";
+import { eq } from "drizzle-orm";
+import { notionAccount } from "~~/db/schema";
 import { useDrizzle } from "~~/server/utils/drizzle";
 import { auth } from "~~/lib/auth";
 import { serviceKeys, type ServiceKey } from "~~/types/services";
@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const serviceKey = getRouterParam(event, "key");
+  const serviceKey = getRouterParam(event, "key") as ServiceKey;
 
   if (!serviceKey) {
     throw createError({
@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  if (!serviceKeys.includes(serviceKey as ServiceKey)) {
+  if (!serviceKeys.includes(serviceKey)) {
     throw createError({
       statusCode: 400,
       message: "Invalid service key",
@@ -35,19 +35,27 @@ export default defineEventHandler(async (event) => {
 
   const db = useDrizzle();
 
-  const [existingNotionAccount] = await db
-    .select()
-    .from(notionAccount)
-    .innerJoin(service, eq(service.id, notionAccount.service_id))
-    .where(
-      and(
-        eq(notionAccount.user_id, session.user.id),
-        eq(service.service_key, serviceKey)
-      )
-    )
-    .limit(1);
+  switch (serviceKey) {
+    case "notion":
+      const existingNotionAccount = await db.query.notionAccount.findFirst({
+        where: eq(notionAccount.user_id, session.user.id),
+      });
 
-  return {
-    connected: !!existingNotionAccount,
-  };
+      return {
+        connected: !!existingNotionAccount,
+      };
+    case "google_sheet":
+      return {
+        connected: false,
+      };
+    case "quickbooks":
+      return {
+        connected: false,
+      };
+    default:
+      const _: never = serviceKey;
+      return {
+        connected: false,
+      };
+  }
 });
