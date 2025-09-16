@@ -1,5 +1,4 @@
 import { Queue, Worker } from "bullmq";
-import { env } from "~~/config/env";
 import { Client } from "@notionhq/client";
 import { notionAccount, notionEntities } from "~~/db/schema";
 import { useDrizzle } from "~~/server/utils/drizzle";
@@ -7,9 +6,9 @@ import { eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 
 const connection = {
-  host: env.REDIS_HOST,
-  port: env.REDIS_PORT,
-  password: env.REDIS_PASSWORD,
+  host: process.env.REDIS_HOST!,
+  port: Number(process.env.REDIS_PORT!),
+  password: process.env.REDIS_PASSWORD!,
 };
 
 export const notionSyncQueue = new Queue("notion-sync", { connection });
@@ -63,27 +62,31 @@ export const notionSyncWorker = new Worker<
           },
         });
 
-        const newEntities = response.results.filter((result) => {
-          return !existingEntities.some(
-            (entity) => entity.notion_entity_uuid === result.id
-          );
-        });
+        console.log(response);
 
-        db.insert(notionEntities).values(
-          newEntities.map((result) => ({
-            uuid: uuidv4(),
-            notion_entity_uuid: result.id,
-            name: "",
-            parent_id: "",
-            type: result.object,
-            notion_account_id: notionAccountId,
-            user_id: userId,
-            service_id: account.service_id,
-            is_child_of_workspace: result.object === "page",
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          }))
-        );
+        if (response.results.length === 0) {
+          return {
+            status: "failed",
+            message: "No pages or databases were returned from notion",
+          };
+        }
+
+        db.insert(notionEntities)
+          .values(
+            response.results.map((result) => ({
+              uuid: uuidv4(),
+              notion_entity_uuid: result.id,
+              name: "",
+              parent_id: "",
+              type: result.object,
+              notion_account_id: notionAccountId,
+              user_id: userId,
+              is_child_of_workspace: result.object === "page",
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            }))
+          )
+          .onConflictDoNothing({ target: notionEntities.notion_entity_uuid });
 
         hasMore = response.has_more;
         nextCursor = response.next_cursor || undefined;

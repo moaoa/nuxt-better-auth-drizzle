@@ -134,9 +134,6 @@ export const workspace = pgTable("workspace", {
 export const notionAccount = pgTable("notion_account", {
   id: serial("id").primaryKey().notNull().unique(),
   uuid: uuid("uuid").notNull().unique(),
-  service_id: serial("service_id")
-    .notNull()
-    .references(() => service.id),
   user_id: text("user_id")
     .notNull()
     .references(() => user.id),
@@ -175,9 +172,13 @@ export const notionEntitiesRelations = relations(notionEntities, ({ one }) => ({
 }));
 
 export const notionAccountRelations = relations(notionAccount, ({ one }) => ({
-  service: one(service, {
-    fields: [notionAccount.service_id],
-    references: [service.id],
+  workspace: one(workspace, {
+    fields: [notionAccount.workspace_id],
+    references: [workspace.id],
+  }),
+  user: one(user, {
+    fields: [notionAccount.user_id],
+    references: [user.id],
   }),
 }));
 
