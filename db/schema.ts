@@ -8,6 +8,8 @@ import {
   json,
   serial,
   integer,
+  unique,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
@@ -92,36 +94,11 @@ export const automation = pgTable("automation", {
   updatedAt: timestamp("updated_at").notNull(),
 });
 
-export const notionEntities = pgTable("notion_entities", {
-  id: serial("id").primaryKey().notNull().unique(),
-  uuid: uuid("uuid").notNull().unique(),
-  notion_entity_uuid: uuid("notion_entity_uuid").notNull(),
-  name: text("name").notNull(),
-  description: text("description"),
-  type: text("type").notNull(),
-  parent_id: text("parent_id"),
-  //TODO: check if we want to store teh workspace id or remove it all together
-  is_child_of_workspace: boolean("is_child_of_workspace")
-    .notNull()
-    .default(false),
-  notion_account_id: serial("notion_account_id")
-    .notNull()
-    .references(() => notionAccount.id),
-  user_id: text("user_id")
-    .notNull()
-    .references(() => user.id),
-  service_id: serial("service_id")
-    .notNull()
-    .references(() => service.id),
-  createdAt: timestamp("created_at").notNull(),
-  updatedAt: timestamp("updated_at").notNull(),
-});
-
 export const workspace = pgTable("workspace", {
   id: serial("id").primaryKey().notNull().unique(),
   uuid: uuid("uuid").notNull().unique(),
   bot_id: uuid("bot_id"),
-  notion_workspace_id: uuid("notion_workspace_id").notNull(),
+  notion_workspace_id: uuid("notion_workspace_id").notNull().unique(),
   workspace_name: text("workspace_name").notNull(),
   workspace_icon: text("workspace_icon"),
   duplicated_template_id: uuid("duplicated_template_id"),
@@ -131,23 +108,29 @@ export const workspace = pgTable("workspace", {
   updatedAt: timestamp("updatedAt").notNull(),
 });
 
-export const notionAccount = pgTable("notion_account", {
-  id: serial("id").primaryKey().notNull().unique(),
-  uuid: uuid("uuid").notNull().unique(),
-  user_id: text("user_id")
-    .notNull()
-    .references(() => user.id),
-  user_name: text("user_name").notNull(),
-  access_token: text("access_token").notNull(),
-  refresh_token: text("refresh_token"),
-  token_type: text("token_type").notNull(),
-  revoked_at: timestamp("revoked_at"),
-  workspace_id: integer("workspace_id")
-    .notNull()
-    .references(() => workspace.id),
-  createdAt: timestamp("created_at").notNull(),
-  updatedAt: timestamp("updated_at").notNull(),
-});
+export const notionAccount = pgTable(
+  "notion_account",
+  {
+    id: serial("id").primaryKey().notNull().unique(),
+    uuid: uuid("uuid").notNull().unique(),
+    user_name: text("user_name").notNull(),
+    access_token: text("access_token").notNull(),
+    refresh_token: text("refresh_token"),
+    token_type: text("token_type").notNull(),
+    revoked_at: timestamp("revoked_at"),
+    workspace_id: integer("workspace_id")
+      .notNull()
+      .references(() => workspace.id),
+    user_id: text("user_id")
+      .notNull()
+      .references(() => user.id),
+    createdAt: timestamp("created_at").notNull(),
+    updatedAt: timestamp("updated_at").notNull(),
+  },
+  (table) => ({
+    uniqueUserAndWorkspace: unique().on(table.user_id, table.workspace_id),
+  })
+);
 
 export const service = pgTable("service", {
   id: serial("id").primaryKey().notNull().unique(),
@@ -162,25 +145,101 @@ export const service = pgTable("service", {
   updatedAt: timestamp("updatedAt").notNull(),
 });
 
-export type User = InferSelectModel<typeof user>;
+export const notionEntity = pgTable("notion_entity", {
+  id: serial("id").primaryKey(),
+  notionId: uuid("notion_id").notNull().unique(),
+  parentId: uuid("parent_id"),
+  type: text("type", { enum: ["page", "database"] }).notNull(),
+  titlePlain: text("title_plain").notNull(),
+  archived: boolean("archived").default(false).notNull(),
+  createdTime: timestamp("created_time").notNull(),
+  lastEditedTime: timestamp("last_edited_time").notNull(),
+  accountId: serial("account_id")
+    .notNull()
+    .references(() => notionAccount.id),
+  workspaceId: serial("workspace_id")
+    .notNull()
+    .references(() => workspace.id),
+  propertiesJson: jsonb("properties_json").default("{}").notNull(),
+});
 
-export const notionEntitiesRelations = relations(notionEntities, ({ one }) => ({
-  parent: one(notionEntities, {
-    fields: [notionEntities.parent_id],
-    references: [notionEntities.id],
+export const notionBlock = pgTable("notion_block", {
+  id: serial("id").primaryKey(),
+  notionId: uuid("notion_id").notNull().unique(),
+  pageId: uuid("page_id")
+    .notNull()
+    .references(() => notionEntity.notionId),
+  type: text("type").notNull(),
+  position: integer("position").notNull(),
+  contentJson: jsonb("content_json").default("{}").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const notionDatabaseProperty = pgTable("notion_database_property", {
+  id: serial("id").primaryKey(),
+  databaseId: uuid("database_id")
+    .notNull()
+    .references(() => notionEntity.notionId),
+  propName: text("prop_name").notNull(),
+  propType: text("prop_type").notNull(),
+  valueJson: jsonb("value_json").default("{}").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+/* ---------- RELATIONS ---------- */
+export const notionWorkspaceRelations = relations(workspace, ({ many }) => ({
+  accounts: many(notionAccount),
+  entities: many(notionEntity),
+}));
+
+export const notionAccountRelations = relations(
+  notionAccount,
+  ({ one, many }) => ({
+    workspace: one(workspace, {
+      fields: [notionAccount.workspace_id],
+      references: [workspace.id],
+    }),
+    entities: many(notionEntity),
+    user: one(user, {
+      fields: [notionAccount.user_id],
+      references: [user.id],
+    }),
+  })
+);
+
+export const notionEntityRelations = relations(
+  notionEntity,
+  ({ one, many }) => ({
+    workspace: one(workspace, {
+      fields: [notionEntity.workspaceId],
+      references: [workspace.id],
+    }),
+    account: one(notionAccount, {
+      fields: [notionEntity.accountId],
+      references: [notionAccount.id],
+    }),
+    blocks: many(notionBlock),
+    databaseProperties: many(notionDatabaseProperty),
+  })
+);
+
+export const notionBlockRelations = relations(notionBlock, ({ one }) => ({
+  page: one(notionEntity, {
+    fields: [notionBlock.pageId],
+    references: [notionEntity.notionId],
   }),
 }));
 
-export const notionAccountRelations = relations(notionAccount, ({ one }) => ({
-  workspace: one(workspace, {
-    fields: [notionAccount.workspace_id],
-    references: [workspace.id],
-  }),
-  user: one(user, {
-    fields: [notionAccount.user_id],
-    references: [user.id],
-  }),
-}));
+export const notionDatabasePropertyRelations = relations(
+  notionDatabaseProperty,
+  ({ one }) => ({
+    database: one(notionEntity, {
+      fields: [notionDatabaseProperty.databaseId],
+      references: [notionEntity.notionId],
+    }),
+  })
+);
 
 export const serviceRelations = relations(service, ({ many }) => ({
   notionAccounts: many(notionAccount, {
@@ -193,3 +252,7 @@ export const workspaceRelations = relations(workspace, ({ many }) => ({
     relationName: "notionAccounts",
   }),
 }));
+
+//Types
+export type User = InferSelectModel<typeof user>;
+export type NotionEntity = InferSelectModel<typeof notionEntity>;

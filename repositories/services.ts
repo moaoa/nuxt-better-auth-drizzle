@@ -1,7 +1,8 @@
 import { $fetch } from "ofetch";
+import type { ServiceKey } from "~~/types/services";
 
 export const servicesRepo = {
-  isConnected: async (serviceKey: string) => {
+  isConnected: async (serviceKey: ServiceKey) => {
     return await $fetch(`/api/services/${serviceKey}/is-connected`);
   },
 };

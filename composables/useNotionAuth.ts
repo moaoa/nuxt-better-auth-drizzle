@@ -5,7 +5,16 @@ export const useNotionAuth = () => {
     clientId: config.public.NOTION_OAUTH_CLIENT_ID,
     clientSecret: config.NOTION_OAUTH_CLIENT_SECRET,
     redirectUri: config.public.NOTION_OAUTH_REDIRECT_URI,
-    scopes: ["read_user", "write_user", "read_blocks", "write_blocks"],
+    scopes: [
+      "read_user",
+      "write_user",
+      "read_blocks",
+      "write_blocks",
+      "read_pages",
+      "write_pages",
+      "read_databases",
+      "write_databases",
+    ],
     authUrl: config.public.NOTION_AUTH_URL,
     notionTokenUrl: config.public.NOTION_TOKEN_URL,
   };
@@ -19,11 +28,7 @@ export const useNotionAuth = () => {
       state: "notion",
     });
 
-    let combinedScopes = "";
-
-    notionConfig.scopes.forEach((scope) => {
-      combinedScopes += `${scope} `;
-    });
+    const combinedScopes = notionConfig.scopes.join(" ");
 
     params.append("scope", combinedScopes);
 

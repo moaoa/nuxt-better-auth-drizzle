@@ -65,7 +65,7 @@ export default defineEventHandler(async (event) => {
     if (!session) throw new Error("Session not found");
 
     const { notionAccountId } = await db.transaction(async (tx) => {
-      const [{ workspaceId }] = await tx
+      await tx
         .insert(workspace)
         .values({
           uuid: response.workspace_id,
@@ -79,8 +79,14 @@ export default defineEventHandler(async (event) => {
           createdAt: new Date(),
           updatedAt: new Date(),
         })
-        .onConflictDoNothing({ target: workspace.notion_workspace_id })
-        .returning({ workspaceId: workspace.id });
+        .onConflictDoNothing({ target: workspace.notion_workspace_id });
+
+      const { id } = (await tx.query.workspace.findFirst({
+        where: eq(workspace.notion_workspace_id, response.workspace_id),
+        columns: {
+          id: true,
+        },
+      })) ?? { id: 0 };
 
       const [{ notionAccountId }] = await tx
         .insert(notionAccount)
@@ -94,7 +100,7 @@ export default defineEventHandler(async (event) => {
           refresh_token: null,
           createdAt: new Date(),
           updatedAt: new Date(),
-          workspace_id: workspaceId,
+          workspace_id: id,
         })
         .onConflictDoUpdate({
           target: [notionAccount.workspace_id, notionAccount.user_id],
@@ -107,6 +113,15 @@ export default defineEventHandler(async (event) => {
           },
         })
         .returning({ notionAccountId: notionAccount.id });
+
+      console.log(
+        "=============================================================================================================================="
+      );
+      console.log(
+        "Notion account created:",
+        notionAccountId,
+        response.access_token
+      );
 
       return { notionAccountId };
     });

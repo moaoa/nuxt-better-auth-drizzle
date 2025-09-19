@@ -23,4 +23,5 @@ export function valueUpdater<T extends Updater<any>>(
 export const serviceKeyRouteMap = {
   notion: "/app/services/connect/notion",
   quickbooks: "/app/services/connect/quickbooks",
+  google_sheet: "/app/services/connect/google-sheets",
 };
