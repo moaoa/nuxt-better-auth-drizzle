@@ -146,7 +146,7 @@ export const service = pgTable("service", {
 });
 
 export const notionEntity = pgTable("notion_entity", {
-  id: serial("id").primaryKey(),
+  id: serial("id").primaryKey().notNull().unique(),
   notionId: uuid("notion_id").notNull().unique(),
   parentId: uuid("parent_id"),
   type: text("type", { enum: ["page", "database"] }).notNull(),

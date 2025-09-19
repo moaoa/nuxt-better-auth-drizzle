@@ -3,8 +3,13 @@ import { Client } from "@notionhq/client";
 import { notionAccount, type NotionEntity, notionEntity } from "~~/db/schema";
 import { useDrizzle } from "~~/server/utils/drizzle";
 import { eq } from "drizzle-orm";
-import { v4 as uuidv4 } from "uuid";
-import { SearchResponse } from "@notionhq/client/build/src/api-endpoints";
+import {
+  SearchResponse,
+  PageObjectResponse,
+  DatabaseObjectResponse,
+} from "@notionhq/client/build/src/api-endpoints";
+
+type NotionSearchResult = PageObjectResponse | DatabaseObjectResponse;
 
 const connection = {
   host: process.env.REDIS_HOST!,
@@ -22,6 +27,37 @@ interface NotionSyncJobData {
 interface NotionSyncJobResult {
   status: "completed" | "failed";
   message?: string;
+}
+
+function getParentId(
+  parent: PageObjectResponse["parent"] | DatabaseObjectResponse["parent"]
+): string | null {
+  if ("database_id" in parent) {
+    return parent.database_id;
+  }
+  if ("page_id" in parent) {
+    return parent.page_id;
+  }
+  if ("block_id" in parent) {
+    return parent.block_id;
+  }
+  return null;
+}
+
+function getTitle(result: NotionSearchResult): string {
+  if (result.object === "page") {
+    const titleProp = Object.values(result.properties).find(
+      (prop) => prop.type === "title"
+    );
+    if (titleProp && titleProp.type === "title") {
+      return titleProp.title[0]?.plain_text || "Untitled";
+    }
+  } else if (result.object === "database") {
+    if (result.title && result.title[0]?.plain_text) {
+      return result.title[0].plain_text;
+    }
+  }
+  return "Untitled";
 }
 
 export const notionSyncWorker = new Worker<
@@ -49,21 +85,17 @@ export const notionSyncWorker = new Worker<
       // Fetch pages
       let hasMorePages = true;
       let nextCursorPages: string | undefined = undefined;
-      const allPages: SearchResponse["results"] = [];
+      const allPages: NotionSearchResult[] = [];
 
-      console.log("Fetching pages...");
       while (hasMorePages) {
-        const response = await notion.search({
-          // start_cursor: nextCursorPages,
-          query: "",
+        const response: SearchResponse = await notion.search({
           filter: {
             property: "object",
             value: "page",
           },
         });
 
-        console.log("Pages response:", response);
-        allPages.push(...response.results);
+        allPages.push(...(response.results as NotionSearchResult[]));
         hasMorePages = response.has_more;
         nextCursorPages = response.next_cursor || undefined;
       }
@@ -71,21 +103,17 @@ export const notionSyncWorker = new Worker<
       // Fetch databases
       let hasMoreDatabases = true;
       let nextCursorDatabases: string | undefined = undefined;
-      const allDatabases: SearchResponse["results"] = [];
+      const allDatabases: NotionSearchResult[] = [];
 
-      console.log("Fetching databases...");
       while (hasMoreDatabases) {
-        const response = await notion.search({
-          // start_cursor: nextCursorDatabases,
-          query: "",
+        const response: SearchResponse = await notion.search({
           filter: {
             property: "object",
             value: "database",
           },
         });
 
-        console.log("Databases response:", response);
-        allDatabases.push(...response.results);
+        allDatabases.push(...(response.results as NotionSearchResult[]));
         hasMoreDatabases = response.has_more;
         nextCursorDatabases = response.next_cursor || undefined;
       }
@@ -97,23 +125,24 @@ export const notionSyncWorker = new Worker<
         };
       }
 
-      const allEntities = [...allPages, ...allDatabases];
+      const allEntities: NotionSearchResult[] = [...allPages, ...allDatabases];
 
       if (allEntities.length > 0) {
-        const values: NotionEntity[] = allEntities.map((result) => ({
-          notion_id: result.id,
-          parent_id: result.id,
-          type: result.object,
-          accountId: notionAccountId,
-          archived: result.object,
-          titlePlain: result.properties.Title.title[0].plain_text,
-          createdTime: result.created_time,
-          lastEditedTime: result.last_edited_time,
-          workspaceId: result.parent.id,
-          propertiesJson: result,
-          user_id: userId,
-          is_child_of_workspace: result.object === "page",
-        }));
+        const values: Omit<NotionEntity, "id">[] = allEntities.map(
+          (result) => ({
+            notionId: result.id,
+            parentId: getParentId(result.parent),
+            type: result.object,
+            accountId: notionAccountId,
+            archived: result.archived,
+            titlePlain: getTitle(result),
+            createdTime: new Date(result.created_time),
+            lastEditedTime: new Date(result.last_edited_time),
+            workspaceId: account.workspace_id,
+            propertiesJson: result,
+            user_id: userId,
+          })
+        );
 
         await db
           .insert(notionEntity)
