@@ -4,6 +4,7 @@ RUN npm i -g pnpm
 
 WORKDIR /app
 COPY package.json /app
+RUN echo "options timeout:5" >> /etc/resolv.conf
 RUN pnpm i
 COPY . /app
 

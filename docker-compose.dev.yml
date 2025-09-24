@@ -1,12 +1,48 @@
-version: "3"
 services:
-  nuxt:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    env_file:
-      - .env
+  # nuxt:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.dev
+  #   env_file:
+  #     - .env
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - .:/app
+  #   command: ["pnpm", "dev"]
+  #   environment:
+  #     CHROME_PATH: /usr/bin/chromium-browser
+
+  db:
+    image: postgres:16
+    platform: linux/amd64
+    container_name: Postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: postgres # <-- fixes the error
+      POSTGRES_USER: postgres # optional (defaults to postgres)
+      POSTGRES_DB: postgres # optional (defaults to POSTGRES_USER)
     ports:
-      - "3000:3000"
+      - "5433:5432"
     volumes:
-      - .:/app
+      - db-data:/var/lib/postgresql/data
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: Jaeger
+    restart: unless-stopped
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true" # expose OTLP on :4318
+    ports:
+      - "4318:4318" # OTLP HTTP
+      - "16686:16686" # Jaeger UI
+
+  redis:
+    image: redis:7-alpine
+    container_name: Redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+volumes:
+  db-data:

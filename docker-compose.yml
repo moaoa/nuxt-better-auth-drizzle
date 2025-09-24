@@ -1,20 +1,35 @@
-version: "3"
 services:
   db:
-    image: ghcr.io/tursodatabase/libsql-server:latest
+    image: postgres:16
     platform: linux/amd64
+    container_name: Postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: postgres # <-- fixes the error
+      POSTGRES_USER: postgres # optional (defaults to postgres)
+      POSTGRES_DB: postgres # optional (defaults to POSTGRES_USER)
     ports:
-      - "8080:8080"
-      - "5001:5001"
-    # environment:
-    #   - SQLD_NODE=primary
+      - "5433:5432"
     volumes:
-      - ./sqld:/var/lib/sqld
-  nuxt:
-    build: .
-    env_file:
-      - .env
+      - db-data:/var/lib/postgresql/data
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: Jaeger
+    restart: unless-stopped
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true" # expose OTLP on :4318
     ports:
-      - "3000:3000"
-    volumes:
-      - .:/app
+      - "4318:4318" # OTLP HTTP
+      - "16686:16686" # Jaeger UI
+
+  redis:
+    image: redis:7-alpine
+    container_name: Redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+volumes:
+  db-data:
+
