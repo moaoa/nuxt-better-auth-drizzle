@@ -19,10 +19,10 @@ export const useNotionAuth = () => {
     notionTokenUrl: config.public.NOTION_TOKEN_URL,
   };
 
-  const initiateAuth = () => {
+  const initiateAuth = (redirectUri: string) => {
     const params = new URLSearchParams({
       client_id: notionConfig.clientId,
-      redirect_uri: notionConfig.redirectUri,
+      redirect_uri: redirectUri,
       response_type: "code",
       owner: "user",
       state: "notion",
@@ -35,11 +35,16 @@ export const useNotionAuth = () => {
     window.location.href = `${notionConfig.authUrl}?${params.toString()}`;
   };
 
-  const handleCallback = async (code: string) => {
+  type CallbackParams = {
+    code: string;
+    redirect_uri: string;
+  };
+
+  const handleCallback = async ({ code, redirect_uri }: CallbackParams) => {
     try {
       const response = await $fetch("/api/auth/notion/callback", {
         method: "POST",
-        body: { code },
+        body: { code, redirect_uri },
       });
       return response;
     } catch (error) {

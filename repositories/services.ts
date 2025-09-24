@@ -1,4 +1,3 @@
-import { $fetch } from "ofetch";
 import type { ServiceKey } from "~~/types/services";
 
 export const servicesRepo = {

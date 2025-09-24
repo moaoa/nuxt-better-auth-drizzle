@@ -187,6 +187,29 @@ export const notionDatabaseProperty = pgTable("notion_database_property", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const googleSheetsAccount = pgTable(
+  "google_sheets_account",
+  {
+    id: serial("id").primaryKey().notNull().unique(),
+    uuid: uuid("uuid").notNull().unique(),
+    user_name: text("user_name").notNull(),
+    access_token: text("access_token").notNull(),
+    refresh_token: text("refresh_token"),
+    token_type: text("token_type").notNull(),
+    revoked_at: timestamp("revoked_at"),
+    user_id: text("user_id")
+      .notNull()
+      .references(() => user.id),
+    createdAt: timestamp("created_at").notNull(),
+    updatedAt: timestamp("updated_at").notNull(),
+    scope: text("scope"),
+    expiry_date: timestamp("expiry_date"),
+  },
+  (table) => ({
+    uniqueUser: unique().on(table.user_id),
+  })
+);
+
 /* ---------- RELATIONS ---------- */
 export const notionWorkspaceRelations = relations(workspace, ({ many }) => ({
   accounts: many(notionAccount),
@@ -252,6 +275,16 @@ export const workspaceRelations = relations(workspace, ({ many }) => ({
     relationName: "notionAccounts",
   }),
 }));
+
+export const googleSheetsAccountRelations = relations(
+  googleSheetsAccount,
+  ({ one }) => ({
+    user: one(user, {
+      fields: [googleSheetsAccount.user_id],
+      references: [user.id],
+    }),
+  })
+);
 
 //Types
 export type User = InferSelectModel<typeof user>;

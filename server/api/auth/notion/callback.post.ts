@@ -7,6 +7,7 @@ import { notionSyncQueue } from "~~/server/queues/notion-sync";
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
   const code = body.code as string;
+  const redirect_uri = body.redirect_uri as string;
 
   const config = useRuntimeConfig();
 
@@ -17,14 +18,21 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  if (!redirect_uri) {
+    throw createError({
+      statusCode: 400,
+      message: "No redirect_uri provided",
+    });
+  }
+
   try {
     const encodedToken = Buffer.from(
       `${config.public.NOTION_OAUTH_CLIENT_ID}:${config.NOTION_OAUTH_CLIENT_SECRET}`
     ).toString("base64");
 
     const body = JSON.stringify({
-      redirect_uri: config.public.NOTION_OAUTH_REDIRECT_URI,
       grant_type: "authorization_code",
+      redirect_uri,
       code,
     });
 
@@ -44,6 +52,8 @@ export default defineEventHandler(async (event) => {
       });
     }
 
+    console.log("Notion OAuth Request body:", body);
+
     const response = await $fetch<NotionOAuthResponse>(
       // @ts-expect-error TODO: fix types
       config.public.NOTION_TOKEN_URL,
@@ -57,6 +67,8 @@ export default defineEventHandler(async (event) => {
         body,
       }
     );
+
+    console.log("Notion OAuth Response:", response);
 
     const session = await auth.api.getSession({
       headers: event.headers,

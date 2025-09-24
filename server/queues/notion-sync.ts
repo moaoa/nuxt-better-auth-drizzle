@@ -3,6 +3,7 @@ import { Client } from "@notionhq/client";
 import { notionAccount, type NotionEntity, notionEntity } from "~~/db/schema";
 import { useDrizzle } from "~~/server/utils/drizzle";
 import { eq } from "drizzle-orm";
+import { BullMQOtel } from "bullmq-otel";
 import {
   SearchResponse,
   PageObjectResponse,
@@ -17,7 +18,10 @@ const connection = {
   password: process.env.REDIS_PASSWORD!,
 };
 
-export const notionSyncQueue = new Queue("notion-sync", { connection });
+export const notionSyncQueue = new Queue("notion-sync", {
+  connection,
+  telemetry: new BullMQOtel("notion-sync-queue"),
+});
 
 interface NotionSyncJobData {
   userId: string;
@@ -159,5 +163,5 @@ export const notionSyncWorker = new Worker<
       throw new Error(`Notion sync failed: ${error.message}`);
     }
   },
-  { connection }
+  { connection, telemetry: new BullMQOtel("notion-sync-worker") }
 );

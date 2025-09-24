@@ -2,15 +2,18 @@ export const useGoogleSheetsAuth = () => {
   const config = useRuntimeConfig();
 
   const googleSheetsConfig = {
-    clientId: config.public.GOOGLE_CLIENT_ID,
-    clientSecret: config.GOOGLE_CLIENT_SECRET,
-    redirectUri: config.public.GOOGLE_REDIRECT_URI,
-    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+    clientId: config.public.GOOGLE_SHEETS_CLIENT_ID,
+    clientSecret: config.GOOGLE_SHEETS_CLIENT_SECRET,
+    redirectUri: config.public.NOTION_TO_GOOGLE_SHEETS_REDIRECT_URI,
+    scopes: [
+      "https://www.googleapis.com/auth/spreadsheets",
+      "https://www.googleapis.com/auth/userinfo.profile",
+    ],
     authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
     tokenUrl: "https://oauth2.googleapis.com/token",
   };
 
-  const initiateAuth = () => {
+  const initiateAuth = (state: string = "google-sheets") => {
     const params = new URLSearchParams({
       client_id: googleSheetsConfig.clientId,
       redirect_uri: googleSheetsConfig.redirectUri,
@@ -18,17 +21,22 @@ export const useGoogleSheetsAuth = () => {
       scope: googleSheetsConfig.scopes.join(" "),
       access_type: "offline",
       prompt: "consent",
-      state: "google-sheets",
+      state,
     });
 
     window.location.href = `${googleSheetsConfig.authUrl}?${params.toString()}`;
   };
 
-  const handleCallback = async (code: string) => {
+  const handleCallback = async (params: {
+    code: string;
+    redirect_uri: string;
+  }) => {
     try {
+      console.log("params", params);
+
       const response = await $fetch("/api/auth/google-sheets/callback", {
         method: "POST",
-        body: { code },
+        body: params,
       });
       return response;
     } catch (error) {

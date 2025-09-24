@@ -11,6 +11,8 @@ const { initiateAuth } = useGoogleSheetsAuth();
   <div>
     <h2>Step 2: Connect with Google Sheets</h2>
     <p>Click the button below to connect your Google Sheets account.</p>
-    <Button @click="initiateAuth">Connect to Google Sheets</Button>
+    <Button @click="() => initiateAuth('google-sheets')">
+      Connect to Google Sheets
+    </Button>
   </div>
 </template>

@@ -9,6 +9,11 @@ export const envSchema = z.object({
   NOTION_OAUTH_CLIENT_SECRET: z.string().min(1),
   NOTION_OAUTH_REDIRECT_URI: z.string().url().optional(),
 
+  // Google OAuth
+  GOOGLE_CLIENT_ID: z.string().min(1),
+  GOOGLE_CLIENT_SECRET: z.string().min(1),
+  GOOGLE_OAUTH_REDIRECT_URI: z.string().url().optional(),
+
   // Auth
   BETTER_AUTH_SECRET: z.string().min(1),
   BETTER_AUTH_URL: z.string().url(),
