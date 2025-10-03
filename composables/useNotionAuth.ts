@@ -3,7 +3,6 @@ export const useNotionAuth = () => {
 
   const notionConfig = {
     clientId: config.public.NOTION_OAUTH_CLIENT_ID,
-    clientSecret: config.NOTION_OAUTH_CLIENT_SECRET,
     redirectUri: config.public.NOTION_OAUTH_REDIRECT_URI,
     scopes: [
       "read_user",
@@ -19,13 +18,13 @@ export const useNotionAuth = () => {
     notionTokenUrl: config.public.NOTION_TOKEN_URL,
   };
 
-  const initiateAuth = (redirectUri: string) => {
+  const initiateAuth = (connectPage: string) => {
     const params = new URLSearchParams({
       client_id: notionConfig.clientId,
-      redirect_uri: redirectUri,
+      redirect_uri: notionConfig.redirectUri,
       response_type: "code",
       owner: "user",
-      state: "notion",
+      state: connectPage,
     });
 
     const combinedScopes = notionConfig.scopes.join(" ");
@@ -37,14 +36,13 @@ export const useNotionAuth = () => {
 
   type CallbackParams = {
     code: string;
-    redirect_uri: string;
   };
 
-  const handleCallback = async ({ code, redirect_uri }: CallbackParams) => {
+  const handleCallback = async ({ code }: CallbackParams) => {
     try {
       const response = await $fetch("/api/auth/notion/callback", {
         method: "POST",
-        body: { code, redirect_uri },
+        body: { code, redirect_uri: notionConfig.redirectUri },
       });
       return response;
     } catch (error) {

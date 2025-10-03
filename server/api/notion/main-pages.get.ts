@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { notionAccount, notionEntity } from "~~/db/schema";
 import { useDrizzle } from "~~/server/utils/drizzle";
 import { requireUserSession } from "~~/server/utils/session";
@@ -10,18 +10,20 @@ export default defineEventHandler(async (event) => {
 
   const db = useDrizzle();
 
-  const pages = await db.query.notionEntity.findMany({
-    with: {
-      account: {
-        with: { user: true },
-      },
-    },
-    where: and(
-      eq(notionAccount.user_id, userId),
-      eq(notionEntity.type, "page"),
-      eq(notionEntity.parentId, "")
-    ),
-  });
+  const pages = await db
+    .select({
+      id: notionEntity.id,
+      title: notionEntity.titlePlain,
+    })
+    .from(notionEntity)
+    .leftJoin(notionAccount, eq(notionEntity.accountId, notionAccount.id))
+    .where(
+      and(
+        eq(notionAccount.user_id, userId),
+        eq(notionEntity.type, "page"),
+        isNull(notionEntity.parentId)
+      )
+    );
 
   return pages;
 });

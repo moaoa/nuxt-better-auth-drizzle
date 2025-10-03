@@ -17,7 +17,7 @@ import {
 const emit = defineEmits(["next", "prev", "database-selected"]);
 const queryClient = useQueryClient();
 
-const selectedDatabase = ref<string>();
+const selectedDatabase = ref<number>();
 const newDatabaseName = ref("");
 const selectedParentPage = ref<string>();
 
@@ -111,8 +111,7 @@ const proceedToNextStep = () => {
             :placeholder="
               selectedDatabase
                 ? 'Selected: ' +
-                  databases?.find((db) => db.id === selectedDatabase)?.title[0]
-                    ?.plain_text
+                  databases?.find((db) => db.id === selectedDatabase)?.title
                 : 'Select an existing database'
             "
           />
@@ -120,8 +119,12 @@ const proceedToNextStep = () => {
         <SelectContent>
           <SelectGroup>
             <SelectLabel>Existing Databases</SelectLabel>
-            <SelectItem v-for="db in databases" :key="db.id" :value="db.id">
-              {{ db.title[0]?.plain_text || "Untitled Database" }}
+            <SelectItem
+              v-for="db in databases"
+              :key="db.id"
+              :value="`${db.id}`"
+            >
+              {{ db.title || "Untitled Database" }}
             </SelectItem>
           </SelectGroup>
         </SelectContent>
@@ -145,10 +148,10 @@ const proceedToNextStep = () => {
               <SelectLabel>Top-Level Pages</SelectLabel>
               <SelectItem
                 v-for="page in topLevelPages"
-                :key="page.notionId"
-                :value="page.notionId"
+                :key="`${page.id}`"
+                :value="`${page.id}`"
               >
-                {{ page.titlePlain || "Untitled Page" }}
+                {{ page.title || "Untitled Page" }}
               </SelectItem>
             </SelectGroup>
           </SelectContent>

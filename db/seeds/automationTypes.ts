@@ -1,14 +1,14 @@
 import { useDrizzle } from "~~/server/utils/drizzle";
-import { service } from "~~/db/schema";
+import { automationType } from "~~/db/schema";
 
 async function main() {
   const db = useDrizzle();
   await db.transaction(async (trx) => {
-    await trx.insert(service).values([
+    await trx.insert(automationType).values([
       {
         name: "QuickBooks",
         uuid: crypto.randomUUID(),
-        service_key: "quickbooks",
+        automationTypeKey: "quickbooks",
         id: 1,
         description: "",
         disabled: true,
@@ -20,7 +20,7 @@ async function main() {
       {
         name: "Google Sheets",
         uuid: crypto.randomUUID(),
-        service_key: "google_sheet",
+        automationTypeKey: "google_sheet",
         id: 2,
         description: "",
         disabled: false,
@@ -32,7 +32,7 @@ async function main() {
       {
         name: "Notion",
         uuid: crypto.randomUUID(),
-        service_key: "notion",
+        automationTypeKey: "notion",
         id: 3,
         description: "",
         disabled: true,

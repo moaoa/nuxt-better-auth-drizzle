@@ -3,8 +3,7 @@ export const useGoogleSheetsAuth = () => {
 
   const googleSheetsConfig = {
     clientId: config.public.GOOGLE_SHEETS_CLIENT_ID,
-    clientSecret: config.GOOGLE_SHEETS_CLIENT_SECRET,
-    redirectUri: config.public.NOTION_TO_GOOGLE_SHEETS_REDIRECT_URI,
+    redirectUri: config.public.GOOGLE_SHEETS_REDIRECT_URI,
     scopes: [
       "https://www.googleapis.com/auth/spreadsheets",
       "https://www.googleapis.com/auth/userinfo.profile",
@@ -27,16 +26,14 @@ export const useGoogleSheetsAuth = () => {
     window.location.href = `${googleSheetsConfig.authUrl}?${params.toString()}`;
   };
 
-  const handleCallback = async (params: {
-    code: string;
-    redirect_uri: string;
-  }) => {
+  const handleCallback = async (params: { code: string }) => {
     try {
-      console.log("params", params);
-
       const response = await $fetch("/api/auth/google-sheets/callback", {
         method: "POST",
-        body: params,
+        body: {
+          redirect_uri: googleSheetsConfig.redirectUri,
+          code: params.code,
+        },
       });
       return response;
     } catch (error) {

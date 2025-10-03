@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { service, notionAccount, workspace } from "~~/db/schema";
+import { automationType, notionAccount, workspace } from "~~/db/schema";
 import { NotionOAuthResponse } from "~~/types/notion";
 import { auth } from "~~/lib/auth";
 import { notionSyncQueue } from "~~/server/queues/notion-sync";
@@ -38,21 +38,19 @@ export default defineEventHandler(async (event) => {
 
     const db = useDrizzle();
 
-    const notionService = await db.query.service.findFirst({
-      where: eq(service.service_key, "notion"),
+    const notionAutomationType = await db.query.automationType.findFirst({
+      where: eq(automationType.automationTypeKey, "notion"),
       columns: {
         id: true,
       },
     });
 
-    if (!notionService) {
+    if (!notionAutomationType) {
       throw createError({
         statusCode: 404,
-        message: "Notion Service not found.",
+        message: "Notion automation type not found.",
       });
     }
-
-    console.log("Notion OAuth Request body:", body);
 
     const response = await $fetch<NotionOAuthResponse>(
       // @ts-expect-error TODO: fix types

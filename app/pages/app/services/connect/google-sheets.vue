@@ -1,17 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref } from "vue";
 import Stepper from "@/components/stepper/Stepper.vue";
 import NotionConnectStep from "@/components/stepper/NotionConnectStep.vue";
 import GoogleSheetsConnectStep from "@/components/stepper/GoogleSheetsConnectStep.vue";
 import NotionDatabaseStep from "@/components/stepper/NotionDatabaseStep.vue";
 import { useMutation } from "@tanstack/vue-query";
-import { useNotionAuth } from "~~/composables/useNotionAuth";
-import { useGoogleSheetsAuth } from "~~/composables/useGoogleSheetsAuth";
 
 const config = useRuntimeConfig();
-const route = useRoute();
-const { handleCallback: handleNotionCallback } = useNotionAuth();
-const { handleCallback: handleGoogleSheetsCallback } = useGoogleSheetsAuth();
 
 const steps = [
   {
@@ -28,9 +23,26 @@ const steps = [
   },
 ];
 
-const isLoading = ref(false);
-
 const currentStepIndex = ref(0);
+const maxStepIndex = ref(0);
+
+const { data: connections } = await useFetch("/api/connections");
+
+if (connections.value?.data) {
+  const isNotionConnected = connections.value.data.notionAccounts.length > 0;
+  const isGoogleSheetsConnected =
+    connections.value.data.googleSheetsAccounts.length > 0;
+
+  if (isNotionConnected) {
+    currentStepIndex.value++;
+    maxStepIndex.value++;
+  }
+
+  if (isGoogleSheetsConnected) {
+    currentStepIndex.value++;
+    maxStepIndex.value++;
+  }
+}
 
 const selectedDatabaseId = ref<string | null>(null);
 
@@ -46,6 +58,10 @@ const saveServiceMutation = useMutation({
 });
 
 const onStepNext = () => {
+  if (currentStepIndex.value === maxStepIndex.value) {
+    return;
+  }
+
   if (currentStepIndex.value < steps.length - 1) {
     currentStepIndex.value++;
   }
@@ -61,53 +77,6 @@ const onDatabaseSelected = (dbId: string) => {
   selectedDatabaseId.value = dbId;
   saveServiceMutation.mutate(dbId);
 };
-
-onMounted(async () => {
-  const code = route.query.code as string;
-  const state = route.query.state as string;
-
-  if (!code) {
-    console.log("no code");
-    return;
-  }
-
-  if (!state) {
-    console.log("no state");
-    return;
-  }
-
-  try {
-    isLoading.value = true;
-    const connectedService = localStorage.getItem("connectedService");
-
-    const isNotionConnected = connectedService === "notion";
-    const isGoogleSheetsConnected = connectedService === "google-sheets";
-
-    if (state === "notion") {
-      console.log("notion");
-      await handleNotionCallback({
-        redirect_uri: config.public.NOTION_TO_GOOGLE_SHEETS_REDIRECT_URI,
-        code,
-      });
-      currentStepIndex.value = 1;
-      return;
-    }
-
-    if (state === "google-sheets") {
-      console.log("google-sheets");
-      await handleGoogleSheetsCallback({
-        redirect_uri: config.public.NOTION_TO_GOOGLE_SHEETS_REDIRECT_URI,
-        code,
-      });
-      currentStepIndex.value = 2;
-      return;
-    }
-  } catch (error) {
-    console.log(error);
-  } finally {
-    isLoading.value = false;
-  }
-});
 </script>
 
 <template>

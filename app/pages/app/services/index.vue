@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { serviceKeyRouteMap } from "~~/lib/utils";
 
-const { data } = await useFetch("/api/services");
+const { data } = await useFetch("/api/automation-types");
 
-const services = data.value?.services || [];
+const automationTypes = data.value?.automationTypes || [];
 
 type Key = keyof typeof serviceKeyRouteMap;
 </script>
@@ -17,15 +17,15 @@ type Key = keyof typeof serviceKeyRouteMap;
         name,
         icon,
         description,
-        service_key,
+        automationTypeKey,
         disabled,
-      } in services.filter((item) => !item.isHidden)"
+      } in automationTypes.filter((item) => !item.isHidden)"
       :key="name"
       class="bg-muted/60 dark:bg-card h-full relative rounded-lg p-4"
     >
       <RouterLink
         :disabled="disabled"
-        :to="serviceKeyRouteMap[service_key as Key]"
+        :to="serviceKeyRouteMap[automationTypeKey as Key]"
       >
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center">
@@ -34,7 +34,9 @@ type Key = keyof typeof serviceKeyRouteMap;
               class="h-7 w-7 text-accent"
             />
             <h3 class="text-xl font-semibold mb-0 ml-2">{{ name }}</h3>
-            <h3 class="text-xl font-semibold mb-0 ml-2">{{ service_key }}</h3>
+            <h3 class="text-xl font-semibold mb-0 ml-2">
+              {{ automationTypeKey }}
+            </h3>
           </div>
           <Icon
             v-if="icon === 'lucide:shield-question'"

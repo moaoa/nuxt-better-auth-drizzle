@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { service, googleSheetsAccount } from "~~/db/schema";
+import { automationType, googleSheetsAccount } from "~~/db/schema";
 import { auth } from "~~/lib/auth";
 import { ServiceKey } from "~~/types/services";
 
@@ -48,7 +48,7 @@ export default defineEventHandler(async (event) => {
     const key: ServiceKey = "google_sheet";
 
     const googleSheetsService = await db.query.service.findFirst({
-      where: eq(service.service_key, key),
+      where: eq(automationType.service_key, key),
       columns: {
         id: true,
       },

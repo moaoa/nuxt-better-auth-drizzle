@@ -1,5 +1,5 @@
 import { auth } from "~~/lib/auth";
-import { automation, service, user } from "~~/db/schema";
+import { automation, automationType, user } from "~~/db/schema";
 import { eq } from "drizzle-orm";
 
 export default defineEventHandler(async (event) => {
@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
   const serviceUUID = body.service_id;
 
   const _service = await db.query.service.findFirst({
-    where: eq(service.uuid, serviceUUID),
+    where: eq(automationType.uuid, serviceUUID),
   });
 
   if (!_service) {

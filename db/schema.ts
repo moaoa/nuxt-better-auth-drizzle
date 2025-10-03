@@ -87,9 +87,9 @@ export const automation = pgTable("automation", {
   user_id: text("user_id")
     .notNull()
     .references(() => user.id),
-  service_id: serial("service_id")
+  automationType_id: serial("automationType_id")
     .notNull()
-    .references(() => service.id),
+    .references(() => automationType.id),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
 });
@@ -132,10 +132,10 @@ export const notionAccount = pgTable(
   })
 );
 
-export const service = pgTable("service", {
+export const automationType = pgTable("automationType", {
   id: serial("id").primaryKey().notNull().unique(),
   uuid: uuid("uuid").notNull().unique(),
-  service_key: text("service_key").notNull(),
+  automationTypeKey: text("automationType_key").notNull(),
   name: text("name").notNull(),
   description: text("description"),
   icon: text("icon"),
@@ -264,11 +264,14 @@ export const notionDatabasePropertyRelations = relations(
   })
 );
 
-export const serviceRelations = relations(service, ({ many }) => ({
-  notionAccounts: many(notionAccount, {
-    relationName: "notionAccounts",
-  }),
-}));
+export const automationTypeRelations = relations(
+  automationType,
+  ({ many }) => ({
+    notionAccounts: many(notionAccount, {
+      relationName: "notionAccounts",
+    }),
+  })
+);
 
 export const workspaceRelations = relations(workspace, ({ many }) => ({
   notionAccounts: many(notionAccount, {
