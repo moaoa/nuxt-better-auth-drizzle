@@ -23,7 +23,7 @@ export const useDrizzle = () => {
     schema,
     logger: {
       logQuery(query, params) {
-        logger.info(query, params);
+        logger.info({ query, params });
       },
     },
   });
