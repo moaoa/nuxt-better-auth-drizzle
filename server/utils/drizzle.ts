@@ -3,11 +3,14 @@ import postgres from "postgres";
 import * as schema from "../../db/schema";
 import winston from "winston";
 
+const { format } = winston;
+
 const logger = winston.createLogger({
   level: "info",
   format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.simple()
+    format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
+    format.errors({ stack: true }),
+    format.json()
   ),
   transports: [new winston.transports.File({ filename: "drizzle.log" })],
 });

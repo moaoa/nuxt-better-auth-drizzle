@@ -3,6 +3,7 @@ import { automationType, notionAccount, workspace } from "~~/db/schema";
 import { NotionOAuthResponse } from "~~/types/notion";
 import { auth } from "~~/lib/auth";
 import { notionSyncQueue } from "~~/server/queues/notion-sync";
+import { notionLogger } from "~~/lib/loggers";
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
@@ -124,15 +125,6 @@ export default defineEventHandler(async (event) => {
         })
         .returning({ notionAccountId: notionAccount.id });
 
-      console.log(
-        "=============================================================================================================================="
-      );
-      console.log(
-        "Notion account created:",
-        notionAccountId,
-        response.access_token
-      );
-
       return { notionAccountId };
     });
 
@@ -145,6 +137,8 @@ export default defineEventHandler(async (event) => {
   } catch (error) {
     const msg = error instanceof Error ? error.message : "no message";
     console.error("Error exchanging code for token:", msg);
+
+    notionLogger.error({ error, requestBody: body });
 
     throw createError({
       statusCode: 500,
