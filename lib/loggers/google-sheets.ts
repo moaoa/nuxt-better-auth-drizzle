@@ -10,17 +10,17 @@ import "winston-daily-rotate-file";
 // });
 
 const attachRequestId = winston.format((info) => {
-  // const event = useEvent();
-  // const reqId = event.context.reqId;
+  const event = useEvent();
+  const reqId = event.context.reqId;
 
-  // info.reqId = reqId;
+  info.reqId = reqId;
 
   return info;
 });
 
 export const googleSheetsLogger = winston.createLogger({
   format: winston.format.combine(
-    // attachRequestId(),
+    attachRequestId(),
     winston.format.timestamp(),
     winston.format.printf(({ timestamp, level, message, reqId }) => {
       return `${timestamp} [${reqId || ""}] ${level}: ${message}`;
