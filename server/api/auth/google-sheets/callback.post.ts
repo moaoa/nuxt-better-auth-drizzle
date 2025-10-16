@@ -1,6 +1,8 @@
 import { eq } from "drizzle-orm";
 import { automationType, googleSheetsAccount } from "~~/db/schema";
 import { auth } from "~~/lib/auth";
+import { googleSheetsLogger } from "~~/lib/loggers";
+import { addGoogleSheetsJob } from "~~/server/queues/googleSheetsQueue";
 import { ServiceKey } from "~~/types/services";
 
 interface GoogleOAuthResponse {
@@ -47,19 +49,23 @@ export default defineEventHandler(async (event) => {
 
     const key: ServiceKey = "google_sheet";
 
-    const googleSheetsService = await db.query.service.findFirst({
-      where: eq(automationType.service_key, key),
+    const googleSheetsAutomationType = await db.query.automationType.findFirst({
+      where: eq(automationType.automationTypeKey, key),
       columns: {
         id: true,
       },
     });
 
-    if (!googleSheetsService) {
+    if (!googleSheetsAutomationType) {
       throw createError({
         statusCode: 404,
-        message: "Google Sheets Service not found.",
+        message: "Google Sheets Automation Type not found.",
       });
     }
+
+    const encodedApiKey = Buffer.from(
+      `${config.public.GOOGLE_SHEETS_CLIENT_ID}:${config.GOOGLE_SHEETS_CLIENT_SECRET}`
+    ).toString("base64");
 
     const response = await $fetch<GoogleOAuthResponse>(
       "https://oauth2.googleapis.com/token",
@@ -67,9 +73,7 @@ export default defineEventHandler(async (event) => {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
-          Authorization: `Basic ${Buffer.from(
-            `${config.public.GOOGLE_SHEETS_CLIENT_ID}:${config.GOOGLE_SHEETS_CLIENT_SECRET}`
-          ).toString("base64")}`,
+          Authorization: `Basic ${encodedApiKey}`,
         },
         body,
       }
@@ -90,10 +94,11 @@ export default defineEventHandler(async (event) => {
 
     if (!session) throw new Error("Session not found");
 
+    //TODO: remove the google sheets id col and make the user id unique
     await db
       .insert(googleSheetsAccount)
       .values({
-        uuid: crypto.randomUUID(),
+        googleSheetsId: crypto.randomUUID(),
         access_token: response.access_token,
         token_type: response.token_type,
         user_id: session.user.id,
@@ -108,7 +113,11 @@ export default defineEventHandler(async (event) => {
         ),
       })
       .onConflictDoUpdate({
-        target: [googleSheetsAccount.user_id],
+        target: [
+          googleSheetsAccount.user_id,
+          //TODO: remove the google sheets id all together and make the user id only unique
+          googleSheetsAccount.googleSheetsId,
+        ],
         set: {
           access_token: response.access_token,
           token_type: response.token_type,
@@ -123,10 +132,20 @@ export default defineEventHandler(async (event) => {
         },
       });
 
+    console.log("before starting job");
+
+    await addGoogleSheetsJob({
+      userId: session.user.id,
+      accessToken: response.access_token,
+      refreshToken: response.refresh_token,
+    });
+
     return response;
   } catch (error) {
     const msg = error instanceof Error ? error.message : "no message";
     console.error("Error exchanging code for token:", msg);
+
+    googleSheetsLogger.error({ body, error });
 
     throw createError({
       statusCode: 500,

@@ -2,6 +2,16 @@ import { OgImage } from "./.nuxt/components.d";
 // https://nuxt.com/docs/api/configuration/nuxt-config
 
 export default defineNuxtConfig({
+  devServer: {
+    host: "localhost",
+    // host: "0.0.0.0",
+    port: 3000,
+  },
+  nitro: {
+    devServer: {
+      watch: [],
+    },
+  },
   compatibilityDate: "2024-04-03",
   future: { compatibilityVersion: 4 },
   devtools: { enabled: true },
@@ -116,7 +126,12 @@ export default defineNuxtConfig({
     NOTION_OAUTH_CLIENT_SECRET: process.env.NOTION_OAUTH_CLIENT_SECRET,
     GOOGLE_SHEETS_CLIENT_SECRET: process.env.GOOGLE_SHEETS_CLIENT_SECRET,
 
-    // BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
+    // Redis configuration
+    redisHost: process.env.REDIS_HOST || "localhost",
+    redisPort: parseInt(process.env.REDIS_PORT || "6379", 10),
+    redisPassword: process.env.REDIS_PASSWORD || "",
+
+    // Public config (exposed to the client)
     public: {
       NOTION_OAUTH_REDIRECT_URI: process.env.NOTION_OAUTH_REDIRECT_URI,
       NOTION_OAUTH_CLIENT_ID: process.env.NOTION_OAUTH_CLIENT_ID,
@@ -124,7 +139,6 @@ export default defineNuxtConfig({
       NOTION_AUTH_URL: process.env.NOTION_AUTH_URL,
       NOTION_TO_GOOGLE_SHEETS_REDIRECT_URI:
         process.env.NOTION_TO_GOOGLE_SHEETS_REDIRECT_URI,
-
       GOOGLE_CLIENT_ID: process.env.NUXT_GOOGLE_CLIENT_ID,
 
       GOOGLE_SHEETS_CLIENT_ID: process.env.GOOGLE_SHEETS_CLIENT_ID,

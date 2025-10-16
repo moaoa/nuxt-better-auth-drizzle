@@ -34,7 +34,11 @@ export default defineEventHandler(async (event) => {
         createdAt: new Date(),
         updatedAt: new Date(),
       })
-      .returning();
+      .returning()
+      .get();
+
+    // Add to cache
+    await automationCache.addOrUpdate(newAutomation);
 
     return newAutomation;
   } catch (error) {

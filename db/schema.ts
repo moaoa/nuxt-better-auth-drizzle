@@ -90,6 +90,11 @@ export const automation = pgTable("automation", {
   automationType_id: serial("automationType_id")
     .notNull()
     .references(() => automationType.id),
+  notion_account_id: integer("notion_account_id").references(() => notionAccount.id),
+  google_sheets_account_id: integer("google_sheets_account_id").references(() => googleSheetsAccount.id),
+  interval: text("interval", { enum: ["5m", "15m", "30m", "1h"] }).notNull(),
+  is_active: boolean("is_active").notNull().default(true),
+  last_synced_at: timestamp("last_synced_at"),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
 });
@@ -191,7 +196,7 @@ export const googleSheetsAccount = pgTable(
   "google_sheets_account",
   {
     id: serial("id").primaryKey().notNull().unique(),
-    uuid: uuid("uuid").notNull().unique(),
+    googleSheetsId: text("google_sheets_id").notNull(),
     user_name: text("user_name").notNull(),
     access_token: text("access_token").notNull(),
     refresh_token: text("refresh_token"),
@@ -206,7 +211,25 @@ export const googleSheetsAccount = pgTable(
     expiry_date: timestamp("expiry_date"),
   },
   (table) => ({
-    uniqueUser: unique().on(table.user_id),
+    uniqueUser: unique().on(table.user_id, table.googleSheetsId),
+  })
+);
+
+export const googleSpreadsheet = pgTable(
+  "google_spreadsheet",
+  {
+    id: serial("id").primaryKey().notNull().unique(),
+    googleSpreadsheetId: text("google_spreadsheet_id").notNull(),
+    title: text("title").notNull(),
+    url: text("url").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id),
+    createdAt: timestamp("created_at").notNull(),
+    updatedAt: timestamp("updated_at").notNull(),
+  },
+  (table) => ({
+    userAndSpreadsheet: unique().on(table.userId, table.googleSpreadsheetId),
   })
 );
 

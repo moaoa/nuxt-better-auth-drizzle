@@ -1,4 +1,4 @@
-import { Queue, Worker } from "bullmq";
+import { Queue, Worker, QueueEvents } from "bullmq";
 import { Client } from "@notionhq/client";
 import { notionAccount, type NotionEntity, notionEntity } from "~~/db/schema";
 import { useDrizzle } from "~~/server/utils/drizzle";
@@ -26,11 +26,13 @@ export const notionSyncQueue = new Queue("notion-sync", {
 interface NotionSyncJobData {
   userId: string;
   notionAccountId: number;
+  cursor?: string;
 }
 
 interface NotionSyncJobResult {
   status: "completed" | "failed";
   message?: string;
+  next_cursor?: string | null;
 }
 
 function getParentId(
@@ -49,20 +51,47 @@ function getParentId(
 }
 
 function getTitle(result: NotionSearchResult): string {
-  if (result.object === "page") {
-    const titleProp = Object.values(result.properties).find(
-      (prop) => prop.type === "title"
+  if (result.object === "database") {
+    return (
+      result.title.map((richText) => richText.plain_text).join("") || "Untitled"
     );
-    if (titleProp && titleProp.type === "title") {
-      return titleProp.title[0]?.plain_text || "Untitled";
-    }
-  } else if (result.object === "database") {
-    if (result.title && result.title[0]?.plain_text) {
-      return result.title[0].plain_text;
+  }
+
+  if (result.object === "page") {
+    const titleProperty = Object.values(result.properties).find(
+      (property) => property.type === "title"
+    );
+    if (titleProperty?.type === "title") {
+      return (
+        titleProperty.title.map((richText) => richText.plain_text).join("") ||
+        "Untitled"
+      );
     }
   }
+
   return "Untitled";
 }
+
+export const addNotionSyncJob = async (data: NotionSyncJobData) => {
+  const cursor = data.cursor || "initial";
+  return notionSyncQueue.add("notion-sync-job", data, {
+    jobId: `fetch-notion-entities-${data.userId}-${cursor}`,
+  });
+};
+
+export const notionSyncQueueEvents = new QueueEvents("notion-sync", {
+  connection,
+});
+
+notionSyncQueueEvents.on("completed", async ({ jobId, returnvalue }) => {
+  console.log(`Job ${jobId} completed`);
+  console.log("return value from notion-sync: ", returnvalue);
+  const job = await notionSyncQueue.getJob(jobId);
+  if (job && returnvalue) {
+    const newData = { ...job.data, cursor: returnvalue };
+    await addNotionSyncJob(newData);
+  }
+});
 
 export const notionSyncWorker = new Worker<
   NotionSyncJobData,
@@ -70,7 +99,7 @@ export const notionSyncWorker = new Worker<
 >(
   "notion-sync",
   async (job) => {
-    const { userId, notionAccountId } = job.data;
+    const { userId, notionAccountId, cursor } = job.data;
     const db = useDrizzle();
 
     try {
@@ -86,50 +115,11 @@ export const notionSyncWorker = new Worker<
         auth: account.access_token,
       });
 
-      // Fetch pages
-      let hasMorePages = true;
-      let nextCursorPages: string | undefined = undefined;
-      const allPages: NotionSearchResult[] = [];
+      const response: SearchResponse = await notion.search({
+        start_cursor: cursor,
+      });
 
-      while (hasMorePages) {
-        const response: SearchResponse = await notion.search({
-          filter: {
-            property: "object",
-            value: "page",
-          },
-        });
-
-        allPages.push(...(response.results as NotionSearchResult[]));
-        hasMorePages = response.has_more;
-        nextCursorPages = response.next_cursor || undefined;
-      }
-
-      // Fetch databases
-      let hasMoreDatabases = true;
-      let nextCursorDatabases: string | undefined = undefined;
-      const allDatabases: NotionSearchResult[] = [];
-
-      while (hasMoreDatabases) {
-        const response: SearchResponse = await notion.search({
-          filter: {
-            property: "object",
-            value: "database",
-          },
-        });
-
-        allDatabases.push(...(response.results as NotionSearchResult[]));
-        hasMoreDatabases = response.has_more;
-        nextCursorDatabases = response.next_cursor || undefined;
-      }
-
-      if (allPages.length === 0 && allDatabases.length === 0) {
-        return {
-          status: "failed",
-          message: "No pages or databases were returned from notion",
-        };
-      }
-
-      const allEntities: NotionSearchResult[] = [...allPages, ...allDatabases];
+      const allEntities = response.results as NotionSearchResult[];
 
       if (allEntities.length > 0) {
         const values: Omit<NotionEntity, "id">[] = allEntities.map(
@@ -151,17 +141,35 @@ export const notionSyncWorker = new Worker<
         await db
           .insert(notionEntity)
           .values(values)
-          .onConflictDoNothing({ target: notionEntity.notionId });
+          .onConflictDoUpdate({
+            target: notionEntity.notionId,
+            set: {
+              parentId: notionEntity.parentId,
+              type: notionEntity.type,
+              titlePlain: notionEntity.titlePlain,
+              archived: notionEntity.archived,
+              lastEditedTime: notionEntity.lastEditedTime,
+              propertiesJson: notionEntity.propertiesJson,
+            },
+          });
       }
 
       return {
         status: "completed",
-        message: "Notion sync completed successfully.",
+        message: `Notion sync completed for cursor: ${cursor}`,
+        next_cursor: response.next_cursor,
       };
     } catch (error: any) {
       console.error("Notion sync failed:", error);
       throw new Error(`Notion sync failed: ${error.message}`);
     }
   },
-  { connection, telemetry: new BullMQOtel("notion-sync-worker") }
+  {
+    connection,
+    telemetry: new BullMQOtel("notion-sync-worker"),
+    limiter: {
+      max: 3,
+      duration: 1000, // 3 jobs per second
+    },
+  }
 );
