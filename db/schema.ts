@@ -83,15 +83,22 @@ export const automation = pgTable("automation", {
   id: serial("id").primaryKey().notNull().unique(),
   uuid: uuid("uuid").notNull().unique(),
   name: text("name").notNull(),
-  description: text("description"),
   user_id: text("user_id")
     .notNull()
     .references(() => user.id),
-  automationType_id: serial("automationType_id")
+  automationTypeId: serial("automationType_id")
     .notNull()
     .references(() => automationType.id),
-  notion_account_id: integer("notion_account_id").references(() => notionAccount.id),
-  google_sheets_account_id: integer("google_sheets_account_id").references(() => googleSheetsAccount.id),
+  notionAccountId: integer("notion_account_id").references(
+    () => notionAccount.id
+  ),
+  googleSheetsAccountId: integer("google_sheets_account_id").references(
+    () => googleSheetsAccount.id
+  ),
+  googleSpreadSheetId: integer("googleSpreadSheet_id").references(
+    () => googleSpreadsheet.id
+  ),
+  notionEntityId: integer("notionEntity_id").references(() => notionEntity.id),
   interval: text("interval", { enum: ["5m", "15m", "30m", "1h"] }).notNull(),
   is_active: boolean("is_active").notNull().default(true),
   last_synced_at: timestamp("last_synced_at"),
@@ -219,7 +226,7 @@ export const googleSpreadsheet = pgTable(
   "google_spreadsheet",
   {
     id: serial("id").primaryKey().notNull().unique(),
-    googleSpreadsheetId: text("google_spreadsheet_id").notNull(),
+    googleSpreadsheetId: text("google_spreadsheet_id").notNull().unique(),
     title: text("title").notNull(),
     url: text("url").notNull(),
     userId: text("user_id")
@@ -230,6 +237,24 @@ export const googleSpreadsheet = pgTable(
   },
   (table) => ({
     userAndSpreadsheet: unique().on(table.userId, table.googleSpreadsheetId),
+  })
+);
+
+export const googleSheetsAccountToSpreadsheet = pgTable(
+  "google_sheets_account_to_spreadsheet",
+  {
+    spreadsheetId: text("spreadsheet_id")
+      .notNull()
+      .references(() => googleSpreadsheet.googleSpreadsheetId),
+    googleSheetsAccountId: integer("google_sheets_account_id")
+      .notNull()
+      .references(() => googleSheetsAccount.id),
+  },
+  (table) => ({
+    uniqueSpreadsheetAccount: unique().on(
+      table.spreadsheetId,
+      table.googleSheetsAccountId
+    ),
   })
 );
 
@@ -304,10 +329,32 @@ export const workspaceRelations = relations(workspace, ({ many }) => ({
 
 export const googleSheetsAccountRelations = relations(
   googleSheetsAccount,
-  ({ one }) => ({
+  ({ one, many }) => ({
     user: one(user, {
       fields: [googleSheetsAccount.user_id],
       references: [user.id],
+    }),
+    googleSheetsAccountToSpreadsheet: many(googleSheetsAccountToSpreadsheet),
+  })
+);
+
+export const googleSpreadSheetsRelations = relations(
+  googleSpreadsheet,
+  ({ many }) => ({
+    googleSheetsAccountToSpreadsheet: many(googleSheetsAccountToSpreadsheet),
+  })
+);
+
+export const googleSheetsAccountToSpreadsheetRelations = relations(
+  googleSheetsAccountToSpreadsheet,
+  ({ one }) => ({
+    account: one(googleSheetsAccount, {
+      fields: [googleSheetsAccountToSpreadsheet.googleSheetsAccountId],
+      references: [googleSheetsAccount.id],
+    }),
+    spreadsheet: one(googleSpreadsheet, {
+      fields: [googleSheetsAccountToSpreadsheet.spreadsheetId],
+      references: [googleSpreadsheet.googleSpreadsheetId],
     }),
   })
 );

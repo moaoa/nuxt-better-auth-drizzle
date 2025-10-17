@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
 
   const pages = await db
     .select({
-      id: notionEntity.id,
+      uuid: notionEntity.notionId,
       title: notionEntity.titlePlain,
     })
     .from(notionEntity)

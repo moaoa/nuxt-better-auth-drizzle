@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import Stepper from "@/components/stepper/Stepper.vue";
 import NotionConnectStep from "@/components/stepper/NotionConnectStep.vue";
 import GoogleSheetsConnectStep from "@/components/stepper/GoogleSheetsConnectStep.vue";
@@ -57,6 +57,16 @@ const saveServiceMutation = useMutation({
   },
 });
 
+const notionAccountsOptions = computed(() => {
+  if (!connections.value?.data?.notionAccounts) {
+    return [];
+  }
+  return connections.value.data.notionAccounts.map((account) => ({
+    title: account.user_name,
+    id: account.uuid,
+  }));
+});
+
 const onStepNext = () => {
   if (currentStepIndex.value === maxStepIndex.value) {
     return;
@@ -91,7 +101,7 @@ const onDatabaseSelected = (dbId: string) => {
       <template #step-0>
         <NotionConnectStep
           @next="onStepNext"
-          :redirectUri="config.public.NOTION_TO_GOOGLE_SHEETS_REDIRECT_URI"
+          :notion-accounts-options="notionAccountsOptions"
         />
       </template>
       <template #step-1>
