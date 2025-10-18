@@ -84,11 +84,9 @@ export const notionSyncQueueEvents = new QueueEvents("notion-sync", {
 });
 
 notionSyncQueueEvents.on("completed", async ({ jobId, returnvalue }) => {
-  console.log(`Job ${jobId} completed`);
-  console.log("return value from notion-sync: ", returnvalue);
   const job = await notionSyncQueue.getJob(jobId);
   if (job && returnvalue) {
-    const newData = { ...job.data, cursor: returnvalue };
+    const newData = { ...job.data, ...returnvalue };
     await addNotionSyncJob(newData);
   }
 });

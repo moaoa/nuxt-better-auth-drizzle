@@ -5,8 +5,7 @@ import NotionConnectStep from "@/components/stepper/NotionConnectStep.vue";
 import GoogleSheetsConnectStep from "@/components/stepper/GoogleSheetsConnectStep.vue";
 import NotionDatabaseStep from "@/components/stepper/NotionDatabaseStep.vue";
 import { useMutation } from "@tanstack/vue-query";
-
-const config = useRuntimeConfig();
+import { useStepper } from "~~/composables/useStepper";
 
 const steps = [
   {
@@ -23,26 +22,9 @@ const steps = [
   },
 ];
 
-const currentStepIndex = ref(0);
-const maxStepIndex = ref(0);
+const { currentStep, prevStep, nextStep } = useStepper();
 
 const { data: connections } = await useFetch("/api/connections");
-
-if (connections.value?.data) {
-  const isNotionConnected = connections.value.data.notionAccounts.length > 0;
-  const isGoogleSheetsConnected =
-    connections.value.data.googleSheetsAccounts.length > 0;
-
-  if (isNotionConnected) {
-    currentStepIndex.value++;
-    maxStepIndex.value++;
-  }
-
-  if (isGoogleSheetsConnected) {
-    currentStepIndex.value++;
-    maxStepIndex.value++;
-  }
-}
 
 const selectedDatabaseId = ref<string | null>(null);
 
@@ -67,21 +49,16 @@ const notionAccountsOptions = computed(() => {
   }));
 });
 
-const onStepNext = () => {
-  if (currentStepIndex.value === maxStepIndex.value) {
-    return;
+const googleSheetsAccountsOptions = computed(() => {
+  if (!connections.value?.data?.googleSheetsAccounts) {
+    return [];
   }
 
-  if (currentStepIndex.value < steps.length - 1) {
-    currentStepIndex.value++;
-  }
-};
-
-const onStepPrev = () => {
-  if (currentStepIndex.value > 0) {
-    currentStepIndex.value--;
-  }
-};
+  return connections.value.data.googleSheetsAccounts.map((account) => ({
+    title: account.user_name,
+    id: account.googleSheetsId,
+  }));
+});
 
 const onDatabaseSelected = (dbId: string) => {
   selectedDatabaseId.value = dbId;
@@ -94,18 +71,17 @@ const onDatabaseSelected = (dbId: string) => {
     <h1 class="text-2xl font-bold mb-6">Connect to Google Sheets</h1>
     <Stepper
       :steps="steps"
-      :current-step-index="currentStepIndex"
-      @next="onStepNext"
-      @prev="onStepPrev"
+      :current-step-index="Number(currentStep)"
+      @prev="prevStep"
+      @next="nextStep"
     >
       <template #step-0>
-        <NotionConnectStep
-          @next="onStepNext"
-          :notion-accounts-options="notionAccountsOptions"
-        />
+        <NotionConnectStep :notion-accounts-options="notionAccountsOptions" />
       </template>
       <template #step-1>
-        <GoogleSheetsConnectStep @next="onStepNext" />
+        <GoogleSheetsConnectStep
+          :google-sheets-accounts-options="googleSheetsAccountsOptions"
+        />
       </template>
       <template #step-2>
         <NotionDatabaseStep @database-selected="onDatabaseSelected" />

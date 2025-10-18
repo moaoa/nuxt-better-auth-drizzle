@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
   const googleSheetsAccounts = await db.query.googleSheetsAccount.findMany({
     where: eq(googleSheetsAccount.user_id, user.id),
     columns: {
-      uuid: true,
+      googleSheetsId: true,
       user_name: true,
     },
   });
