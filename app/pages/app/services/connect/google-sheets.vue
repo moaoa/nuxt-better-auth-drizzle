@@ -3,7 +3,7 @@ import { ref, computed } from "vue";
 import Stepper from "@/components/stepper/Stepper.vue";
 import NotionConnectStep from "@/components/stepper/NotionConnectStep.vue";
 import GoogleSheetsConnectStep from "@/components/stepper/GoogleSheetsConnectStep.vue";
-import NotionDatabaseStep from "@/components/stepper/NotionDatabaseStep.vue";
+import ChooseDirectionStep from "~/components/stepper/ChooseDirectionStep.vue";
 import { useMutation } from "@tanstack/vue-query";
 import { useStepper } from "~~/composables/useStepper";
 
@@ -18,7 +18,7 @@ const steps = [
   },
   {
     name: "Select Database",
-    component: NotionDatabaseStep,
+    component: ChooseDirectionStep,
   },
 ];
 
@@ -84,7 +84,7 @@ const onDatabaseSelected = (dbId: string) => {
         />
       </template>
       <template #step-2>
-        <NotionDatabaseStep @database-selected="onDatabaseSelected" />
+        <ChooseDirectionStep @database-selected="onDatabaseSelected" />
       </template>
     </Stepper>
   </div>

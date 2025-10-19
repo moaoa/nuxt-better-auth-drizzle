@@ -4,7 +4,7 @@ import { useRoute } from "vue-router";
 import Stepper from "@/components/stepper/Stepper.vue";
 import NotionConnectStep from "@/components/stepper/NotionConnectStep.vue";
 import QuickbooksConnectStep from "@/components/stepper/QuickbooksConnectStep.vue";
-import NotionDatabaseStep from "@/components/stepper/NotionDatabaseStep.vue";
+import NotionDatabaseStep from "~/components/stepper/ChooseDirectionStep.vue";
 import { quickbooksRepository } from "~~/repositories/quickbooks";
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import { servicesRepo } from "~~/repositories/services";
