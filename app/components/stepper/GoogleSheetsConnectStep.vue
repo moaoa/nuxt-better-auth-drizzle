@@ -18,7 +18,7 @@ defineProps<{
 }>();
 
 const { initiateAuth } = useGoogleSheetsAuth();
-const { setGoogleSheetsAccount, nextStep, selectedAccounts } = useStepper();
+const { setGoogleSheetsAccount, nextStep, selectedAccounts } = useStepper("google-sheets");
 
 const selectedAccount = ref<string>("");
 const CONNECT_NEW_VALUE = "__connect_new__";

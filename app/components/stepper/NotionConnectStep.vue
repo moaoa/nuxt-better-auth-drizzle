@@ -18,7 +18,7 @@ defineProps<{
 }>();
 
 const { initiateAuth } = useNotionAuth();
-const { setNotionAccount, nextStep, selectedAccounts } = useStepper();
+const { setNotionAccount, nextStep, selectedAccounts } = useStepper("google-sheets");
 
 const selectedAccount = ref<string>("");
 const CONNECT_NEW_VALUE = "__connect_new__";

@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { notionRepo } from "~~/repositories/notion";
 import { googleSheetsRepo } from "~~/repositories/google-sheets";
+import { automationsRepo } from "~~/repositories/automations";
 import {
   Select,
   SelectContent,
@@ -70,6 +71,29 @@ const {
 
 const handleProceed = () => {
   emit("next");
+};
+
+const handleTest = async () => {
+  if (direction.value === 'notion-to-google-sheet') {
+    const config = {
+      sourceId: notionTB.value,
+      createDestination: newGoogleSheet.value,
+      newDestinationName: newGoogleSheet.value ? googleSheetName.value : undefined,
+      destinationId: !newGoogleSheet.value ? googleSheet.value : undefined,
+    };
+    await automationsRepo.createNotionToGoogleSheetAutomation(config);
+    navigateTo('/notion-to-google-sheets');
+  } else {
+    const config = {
+      sourceId: googleSheet.value,
+      createDestination: newNotionTB.value,
+      newDestinationName: newNotionTB.value ? notionTBName.value : undefined,
+      destinationId: !newNotionTB.value ? notionTBSelect.value : undefined,
+      parentPageId: newNotionTB.value ? selectedParentPage.value : undefined,
+    };
+    await automationsRepo.createGoogleSheetToNotionAutomation(config);
+    navigateTo('/google-sheets-to-notion');
+  }
 };
 </script>
 
@@ -290,9 +314,12 @@ const handleProceed = () => {
       </div>
     </div>
 
-    <div class="mt-4">
+    <div class="mt-4 flex space-x-2">
       <Button @click="handleProceed">
         <span>Proceed</span>
+      </Button>
+      <Button @click="handleTest" variant="secondary">
+        <span>Test</span>
       </Button>
     </div>
   </div>

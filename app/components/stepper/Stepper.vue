@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { Button } from '@/components/ui/button';
+import { computed } from "vue";
+import { Button } from "@/components/ui/button";
 
 const props = defineProps({
   steps: {
@@ -13,9 +13,11 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['next', 'prev']);
+const emit = defineEmits(["next", "prev"]);
 
-const isLastStep = computed(() => props.currentStepIndex === props.steps.length - 1);
+const isLastStep = computed(
+  () => props.currentStepIndex === props.steps.length - 1
+);
 const isFirstStep = computed(() => props.currentStepIndex === 0);
 </script>
 
@@ -27,8 +29,8 @@ const isFirstStep = computed(() => props.currentStepIndex === 0);
         :key="index"
         :class="{
           'step-item': true,
-          'active': index === currentStepIndex,
-          'completed': index < currentStepIndex,
+          active: index === currentStepIndex,
+          completed: index < currentStepIndex,
         }"
       >
         {{ step.name }}
@@ -40,7 +42,7 @@ const isFirstStep = computed(() => props.currentStepIndex === 0);
     </div>
 
     <div class="stepper-navigation">
-      <Button @click="$emit('prev')" :disabled="isFirstStep">Previous</Button>
+      <Button @click="$emit('prev')" :disabled="isFirstStep"> Previous </Button>
       <Button @click="$emit('next')" :disabled="isLastStep">Next</Button>
     </div>
   </div>
