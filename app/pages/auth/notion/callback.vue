@@ -2,23 +2,25 @@
 import { useNotionAuth } from "~~/composables/useNotionAuth";
 
 const { handleCallback } = useNotionAuth();
-const config = useRuntimeConfig();
 const route = useRoute();
+const router = useRouter();
 const isLoading = ref(true);
 
+// Handle the callback on client side only to avoid hydration issues
 onMounted(async () => {
   const code = route.query.code as string;
-  const state = route.query.state as string;
+  let state = route.query.state as string | undefined;
 
-  if (!code) {
-    console.log("no code");
-    isLoading.value = false;
-    return;
+  // Handle the case where state is the string "undefined"
+  if (state === "undefined" || state === undefined || !state) {
+    state = undefined;
   }
 
-  if (!state) {
-    console.log("no state");
+  if (!code) {
+    console.log("No authorization code provided");
     isLoading.value = false;
+    // Redirect to services page if no code
+    await router.push("/app/services");
     return;
   }
 
@@ -27,12 +29,17 @@ onMounted(async () => {
       code,
     });
 
+    // Determine redirect based on state
     if (state === "google-sheets") {
-      //TODO: take the route from the automation types to route map
-      await navigateTo("/app/services/connect/google-sheets");
+      await router.push("/app/services/connect/google-sheets");
+    } else {
+      // Default redirect after successful Notion connection
+      await router.push("/app/services");
     }
   } catch (error) {
     console.error("Error handling Notion callback:", error);
+    // Redirect to services page even on error
+    await router.push("/app/services");
   } finally {
     isLoading.value = false;
   }

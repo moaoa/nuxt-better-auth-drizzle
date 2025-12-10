@@ -10,10 +10,14 @@ import "winston-daily-rotate-file";
 // });
 
 const attachRequestId = winston.format((info) => {
-  const event = useEvent();
-  const reqId = event.context.reqId;
-
-  info.reqId = reqId;
+  try {
+    const event = useEvent();
+    const reqId = event?.context?.reqId;
+    info.reqId = reqId ?? "";
+  } catch (error) {
+    // useEvent() not available (e.g., in background jobs, cron tasks)
+    info.reqId = "";
+  }
 
   return info;
 });

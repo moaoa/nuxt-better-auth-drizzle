@@ -18,14 +18,18 @@ export const useNotionAuth = () => {
     notionTokenUrl: config.public.NOTION_TOKEN_URL,
   };
 
-  const initiateAuth = (connectPage: string) => {
+  const initiateAuth = (connectPage?: string) => {
     const params = new URLSearchParams({
       client_id: notionConfig.clientId,
       redirect_uri: notionConfig.redirectUri,
       response_type: "code",
       owner: "user",
-      state: connectPage,
     });
+    
+    // Only add state if provided and not undefined
+    if (connectPage) {
+      params.append("state", connectPage);
+    }
 
     const combinedScopes = notionConfig.scopes.join(" ");
 

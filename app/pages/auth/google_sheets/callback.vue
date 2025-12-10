@@ -27,8 +27,9 @@ onMounted(async () => {
     });
 
     if (state === "google-sheets") {
-      //TODO: take the route from the automation types to route map
       await navigateTo("/app/services/connect/google-sheets");
+    } else {
+      await navigateTo("/app/services");
     }
   } catch (error) {
     console.error("Error handling Notion callback:", error);

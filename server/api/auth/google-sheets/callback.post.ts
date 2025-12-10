@@ -113,11 +113,7 @@ export default defineEventHandler(async (event) => {
         ),
       })
       .onConflictDoUpdate({
-        target: [
-          googleSheetsAccount.user_id,
-          //TODO: remove the google sheets id all together and make the user id only unique
-          googleSheetsAccount.googleSheetsId,
-        ],
+        target: [googleSheetsAccount.user_id],
         set: {
           access_token: response.access_token,
           token_type: response.token_type,

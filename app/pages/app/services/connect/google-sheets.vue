@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
-import StepperClient from "@/components/stepper/StepperClient.vue";
+import GoogleSheetsStepper from "@/components/stepper/GoogleSheetsStepper.vue";
 import NotionConnectStep from "@/components/stepper/NotionConnectStep.vue";
 import GoogleSheetsConnectStep from "@/components/stepper/GoogleSheetsConnectStep.vue";
 import ChooseDirectionStep from "~/components/stepper/ChooseDirectionStep.vue";
@@ -22,14 +22,13 @@ const steps = [
   },
 ];
 
-const { currentStep, prevStep, nextStep, setStep } =
-  useStepper("google-sheets");
+const { currentStep, prevStep, nextStep } = useStepper();
 
 // Ensure currentStep is within valid bounds
 onMounted(() => {
   const maxStep = steps.length - 1;
   if (currentStep.value > maxStep) {
-    setStep(maxStep, steps.length);
+    currentStep.value = maxStep;
   }
 });
 
@@ -37,14 +36,17 @@ onMounted(() => {
 watch(currentStep, (newStep) => {
   const maxStep = steps.length - 1;
   if (newStep > maxStep) {
-    setStep(maxStep, steps.length);
+    currentStep.value = maxStep;
   } else if (newStep < 0) {
-    setStep(0, steps.length);
+    currentStep.value = 0;
   }
 });
 
 const handleNext = () => {
-  nextStep(steps.length);
+  const maxStep = steps.length - 1;
+  if (currentStep.value < maxStep) {
+    nextStep();
+  }
 };
 
 const handlePrev = () => {
@@ -97,7 +99,7 @@ const onDatabaseSelected = (dbId: string) => {
   <div class="container mx-auto p-4">
     <h1 class="text-2xl font-bold mb-6">Connect to Google Sheets</h1>
     <ClientOnly>
-      <StepperClient
+      <GoogleSheetsStepper
         :steps="steps"
         :current-step-index="Number(currentStep)"
         :notion-accounts-options="notionAccountsOptions"

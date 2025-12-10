@@ -218,7 +218,7 @@ export const googleSheetsAccount = pgTable(
     expiry_date: timestamp("expiry_date"),
   },
   (table) => ({
-    uniqueUser: unique().on(table.user_id, table.googleSheetsId),
+    uniqueUser: unique().on(table.user_id),
   })
 );
 

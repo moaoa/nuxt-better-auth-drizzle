@@ -31,12 +31,6 @@ export default defineEventHandler(async (event) => {
       `${config.public.NOTION_OAUTH_CLIENT_ID}:${config.NOTION_OAUTH_CLIENT_SECRET}`
     ).toString("base64");
 
-    const body = JSON.stringify({
-      grant_type: "authorization_code",
-      redirect_uri,
-      code,
-    });
-
     const db = useDrizzle();
 
     const notionAutomationType = await db.query.automationType.findFirst({
@@ -53,21 +47,65 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    const response = await $fetch<NotionOAuthResponse>(
-      // @ts-expect-error TODO: fix types
-      config.public.NOTION_TOKEN_URL,
-      {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          Authorization: `Basic ${encodedToken}`,
-        },
-        body,
-      }
-    );
+    // Notion OAuth token endpoint requires form-encoded data, not JSON
+    const formData = new URLSearchParams({
+      grant_type: "authorization_code",
+      redirect_uri,
+      code,
+    });
 
-    console.log("Notion OAuth Response:", response);
+    let response: NotionOAuthResponse;
+    try {
+      response = await $fetch<NotionOAuthResponse>(
+        // @ts-expect-error TODO: fix types
+        config.public.NOTION_TOKEN_URL,
+        {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/x-www-form-urlencoded",
+            Authorization: `Basic ${encodedToken}`,
+          },
+          body: formData.toString(),
+        }
+      );
+    } catch (fetchError: any) {
+      // Extract detailed error information from Notion's response
+      const errorData = fetchError?.data || fetchError?.response?._data;
+      const errorMessage =
+        errorData?.error || fetchError?.message || "Unknown error";
+      const errorDescription =
+        errorData?.error_description || errorData?.error_description || "";
+
+      console.error("Notion OAuth Error Details:", {
+        status: fetchError?.status || fetchError?.statusCode || 400,
+        error: errorMessage,
+        description: errorDescription,
+        fullResponse: errorData,
+        redirect_uri_used: redirect_uri,
+        redirect_uri_expected: config.public.NOTION_OAUTH_REDIRECT_URI,
+      });
+
+      notionLogger.error({
+        error: errorMessage,
+        description: errorDescription,
+        status: fetchError?.status || fetchError?.statusCode,
+        redirect_uri,
+      });
+
+      throw createError({
+        statusCode: fetchError?.status || fetchError?.statusCode || 400,
+        message: `Notion OAuth error: ${errorMessage}${
+          errorDescription ? ` - ${errorDescription}` : ""
+        }`,
+        data: {
+          error: errorMessage,
+          error_description: errorDescription,
+          redirect_uri_mismatch:
+            redirect_uri !== config.public.NOTION_OAUTH_REDIRECT_URI,
+        },
+      });
+    }
 
     const session = await auth.api.getSession({
       headers: event.headers,

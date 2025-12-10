@@ -8,6 +8,9 @@ export default defineNuxtConfig({
     port: 3000,
   },
   nitro: {
+    experimental: {
+      asyncContext: true,
+    },
     devServer: {
       watch: [],
     },

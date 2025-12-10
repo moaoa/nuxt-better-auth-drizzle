@@ -15,6 +15,13 @@ const mode = useColorMode();
 
 const isOpen = ref<boolean>(false);
 
+// Computed property to safely handle SSR hydration mismatch
+// Use the color mode's preference to ensure SSR and client match
+const shadowClass = computed(() => {
+  const currentMode = mode.value || mode.preference || 'light';
+  return currentMode === 'dark' ? 'shadow-dark' : 'shadow-light';
+});
+
 const { data } = await useAsyncData("header_links", () =>
   queryCollection("navigation").where('stem', '=', 'nav/headerLinks').first()
 );
@@ -28,10 +35,7 @@ const { data: site } = await useAsyncData("meta_site", () =>
 <template>
   <section
     class="w-[90%] md:w-[70%] lg:w-[75%] lg:max-w-full mx-auto top-0 sticky border z-40 rounded-b-2xl flex justify-between items-center p-2 bg-card bg-blend-difference shadow-md"
-    :class="{
-      'shadow-light': mode.value === 'light',
-      'shadow-dark': mode.value === 'dark',
-    }">
+    :class="shadowClass">
     <header
       class="w-[90%] md:w-[70%] lg:w-[75%] lg:max-w-screen-2xl mx-auto sticky z-40  flex justify-between items-center p-2 ">
       <NuxtLink v-if="site?.siteMeta" href="/" class="font-bold text-lg flex items-center" aria-label="Home">
