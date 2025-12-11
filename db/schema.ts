@@ -258,6 +258,34 @@ export const googleSheetsAccountToSpreadsheet = pgTable(
   })
 );
 
+export const notionSheetsMapping = pgTable("notion_sheets_mapping", {
+  id: serial("id").primaryKey().notNull(),
+  automationId: integer("automation_id")
+    .notNull()
+    .references(() => automation.id, { onDelete: "cascade" }),
+  mappingConfig: jsonb("mapping_config").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const notionSheetsRowMapping = pgTable(
+  "notion_sheets_row_mapping",
+  {
+    id: serial("id").primaryKey().notNull(),
+    automationId: integer("automation_id")
+      .notNull()
+      .references(() => automation.id, { onDelete: "cascade" }),
+    notionPageId: uuid("notion_page_id").notNull(),
+    sheetRowNumber: integer("sheet_row_number").notNull(),
+    checksum: text("checksum"),
+    lastSyncedAt: timestamp("last_synced_at").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    uniqueAutomationPage: unique().on(table.automationId, table.notionPageId),
+  })
+);
+
 /* ---------- RELATIONS ---------- */
 export const notionWorkspaceRelations = relations(workspace, ({ many }) => ({
   accounts: many(notionAccount),
@@ -359,6 +387,28 @@ export const googleSheetsAccountToSpreadsheetRelations = relations(
   })
 );
 
+export const notionSheetsMappingRelations = relations(
+  notionSheetsMapping,
+  ({ one }) => ({
+    automation: one(automation, {
+      fields: [notionSheetsMapping.automationId],
+      references: [automation.id],
+    }),
+  })
+);
+
+export const notionSheetsRowMappingRelations = relations(
+  notionSheetsRowMapping,
+  ({ one }) => ({
+    automation: one(automation, {
+      fields: [notionSheetsRowMapping.automationId],
+      references: [automation.id],
+    }),
+  })
+);
+
 //Types
 export type User = InferSelectModel<typeof user>;
 export type NotionEntity = InferSelectModel<typeof notionEntity>;
+export type NotionSheetsMapping = InferSelectModel<typeof notionSheetsMapping>;
+export type NotionSheetsRowMapping = InferSelectModel<typeof notionSheetsRowMapping>;
