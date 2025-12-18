@@ -19,7 +19,8 @@
     "db:studio": "drizzle-kit studio --config ./config/drizzle.config.ts",
     "db:push": "drizzle-kit push --config ./config/drizzle.config.ts",
     "db:reset": "tsx --env-file=.env ./db/reset.ts && npm run db:push",
-    "db:drop": "npx dbmate drop"
+    "db:drop": "npx dbmate drop",
+    "redis:flush": "tsx --env-file=.env ./scripts/flush-redis.ts"
   },
   "dependencies": {
     "@bull-board/api": "^6.12.7",
