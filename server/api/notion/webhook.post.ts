@@ -1,18 +1,249 @@
+import { readRawBody } from "h3";
+import { createHmac, timingSafeEqual } from "crypto";
+import { useDrizzle } from "~~/server/utils/drizzle";
+import { automation, notionEntity } from "~~/db/schema";
+import { eq } from "drizzle-orm";
+import { notionLogger } from "~~/lib/loggers";
+import { addMappingSyncJob } from "~~/server/queues/mappingSyncQueue";
+import { addNotionPageFetchJob } from "~~/server/queues/notion-sync";
+import type {
+  NotionWebhookEvent,
+  NotionWebhookPayload,
+} from "~~/types/webhook";
+import { isEventPayload } from "~~/types/webhook";
+
+/**
+ * Validate webhook signature using HMAC-SHA256
+ */
+function validateSignature(
+  body: string,
+  signature: string,
+  verificationToken: string
+): boolean {
+  const calculatedSignature = `sha256=${createHmac("sha256", verificationToken)
+    .update(body)
+    .digest("hex")}`;
+
+  return timingSafeEqual(
+    Buffer.from(calculatedSignature),
+    Buffer.from(signature)
+  );
+}
+
 export default defineEventHandler(async (event) => {
-  // Log request details
-  console.log("--- Notion Webhook Request ---");
-  console.log(`Method: ${event.node.req.method}`);
-  console.log(`URL: ${event.node.req.url}`);
-  console.log(`Headers:`, event.node.req.headers);
+  try {
+    // Get raw body for signature validation
+    const rawBody = await readRawBody(event, "utf8").catch(() => null);
+    if (!rawBody) {
+      notionLogger.warn("Webhook received with empty body");
+      return { status: "ok", message: "Empty body received" };
+    }
 
-  // Read request body
-  const body = await readBody(event).catch(() => null);
-  if (body) {
-    console.log(`Body:`, body);
+    // Parse JSON body
+    const payload: NotionWebhookPayload = JSON.parse(rawBody);
+
+    // Handle verification payload (during webhook setup)
+    if (!isEventPayload(payload)) {
+      notionLogger.info("Webhook verification received");
+      return { status: "ok", message: "Verification received" };
+    }
+
+    const webhookEvent = payload as NotionWebhookEvent;
+
+    // Validate signature in production
+    if (process.env.NODE_ENV === "production") {
+      const signature = getHeader(event, "x-notion-signature");
+      const verificationToken = process.env.NOTION_WEBHOOK_VERIFICATION_TOKEN;
+
+      if (!signature || !verificationToken) {
+        notionLogger.warn(
+          "Missing signature or verification token in production"
+        );
+        throw createError({
+          statusCode: 401,
+          message: "Invalid webhook signature",
+        });
+      }
+
+      if (!validateSignature(rawBody, signature, verificationToken)) {
+        notionLogger.warn("Invalid webhook signature");
+        throw createError({
+          statusCode: 401,
+          message: "Invalid webhook signature",
+        });
+      }
+    }
+
+    notionLogger.info(
+      `Webhook event received: ${webhookEvent.type} for entity ${webhookEvent.entity.id}`
+    );
+
+    // Find matching automation
+    let automationRecord = null;
+
+    // For page events, check the parent database
+    if (
+      webhookEvent.entity.type === "page" &&
+      webhookEvent.parent?.database_id
+    ) {
+      const parentEntity = await useDrizzle().query.notionEntity.findFirst({
+        where: eq(notionEntity.notionId, webhookEvent.parent.database_id),
+      });
+
+      if (parentEntity) {
+        automationRecord = await useDrizzle().query.automation.findFirst({
+          where: eq(automation.notionEntityId, parentEntity.id),
+        });
+      }
+    }
+
+    // If not found by parent, try finding by entity itself (for database events)
+    if (!automationRecord && webhookEvent.entity.type === "database") {
+      const entity = await useDrizzle().query.notionEntity.findFirst({
+        where: eq(notionEntity.notionId, webhookEvent.entity.id),
+      });
+
+      if (entity) {
+        automationRecord = await useDrizzle().query.automation.findFirst({
+          where: eq(automation.notionEntityId, entity.id),
+        });
+      }
+    }
+
+    // If still not found, try finding by page entity (fallback)
+    if (!automationRecord && webhookEvent.entity.type === "page") {
+      const entity = await useDrizzle().query.notionEntity.findFirst({
+        where: eq(notionEntity.notionId, webhookEvent.entity.id),
+      });
+
+      if (entity && entity.parentId) {
+        // Find automation by parent database
+        const parentEntity = await useDrizzle().query.notionEntity.findFirst({
+          where: eq(notionEntity.notionId, entity.parentId),
+        });
+
+        if (parentEntity) {
+          automationRecord = await useDrizzle().query.automation.findFirst({
+            where: eq(automation.notionEntityId, parentEntity.id),
+          });
+        }
+      }
+    }
+
+    if (!automationRecord) {
+      notionLogger.info(
+        `No automation found for webhook event ${webhookEvent.id}`
+      );
+      return {
+        status: "ok",
+        skipped: true,
+        reason: "not_found",
+        message: "No matching automation found",
+      };
+    }
+
+    // Check automation status
+    if (!automationRecord.is_active) {
+      notionLogger.warn(
+        `Webhook received for inactive automation ${automationRecord.id}`
+      );
+      return {
+        status: "ok",
+        skipped: true,
+        reason: "inactive",
+        message: "Automation is inactive",
+      };
+    }
+
+    // Handle different event types
+    const eventType: string = webhookEvent.type;
+    const entityId = webhookEvent.entity.id;
+
+    // Handle deleted pages
+    if (eventType === "page.deleted") {
+      notionLogger.info(
+        `Handling deleted page ${entityId} for automation ${automationRecord.id}`
+      );
+
+      // Queue mapping sync job to handle deletion
+      await addMappingSyncJob({
+        automationId: automationRecord.id,
+        syncType: "incremental",
+        deletedPageId: entityId,
+      });
+
+      return {
+        status: "ok",
+        message: "Deletion queued",
+        automationId: automationRecord.id,
+      };
+    }
+
+    // For other page events, queue a job to fetch the page
+    // The worker will fetch the page and then queue the mapping sync job
+    if (
+      eventType.startsWith("page.") &&
+      eventType !== "page.deleted" &&
+      webhookEvent.entity.type === "page"
+    ) {
+      notionLogger.info(
+        `Queueing page fetch job for ${entityId} for automation ${automationRecord.id}`
+      );
+
+      // Queue Notion page fetch job
+      // The worker will fetch the page and then queue the mapping sync job
+      const job = await addNotionPageFetchJob({
+        automationId: automationRecord.id,
+        notionPageId: entityId,
+        eventType: eventType,
+      });
+
+      notionLogger.info(
+        `Queued Notion page fetch job ${job.id} for automation ${automationRecord.id}`
+      );
+
+      return {
+        status: "ok",
+        message: "Webhook processed successfully",
+        automationId: automationRecord.id,
+        jobId: job.id,
+      };
+    }
+
+    // Handle database schema updates
+    if (
+      eventType === "database.schema_updated" ||
+      eventType === "data_source.schema_updated"
+    ) {
+      notionLogger.info(
+        `Database schema updated for ${entityId}, automation ${automationRecord.id}`
+      );
+      // TODO: Update mapping config if needed
+      return {
+        status: "ok",
+        message: "Schema update logged",
+        automationId: automationRecord.id,
+      };
+    }
+
+    // Unsupported event type
+    notionLogger.warn(
+      `Unsupported webhook event type: ${eventType} for automation ${automationRecord.id}`
+    );
+    return {
+      status: "ok",
+      skipped: true,
+      reason: "unsupported_event",
+      message: `Event type ${eventType} not yet supported`,
+    };
+  } catch (error: any) {
+    notionLogger.error(`Webhook processing failed: ${error.message}`, {
+      error: error.stack,
+    });
+
+    return {
+      status: "error",
+      message: error.message,
+    };
   }
-
-  console.log("--- End Notion Webhook Request ---\n");
-
-  return { status: "ok", message: "Webhook received" };
 });
-

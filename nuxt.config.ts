@@ -2,6 +2,11 @@ import { OgImage } from "./.nuxt/components.d";
 // https://nuxt.com/docs/api/configuration/nuxt-config
 
 export default defineNuxtConfig({
+  vite: {
+    server: {
+      allowedHosts: ["localhost", "127.0.0.1", "webhook.moaad.ly", "moaad.ly"],
+    },
+  },
   devServer: {
     host: "localhost",
     // host: "0.0.0.0",
