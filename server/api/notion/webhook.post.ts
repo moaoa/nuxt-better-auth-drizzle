@@ -4,8 +4,8 @@ import { useDrizzle } from "~~/server/utils/drizzle";
 import { automation, notionEntity } from "~~/db/schema";
 import { eq } from "drizzle-orm";
 import { notionLogger } from "~~/lib/loggers";
-import { addMappingSyncJob } from "~~/server/queues/mappingSyncQueue";
 import { addNotionPageFetchJob } from "~~/server/queues/notion-sync";
+import { addGoogleSheetsDeleteRowJob } from "~~/server/queues/googleSheetsQueue";
 import type {
   NotionWebhookEvent,
   NotionWebhookPayload,
@@ -223,11 +223,10 @@ export default defineEventHandler(async (event) => {
         `Handling deleted page ${entityId} for automation ${automationRecord.id}`
       );
 
-      // Queue mapping sync job to handle deletion
-      await addMappingSyncJob({
+      // Queue Google Sheets delete job to handle deletion
+      await addGoogleSheetsDeleteRowJob({
         automationId: automationRecord.id,
-        syncType: "incremental",
-        deletedPageId: entityId,
+        notionPageId: entityId,
       });
 
       return {
@@ -249,7 +248,7 @@ export default defineEventHandler(async (event) => {
       );
 
       // Queue Notion page fetch job
-      // The worker will fetch the page and then queue the mapping sync job
+      // The worker will fetch the page and then queue the Google Sheets write job
       const job = await addNotionPageFetchJob({
         automationId: automationRecord.id,
         notionPageId: entityId,

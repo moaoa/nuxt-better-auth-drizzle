@@ -9,7 +9,10 @@ import {
   PageObjectResponse,
   DatabaseObjectResponse,
 } from "@notionhq/client/build/src/api-endpoints";
-import { addMappingSyncJob } from "./mappingSyncQueue";
+import {
+  addGoogleSheetsWriteRowJob,
+  addGoogleSheetsDeleteRowJob,
+} from "./googleSheetsQueue";
 import { notionLogger } from "~~/lib/loggers";
 
 type NotionSearchResult = PageObjectResponse | DatabaseObjectResponse;
@@ -294,15 +297,14 @@ export const notionPageFetchWorker = new Worker<
         `Fetched and stored Notion page ${notionPageId} for automation ${automationId}`
       );
 
-      // Queue mapping sync job after successful fetch
-      await addMappingSyncJob({
+      // Queue Google Sheets write job after successful fetch
+      await addGoogleSheetsWriteRowJob({
         automationId,
-        syncType: "incremental",
-        pageId: notionPageId,
+        notionPageId,
       });
 
       notionLogger.info(
-        `Queued mapping sync job for page ${notionPageId} after fetch`
+        `Queued Google Sheets write job for page ${notionPageId} after fetch`
       );
 
       return {
