@@ -31,6 +31,13 @@ const connection = {
 export const notionSyncQueue = new Queue("notion-sync", {
   connection,
   telemetry: new BullMQOtel("notion-sync-queue"),
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: {
+      type: "exponential",
+      delay: 2000,
+    },
+  },
 });
 
 // Queue for fetching individual Notion pages (used by webhooks)
@@ -47,15 +54,23 @@ export const notionPageFetchQueue = new Queue("notion-page-fetch", {
 });
 
 interface NotionSyncJobData {
-  userId: string;
-  notionAccountId: number;
+  jobType: "sync" | "import";
+  userId?: string;
+  notionAccountId?: number;
   cursor?: string;
+  // Import job fields
+  automationId?: number;
+  notionDatabaseId?: string;
+  pageSize?: number;
 }
 
 interface NotionSyncJobResult {
   status: "completed" | "failed";
   message?: string;
   next_cursor?: string | null;
+  // Import job results
+  pagesFetched?: number;
+  hasMore?: boolean;
 }
 
 function getParentId(
@@ -123,11 +138,48 @@ export const addNotionPageFetchJob = async (data: NotionPageFetchJobData) => {
   return notionPageFetchQueue.add("fetch-notion-page", data, { jobId });
 };
 
-export const addNotionSyncJob = async (data: NotionSyncJobData) => {
+export const addNotionSyncJob = async (
+  data: Omit<NotionSyncJobData, "jobType"> & {
+    userId: string;
+    notionAccountId: number;
+  }
+) => {
   const cursor = data.cursor || "initial";
-  return notionSyncQueue.add("notion-sync-job", data, {
-    jobId: `fetch-notion-entities-${data.userId}-${cursor}`,
-  });
+  return notionSyncQueue.add(
+    "notion-sync-job",
+    {
+      jobType: "sync",
+      ...data,
+    } as NotionSyncJobData,
+    {
+      jobId: `fetch-notion-entities-${data.userId}-${cursor}`,
+    }
+  );
+};
+
+/**
+ * Add a job to import Notion database pages (initial import)
+ */
+export const addNotionImportJob = async (data: {
+  automationId: number;
+  notionDatabaseId: string;
+  cursor?: string;
+  pageSize?: number;
+}) => {
+  const jobId = `notion-import-${data.automationId}-${
+    data.cursor || "initial"
+  }-${Date.now()}`;
+  return notionSyncQueue.add(
+    "notion-import-job",
+    {
+      jobType: "import",
+      automationId: data.automationId,
+      notionDatabaseId: data.notionDatabaseId,
+      cursor: data.cursor,
+      pageSize: data.pageSize,
+    } as NotionSyncJobData,
+    { jobId }
+  );
 };
 
 export const notionSyncQueueEvents = new QueueEvents("notion-sync", {
@@ -137,10 +189,46 @@ export const notionSyncQueueEvents = new QueueEvents("notion-sync", {
 notionSyncQueueEvents.on("completed", async ({ jobId, returnvalue }) => {
   const job = await notionSyncQueue.getJob(jobId);
   if (job && returnvalue && typeof returnvalue === "object") {
-    const newData = { ...job.data, ...(returnvalue as NotionSyncJobResult) };
-    await addNotionSyncJob(newData);
+    const jobData = job.data as NotionSyncJobData;
+    // Only auto-continue for sync jobs, not import jobs
+    if (
+      jobData.jobType === "sync" &&
+      jobData.userId &&
+      jobData.notionAccountId
+    ) {
+      await addNotionSyncJob({
+        userId: jobData.userId,
+        notionAccountId: jobData.notionAccountId,
+        cursor:
+          (returnvalue as NotionSyncJobResult).next_cursor || jobData.cursor,
+      });
+    }
   }
 });
+
+/**
+ * Calculate optimal page size for Notion API requests
+ * Maximum page size: 100 pages per request (Notion API limit)
+ */
+function calculateOptimalPageSize(): number {
+  return 100;
+}
+
+/**
+ * Get title from a Notion page
+ */
+function getPageTitle(page: PageObjectResponse): string {
+  const titleProperty = Object.values(page.properties).find(
+    (property) => property.type === "title"
+  );
+  if (titleProperty?.type === "title") {
+    return (
+      titleProperty.title.map((richText) => richText.plain_text).join("") ||
+      "Untitled"
+    );
+  }
+  return "Untitled";
+}
 
 export const notionSyncWorker = new Worker<
   NotionSyncJobData,
@@ -148,8 +236,202 @@ export const notionSyncWorker = new Worker<
 >(
   "notion-sync",
   async (job) => {
-    const { userId, notionAccountId, cursor } = job.data;
     const db = useDrizzle();
+    const { jobType } = job.data;
+
+    // Handle import jobs
+    if (jobType === "import") {
+      const { automationId, notionDatabaseId, cursor, pageSize } = job.data;
+
+      if (!automationId || !notionDatabaseId) {
+        throw new Error("Missing required fields for import job");
+      }
+
+      try {
+        // 1. Get automation
+        const automationRecord = await db.query.automation.findFirst({
+          where: eq(automation.id, automationId),
+        });
+
+        if (!automationRecord || !automationRecord.notionAccountId) {
+          throw new Error(`Automation ${automationId} not found`);
+        }
+
+        // 2. Get Notion account
+        const account = await db.query.notionAccount.findFirst({
+          where: eq(notionAccount.id, automationRecord.notionAccountId),
+        });
+
+        if (!account) {
+          throw new Error("Notion account not found");
+        }
+
+        // 3. Initialize Notion client
+        const notion = new Client({
+          auth: account.access_token,
+        });
+
+        // 4. Calculate optimal page size
+        const optimalPageSize = pageSize || calculateOptimalPageSize();
+
+        notionLogger.info(
+          `Starting import for automation ${automationId}, database ${notionDatabaseId}, page size: ${optimalPageSize}`
+        );
+
+        // 5. Query Notion database
+        const response = await notion.databases.query({
+          database_id: notionDatabaseId,
+          page_size: optimalPageSize,
+          start_cursor: cursor,
+          sorts: [
+            {
+              timestamp: "last_edited_time",
+              direction: "descending", // Get most recently edited pages first
+            },
+          ],
+        });
+
+        const pages = response.results as PageObjectResponse[];
+
+        notionLogger.info(
+          `Fetched ${pages.length} pages from Notion database ${notionDatabaseId}`
+        );
+
+        // 6. Store pages in notionEntity table
+        if (pages.length > 0) {
+          const entities: Omit<NotionEntity, "id">[] = pages.map((page) => ({
+            notionId: page.id,
+            parentId: notionDatabaseId,
+            type: "page",
+            accountId: automationRecord.notionAccountId!,
+            archived: page.archived,
+            titlePlain: getPageTitle(page),
+            createdTime: new Date(page.created_time),
+            lastEditedTime: new Date(page.last_edited_time),
+            workspaceId: account.workspace_id,
+            propertiesJson: page,
+            user_id: automationRecord.user_id,
+          }));
+
+          await db
+            .insert(notionEntity)
+            .values(entities)
+            .onConflictDoUpdate({
+              target: notionEntity.notionId,
+              set: {
+                parentId: notionDatabaseId,
+                titlePlain: notionEntity.titlePlain,
+                archived: notionEntity.archived,
+                lastEditedTime: notionEntity.lastEditedTime,
+                propertiesJson: notionEntity.propertiesJson,
+              },
+            });
+
+          notionLogger.info(
+            `Stored ${pages.length} pages in notionEntity table for automation ${automationId}`
+          );
+
+          // 7. Queue Google Sheets write jobs for fetched pages
+          for (const page of pages) {
+            await addGoogleSheetsWriteRowJob({
+              automationId,
+              notionPageId: page.id,
+              eventType: "page.created", // Treat as new rows for initial import
+            });
+          }
+
+          notionLogger.info(
+            `Queued ${pages.length} Google Sheets write jobs for automation ${automationId}`
+          );
+
+          // 8. Update automation total rows
+          const currentTotal = automationRecord.import_total_rows || 0;
+          const estimatedTotal = cursor
+            ? Math.max(currentTotal, pages.length) // For subsequent batches
+            : Math.max(100, pages.length); // For first batch, estimate at least 100
+
+          await db
+            .update(automation)
+            .set({
+              import_total_rows: estimatedTotal,
+            })
+            .where(eq(automation.id, automationId));
+
+          // 9. If there are more pages and we haven't exceeded 100 pages, queue next batch
+          const currentProcessed = pages.length; // This is just for this batch
+          if (
+            response.has_more &&
+            response.next_cursor &&
+            estimatedTotal < 100
+          ) {
+            await addNotionImportJob({
+              automationId,
+              notionDatabaseId,
+              cursor: response.next_cursor,
+              pageSize: optimalPageSize,
+            });
+
+            notionLogger.info(
+              `Queued next batch for automation ${automationId} with cursor ${response.next_cursor}`
+            );
+          } else {
+            // All pages fetched (or reached 100 limit)
+            if (estimatedTotal >= 100) {
+              notionLogger.info(
+                `Reached 100 page limit for automation ${automationId}. Waiting for Google Sheets writes to complete.`
+              );
+            } else {
+              notionLogger.info(
+                `All pages fetched for automation ${automationId}. Waiting for Google Sheets writes to complete.`
+              );
+            }
+          }
+        } else {
+          // No pages found - mark as completed immediately
+          await db
+            .update(automation)
+            .set({
+              import_status: "completed",
+              import_completed_at: new Date(),
+              import_total_rows: 0,
+            })
+            .where(eq(automation.id, automationId));
+
+          notionLogger.info(
+            `No pages found in database ${notionDatabaseId} for automation ${automationId}. Marking as completed.`
+          );
+        }
+
+        return {
+          status: "completed",
+          pagesFetched: pages.length,
+          hasMore: response.has_more || false,
+          next_cursor: response.next_cursor || null,
+        };
+      } catch (error: any) {
+        // Update automation status to failed
+        await db
+          .update(automation)
+          .set({
+            import_status: "failed",
+          })
+          .where(eq(automation.id, automationId));
+
+        notionLogger.error(
+          `Notion import failed for automation ${automationId}: ${error.message}`,
+          { error: error.stack }
+        );
+
+        throw new Error(`Notion import failed: ${error.message}`);
+      }
+    }
+
+    // Handle sync jobs (existing logic)
+    const { userId, notionAccountId, cursor } = job.data;
+
+    if (!userId || !notionAccountId) {
+      throw new Error("Missing required fields for sync job");
+    }
 
     try {
       const account = await db.query.notionAccount.findFirst({

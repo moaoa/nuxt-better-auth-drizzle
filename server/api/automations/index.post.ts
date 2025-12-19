@@ -7,11 +7,14 @@ import {
   googleSpreadsheet,
   notionAccount,
   notionEntity,
+  notionSheetsMapping,
   user,
 } from "~~/db/schema";
 import { and, eq } from "drizzle-orm";
 import { AutomationType } from "~~/types/automations";
 import { useDrizzle } from "~~/server/utils/drizzle";
+import { addNotionImportJob } from "~~/server/queues/notion-sync";
+import type { MappingConfig } from "~~/types/mapping";
 
 const CreateNotionDbToGoogleSheetAutomationSchema = z.object({
   type: z.literal(AutomationType.NotionDbToGoogleSheet),
@@ -61,7 +64,8 @@ export default defineEventHandler(async (event) => {
   if (config.createNewGoogleSheet) {
     throw createError({
       statusCode: 400,
-      message: "Creating new Google Sheets is not yet supported. Please select an existing sheet.",
+      message:
+        "Creating new Google Sheets is not yet supported. Please select an existing sheet.",
     });
   }
 
@@ -150,6 +154,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
+    // 1. Create automation record
     const newAutomation = await db
       .insert(automation)
       .values({
@@ -163,10 +168,34 @@ export default defineEventHandler(async (event) => {
         notionAccountId: _notionAccount.id,
         notionEntityId: _notionEntity.id,
         googleSpreadSheetId: _googleSpreadsheet.id,
+        import_status: "importing",
+        import_started_at: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
       })
       .returning();
+
+    // 2. Create notionSheetsMapping record
+    const mappingConfig: MappingConfig = {
+      automationId: newAutomation[0].id,
+      headerRow: 1,
+      dataStartRow: 2,
+      columns: [], // Will be populated later or from user input
+      includeNotionId: true,
+      includeLastSync: false,
+      sheetName: "Sheet1", // Default sheet name
+    };
+
+    await db.insert(notionSheetsMapping).values({
+      automationId: newAutomation[0].id,
+      mappingConfig: mappingConfig,
+    });
+
+    // 3. Queue initial import job
+    await addNotionImportJob({
+      automationId: newAutomation[0].id,
+      notionDatabaseId: _notionEntity.notionId,
+    });
 
     return newAutomation;
   } catch (error) {

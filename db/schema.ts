@@ -102,6 +102,14 @@ export const automation = pgTable("automation", {
   interval: text("interval", { enum: ["5m", "15m", "30m", "1h"] }).notNull(),
   is_active: boolean("is_active").notNull().default(true),
   last_synced_at: timestamp("last_synced_at"),
+  import_status: text("import_status", {
+    enum: ["pending", "importing", "completed", "failed"],
+  })
+    .default("pending")
+    .notNull(),
+  import_started_at: timestamp("import_started_at"),
+  import_completed_at: timestamp("import_completed_at"),
+  import_total_rows: integer("import_total_rows"),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
 });
@@ -411,4 +419,6 @@ export const notionSheetsRowMappingRelations = relations(
 export type User = InferSelectModel<typeof user>;
 export type NotionEntity = InferSelectModel<typeof notionEntity>;
 export type NotionSheetsMapping = InferSelectModel<typeof notionSheetsMapping>;
-export type NotionSheetsRowMapping = InferSelectModel<typeof notionSheetsRowMapping>;
+export type NotionSheetsRowMapping = InferSelectModel<
+  typeof notionSheetsRowMapping
+>;
