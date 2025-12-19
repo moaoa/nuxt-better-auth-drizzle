@@ -1,6 +1,11 @@
 import { Queue, Worker, QueueEvents } from "bullmq";
 import { Client } from "@notionhq/client";
-import { notionAccount, type NotionEntity, notionEntity, automation } from "~~/db/schema";
+import {
+  notionAccount,
+  type NotionEntity,
+  notionEntity,
+  automation,
+} from "~~/db/schema";
 import { useDrizzle } from "~~/server/utils/drizzle";
 import { eq } from "drizzle-orm";
 import { BullMQOtel } from "bullmq-otel";
@@ -111,10 +116,10 @@ export interface NotionPageFetchJobResult {
 /**
  * Add a job to fetch a single Notion page
  */
-export const addNotionPageFetchJob = async (
-  data: NotionPageFetchJobData
-) => {
-  const jobId = `notion-page-fetch-${data.automationId}-${data.notionPageId}-${Date.now()}`;
+export const addNotionPageFetchJob = async (data: NotionPageFetchJobData) => {
+  const jobId = `notion-page-fetch-${data.automationId}-${
+    data.notionPageId
+  }-${Date.now()}`;
   return notionPageFetchQueue.add("fetch-notion-page", data, { jobId });
 };
 
