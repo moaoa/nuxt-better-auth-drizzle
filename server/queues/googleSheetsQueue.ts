@@ -52,6 +52,7 @@ export interface GoogleSheetsWriteRowJobData {
   jobType: "write-row";
   automationId: number;
   notionPageId: string;
+  eventType?: string; // e.g., "page.created", "page.content_updated", "page.properties_updated"
 }
 
 /**
@@ -122,7 +123,9 @@ export const addGoogleSheetsListJob = async (
 export const addGoogleSheetsWriteRowJob = async (
   data: Omit<GoogleSheetsWriteRowJobData, "jobType">
 ) => {
-  const jobId = `write-row-${data.automationId}-${data.notionPageId}-${Date.now()}`;
+  const jobId = `write-row-${data.automationId}-${
+    data.notionPageId
+  }-${Date.now()}`;
   return googleSheetsQueue.add(
     "write-row",
     { ...data, jobType: "write-row" },
@@ -136,7 +139,9 @@ export const addGoogleSheetsWriteRowJob = async (
 export const addGoogleSheetsDeleteRowJob = async (
   data: Omit<GoogleSheetsDeleteRowJobData, "jobType">
 ) => {
-  const jobId = `delete-row-${data.automationId}-${data.notionPageId}-${Date.now()}`;
+  const jobId = `delete-row-${data.automationId}-${
+    data.notionPageId
+  }-${Date.now()}`;
   return googleSheetsQueue.add(
     "delete-row",
     { ...data, jobType: "delete-row" },
@@ -164,8 +169,18 @@ export const googleSheetsQueueEvents = new QueueEvents(
 googleSheetsQueueEvents.on("completed", async ({ jobId, returnvalue }) => {
   console.log(`Job ${jobId} completed`);
   const job = await googleSheetsQueue.getJob(jobId);
-  if (job && returnvalue && job.data.jobType === "list-spreadsheets") {
-    const newData = { ...job.data, pageToken: returnvalue.nextPageToken };
+  if (
+    job &&
+    returnvalue &&
+    typeof returnvalue === "object" &&
+    "nextPageToken" in returnvalue &&
+    job.data.jobType === "list-spreadsheets"
+  ) {
+    const result = returnvalue as GoogleSheetsJobResult;
+    const newData = {
+      ...job.data,
+      pageToken: result.nextPageToken ?? undefined,
+    };
     await addGoogleSheetsListJob(newData);
   }
 });
@@ -310,10 +325,13 @@ export const googleSheetsWorker = new Worker<
 
     // Handle write-row job (write/update a row in Google Sheets)
     if (job.data.jobType === "write-row") {
-      const { automationId, notionPageId } = job.data;
+      const { automationId, notionPageId, eventType } = job.data;
+      const isNewRow = eventType === "page.created";
 
       console.log(
-        `Processing write-row job for automation ${automationId}, page ${notionPageId}`
+        `Processing write-row job for automation ${automationId}, page ${notionPageId}, event: ${
+          eventType || "unknown"
+        }`
       );
 
       try {
@@ -347,7 +365,10 @@ export const googleSheetsWorker = new Worker<
         }
 
         const sheetsAccount = await db.query.googleSheetsAccount.findFirst({
-          where: eq(googleSheetsAccount.id, automationRecord.googleSheetsAccountId),
+          where: eq(
+            googleSheetsAccount.id,
+            automationRecord.googleSheetsAccountId
+          ),
         });
 
         if (!sheetsAccount) {
@@ -356,7 +377,9 @@ export const googleSheetsWorker = new Worker<
 
         // 4. Get the Google Spreadsheet
         if (!automationRecord.googleSpreadSheetId) {
-          throw new Error(`Automation ${automationId} has no Google Spreadsheet`);
+          throw new Error(
+            `Automation ${automationId} has no Google Spreadsheet`
+          );
         }
 
         const spreadsheetRecord = await db.query.googleSpreadsheet.findFirst({
@@ -373,7 +396,9 @@ export const googleSheetsWorker = new Worker<
         });
 
         if (!entity) {
-          throw new Error(`Notion entity ${notionPageId} not found in database`);
+          throw new Error(
+            `Notion entity ${notionPageId} not found in database`
+          );
         }
 
         // 6. Initialize Google Sheets API
@@ -395,41 +420,16 @@ export const googleSheetsWorker = new Worker<
 
         const newChecksum = computeChecksum(rowValues);
 
-        // 8. Check if row exists
-        const existingMapping = await db.query.notionSheetsRowMapping.findFirst(
-          {
-            where: and(
-              eq(notionSheetsRowMapping.automationId, automationId),
-              eq(notionSheetsRowMapping.notionPageId, notionPageId)
-            ),
-          }
-        );
-
         let rowsCreated = 0;
         let rowsUpdated = 0;
 
-        if (existingMapping) {
-          // Check if row changed
-          if (existingMapping.checksum !== newChecksum) {
-            await sheets.spreadsheets.values.update({
-              spreadsheetId,
-              range: `${mappingConfig.sheetName}!A${existingMapping.sheetRowNumber}`,
-              valueInputOption: "USER_ENTERED",
-              requestBody: { values: [rowValues] },
-            });
+        // 8. Handle new rows vs updated rows differently
+        if (isNewRow) {
+          // For new rows, don't check for existing mapping - just append
+          console.log(
+            `Appending new row for page ${notionPageId} (page.created event)`
+          );
 
-            await db
-              .update(notionSheetsRowMapping)
-              .set({
-                checksum: newChecksum,
-                lastSyncedAt: new Date(),
-              })
-              .where(eq(notionSheetsRowMapping.id, existingMapping.id));
-
-            rowsUpdated = 1;
-          }
-        } else {
-          // Append new row
           const appendResponse = await sheets.spreadsheets.values.append({
             spreadsheetId,
             range: `${mappingConfig.sheetName}!A${mappingConfig.dataStartRow}`,
@@ -452,6 +452,73 @@ export const googleSheetsWorker = new Worker<
           });
 
           rowsCreated = 1;
+        } else {
+          // For updated rows, check for existing mapping and update
+          console.log(
+            `Checking for existing row mapping for page ${notionPageId} (${eventType} event)`
+          );
+
+          const existingMapping =
+            await db.query.notionSheetsRowMapping.findFirst({
+              where: and(
+                eq(notionSheetsRowMapping.automationId, automationId),
+                eq(notionSheetsRowMapping.notionPageId, notionPageId)
+              ),
+            });
+
+          if (existingMapping) {
+            // Row exists, check if it changed
+            if (existingMapping.checksum !== newChecksum) {
+              await sheets.spreadsheets.values.update({
+                spreadsheetId,
+                range: `${mappingConfig.sheetName}!A${existingMapping.sheetRowNumber}`,
+                valueInputOption: "USER_ENTERED",
+                requestBody: { values: [rowValues] },
+              });
+
+              await db
+                .update(notionSheetsRowMapping)
+                .set({
+                  checksum: newChecksum,
+                  lastSyncedAt: new Date(),
+                })
+                .where(eq(notionSheetsRowMapping.id, existingMapping.id));
+
+              rowsUpdated = 1;
+            } else {
+              console.log(
+                `Row for page ${notionPageId} unchanged, skipping update`
+              );
+            }
+          } else {
+            // Row mapping doesn't exist (edge case: update event for a page that wasn't synced before)
+            // Append as new row
+            console.log(
+              `No existing mapping found for page ${notionPageId}, appending as new row`
+            );
+
+            const appendResponse = await sheets.spreadsheets.values.append({
+              spreadsheetId,
+              range: `${mappingConfig.sheetName}!A${mappingConfig.dataStartRow}`,
+              valueInputOption: "USER_ENTERED",
+              requestBody: { values: [rowValues] },
+            });
+
+            const updatedRange = appendResponse.data.updates?.updatedRange;
+            const rowNumber = updatedRange
+              ? parseInt(updatedRange.match(/\d+/)?.[0] ?? "0")
+              : mappingConfig.dataStartRow;
+
+            await db.insert(notionSheetsRowMapping).values({
+              automationId,
+              notionPageId: notionPageId,
+              sheetRowNumber: rowNumber,
+              checksum: newChecksum,
+              lastSyncedAt: new Date(),
+            });
+
+            rowsCreated = 1;
+          }
         }
 
         // 9. Update automation last_synced_at
@@ -513,7 +580,10 @@ export const googleSheetsWorker = new Worker<
         }
 
         const sheetsAccount = await db.query.googleSheetsAccount.findFirst({
-          where: eq(googleSheetsAccount.id, automationRecord.googleSheetsAccountId),
+          where: eq(
+            googleSheetsAccount.id,
+            automationRecord.googleSheetsAccountId
+          ),
         });
 
         if (!sheetsAccount) {
@@ -522,7 +592,9 @@ export const googleSheetsWorker = new Worker<
 
         // 4. Get the Google Spreadsheet
         if (!automationRecord.googleSpreadSheetId) {
-          throw new Error(`Automation ${automationId} has no Google Spreadsheet`);
+          throw new Error(
+            `Automation ${automationId} has no Google Spreadsheet`
+          );
         }
 
         const spreadsheetRecord = await db.query.googleSpreadsheet.findFirst({

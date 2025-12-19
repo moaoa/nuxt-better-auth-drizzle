@@ -136,8 +136,8 @@ export const notionSyncQueueEvents = new QueueEvents("notion-sync", {
 
 notionSyncQueueEvents.on("completed", async ({ jobId, returnvalue }) => {
   const job = await notionSyncQueue.getJob(jobId);
-  if (job && returnvalue) {
-    const newData = { ...job.data, ...returnvalue };
+  if (job && returnvalue && typeof returnvalue === "object") {
+    const newData = { ...job.data, ...(returnvalue as NotionSyncJobResult) };
     await addNotionSyncJob(newData);
   }
 });
@@ -303,9 +303,11 @@ export const notionPageFetchWorker = new Worker<
       );
 
       // Queue Google Sheets write job after successful fetch
+      // Pass eventType so the worker knows if it's a new row or update
       await addGoogleSheetsWriteRowJob({
         automationId,
         notionPageId,
+        eventType: job.data.eventType,
       });
 
       notionLogger.info(
