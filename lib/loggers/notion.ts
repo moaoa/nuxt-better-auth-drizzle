@@ -1,13 +1,13 @@
 import winston from "winston";
-import "winston-daily-rotate-file";
+import DailyRotateFile from "winston-daily-rotate-file";
 
-// const transport = new winston.transports.DailyRotateFile({
-//   filename: "logs/notion/notion-%DATE%.log",
-//   datePattern: "YYYY-MM-DD-HH",
-//   zippedArchive: true,
-//   maxSize: "20m",
-//   maxFiles: "14d",
-// });
+const transport = new DailyRotateFile({
+  filename: "logs/notion/notion-%DATE%.log",
+  datePattern: "YYYY-MM-DD-HH",
+  zippedArchive: true,
+  maxSize: "20m",
+  maxFiles: "14d",
+});
 
 const attachRequestId = winston.format((info) => {
   try {
@@ -30,5 +30,11 @@ export const notionLogger = winston.createLogger({
       return `${timestamp} [${reqId || ""}] ${level}: ${message}`;
     })
   ),
-  // transports: [transport],
+  transports: [
+    transport,
+    // Also log to console in development
+    ...(process.env.NODE_ENV === "development"
+      ? [new winston.transports.Console()]
+      : []),
+  ],
 });

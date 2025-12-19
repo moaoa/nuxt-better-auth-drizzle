@@ -10,7 +10,7 @@ import {
   notionSheetsMapping,
   notionSheetsRowMapping,
 } from "~~/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, count } from "drizzle-orm";
 import { propertyTransformer } from "~~/server/services/propertyTransformer";
 import type { MappingConfig, ColumnMapping } from "~~/types/mapping";
 import { createHash } from "crypto";
@@ -33,6 +33,27 @@ const connection = {
   port: Number(process.env.REDIS_PORT!),
   password: process.env.REDIS_PASSWORD!,
 };
+
+/**
+ * Get Google Sheets OAuth2 configuration from environment variables
+ * Best practice for Nuxt.js: Use process.env directly in server-side workers
+ * since they run outside the Nuxt request context
+ */
+function getGoogleSheetsOAuthConfig() {
+  const clientId = process.env.GOOGLE_SHEETS_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_SHEETS_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error(
+      "Google Sheets OAuth configuration missing. Please set GOOGLE_SHEETS_CLIENT_ID and GOOGLE_SHEETS_CLIENT_SECRET environment variables."
+    );
+  }
+
+  return {
+    clientId,
+    clientSecret,
+  };
+}
 
 /**
  * Job data for listing spreadsheets (metadata sync)
@@ -401,10 +422,22 @@ export const googleSheetsWorker = new Worker<
           );
         }
 
-        // 6. Initialize Google Sheets API
+        // 6. Initialize Google Sheets API with OAuth2Client
+        const oauthConfig = getGoogleSheetsOAuthConfig();
+        const oauth2Client = new google.auth.OAuth2(
+          oauthConfig.clientId,
+          oauthConfig.clientSecret
+        );
+
+        // Set the credentials with the access token
+        oauth2Client.setCredentials({
+          access_token: sheetsAccount.access_token,
+          refresh_token: sheetsAccount.refresh_token,
+        });
+
         const sheets = google.sheets({
           version: "v4",
-          auth: sheetsAccount.access_token,
+          auth: oauth2Client,
         });
 
         const spreadsheetId = spreadsheetRecord.googleSpreadsheetId;
@@ -527,6 +560,37 @@ export const googleSheetsWorker = new Worker<
           .set({ last_synced_at: new Date() })
           .where(eq(automation.id, automationId));
 
+        // 10. Track import progress if automation is importing
+        if (automationRecord.import_status === "importing") {
+          // Count total row mappings for this automation
+          const rowMappingCountResult = await db
+            .select({ count: count() })
+            .from(notionSheetsRowMapping)
+            .where(eq(notionSheetsRowMapping.automationId, automationId));
+
+          const currentRowCount = rowMappingCountResult[0]?.count || 0;
+          const totalRows = automationRecord.import_total_rows || 0;
+
+          logger.info(
+            `Import progress for automation ${automationId}: ${currentRowCount}/${totalRows} rows written`
+          );
+
+          // Check if import is complete
+          if (totalRows > 0 && currentRowCount >= totalRows) {
+            await db
+              .update(automation)
+              .set({
+                import_status: "completed",
+                import_completed_at: new Date(),
+              })
+              .where(eq(automation.id, automationId));
+
+            logger.info(
+              `Import completed for automation ${automationId}. All ${currentRowCount} rows written.`
+            );
+          }
+        }
+
         return {
           status: "completed",
           message: `Synced page ${notionPageId} to Google Sheets`,
@@ -606,9 +670,22 @@ export const googleSheetsWorker = new Worker<
         }
 
         // 5. Initialize Google Sheets API
+        // Initialize Google Sheets API with OAuth2Client
+        const oauthConfig = getGoogleSheetsOAuthConfig();
+        const oauth2Client = new google.auth.OAuth2(
+          oauthConfig.clientId,
+          oauthConfig.clientSecret
+        );
+
+        // Set the credentials with the access token
+        oauth2Client.setCredentials({
+          access_token: sheetsAccount.access_token,
+          refresh_token: sheetsAccount.refresh_token,
+        });
+
         const sheets = google.sheets({
           version: "v4",
-          auth: sheetsAccount.access_token,
+          auth: oauth2Client,
         });
 
         const spreadsheetId = spreadsheetRecord.googleSpreadsheetId;
