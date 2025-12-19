@@ -8,9 +8,24 @@ import { useDrizzle } from "../server/utils/drizzle";
 
 import { sendUserVerificationEmail } from "../server/utils/email";
 
-console.log("hi: ", process.env.BETTER_AUTH_URL);
+console.log("Better Auth Config:", {
+  baseURL: process.env.BETTER_AUTH_URL,
+  hasClientId: !!process.env.NUXT_GOOGLE_CLIENT_ID,
+  hasClientSecret: !!process.env.NUXT_GOOGLE_CLIENT_SECRET,
+});
+
+if (
+  !process.env.NUXT_GOOGLE_CLIENT_ID ||
+  !process.env.NUXT_GOOGLE_CLIENT_SECRET
+) {
+  console.warn(
+    "WARNING: Google OAuth credentials are missing. Google login will not work."
+  );
+}
 
 export const auth = betterAuth({
+  baseURL: process.env.BETTER_AUTH_URL,
+  basePath: "/api/auth",
   database: drizzleAdapter(useDrizzle(), {
     provider: "pg",
     schema: {
@@ -55,13 +70,25 @@ export const auth = betterAuth({
     google: {
       clientId: process.env.NUXT_GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.NUXT_GOOGLE_CLIENT_SECRET as string,
-      mapProfileToUser: (profile: {
-        given_name: string;
-        family_name: string;
-      }) => {
+      mapProfileToUser: (profile: any) => {
+        // Handle cases where Google profile might not have given_name/family_name
+        // Some users might only have a name field
+        const firstName =
+          profile.given_name || profile.name?.split(" ")[0] || "User";
+        const lastName =
+          profile.family_name ||
+          profile.name?.split(" ").slice(1).join(" ") ||
+          "";
+
+        console.log("Google profile mapping:", {
+          profile,
+          firstName,
+          lastName,
+        });
+
         return {
-          firstName: profile.given_name,
-          lastName: profile.family_name,
+          firstName,
+          lastName: lastName || "User", // Ensure lastName is not empty since it's required
         };
       },
     },

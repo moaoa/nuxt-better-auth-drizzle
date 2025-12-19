@@ -14,7 +14,14 @@ defineProps<{
 const emit = defineEmits<{
   prev: [];
   next: [];
-  "database-selected": [dbId: string];
+  "database-selected": [data: {
+    notionEntityId: string;
+    googleSheetId?: string;
+    createNewSheet?: boolean;
+    newSheetName?: string;
+  }];
+  "notion-account-selected": [accountId: string];
+  "google-sheets-account-selected": [accountId: string];
 }>();
 </script>
 
@@ -26,11 +33,15 @@ const emit = defineEmits<{
     @next="emit('next')"
   >
     <template #step-0>
-      <NotionConnectStep :notion-accounts-options="notionAccountsOptions" />
+      <NotionConnectStep
+        :notion-accounts-options="notionAccountsOptions"
+        @account-selected="emit('notion-account-selected', $event)"
+      />
     </template>
     <template #step-1>
       <GoogleSheetsConnectStep
         :google-sheets-accounts-options="googleSheetsAccountsOptions"
+        @account-selected="emit('google-sheets-account-selected', $event)"
       />
     </template>
     <template #step-2>

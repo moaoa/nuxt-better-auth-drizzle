@@ -62,7 +62,12 @@
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuItem>Edit</DropdownMenuItem>
-                <DropdownMenuItem>Delete</DropdownMenuItem>
+                <DropdownMenuItem
+                  @click="handleDelete(automation.uuid)"
+                  class="text-destructive"
+                >
+                  Delete
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </td>
@@ -78,6 +83,7 @@
 </template>
 
 <script setup lang="ts">
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -85,8 +91,12 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { Button } from "~/components/ui/button";
+import { useToast } from "@/components/ui/toast/use-toast";
 
-const { data: automations, status, error } = await useFetch("/api/automations");
+const { toast } = useToast();
+const queryClient = useQueryClient();
+
+const { data: automations, status, error, refresh } = await useFetch("/api/automations");
 
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString("en-US", {
@@ -94,5 +104,35 @@ const formatDate = (dateString: string) => {
     month: "short",
     day: "numeric",
   });
+};
+
+const deleteMutation = useMutation({
+  mutationFn: async (automationUuid: string) => {
+    await $fetch(`/api/automations/${automationUuid}`, {
+      method: "DELETE",
+    });
+  },
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ["automations"] });
+    refresh();
+    toast({
+      title: "Success",
+      description: "Automation deleted successfully",
+    });
+  },
+  onError: (error: any) => {
+    console.error("Failed to delete automation:", error);
+    toast({
+      title: "Error",
+      description: error.data?.message || error.message || "Failed to delete automation",
+      variant: "destructive",
+    });
+  },
+});
+
+const handleDelete = (automationUuid: string) => {
+  if (confirm("Are you sure you want to delete this automation?")) {
+    deleteMutation.mutate(automationUuid);
+  }
 };
 </script>

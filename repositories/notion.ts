@@ -10,4 +10,7 @@ export const notionRepo = {
   getPageDatabases: async (pageId: string) => {
     return await $fetch(`/api/notion/pages/${pageId}/databases`);
   },
+  getAllDatabases: async () => {
+    return await $fetch(`/api/notion/databases`);
+  },
 };

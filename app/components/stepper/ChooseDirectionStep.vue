@@ -19,7 +19,16 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
-const emit = defineEmits(["next", "prev"]);
+const emit = defineEmits<{
+  "database-selected": [data: {
+    notionEntityId: string;
+    googleSheetId?: string;
+    createNewSheet?: boolean;
+    newSheetName?: string;
+  }];
+  next: [];
+  prev: [];
+}>();
 
 const direction = ref("notion-to-google-sheet");
 const automationType = ref("");
@@ -46,7 +55,7 @@ const {
   error: databasesError,
 } = useQuery({
   queryKey: ["notionDatabases"],
-  queryFn: () => notionRepo.getTopLevelPages(),
+  queryFn: () => notionRepo.getAllDatabases(),
 });
 
 // Fetch Google Sheets
@@ -70,20 +79,30 @@ const {
 });
 
 const handleProceed = () => {
-  emit("next");
+  // For notion-to-google-sheet direction, emit database-selected event
+  if (direction.value === 'notion-to-google-sheet' && notionTB.value) {
+    emit("database-selected", {
+      notionEntityId: notionTB.value,
+      googleSheetId: !newGoogleSheet.value ? googleSheet.value : undefined,
+      createNewSheet: newGoogleSheet.value,
+      newSheetName: newGoogleSheet.value ? googleSheetName.value : undefined,
+    });
+  } else {
+    emit("next");
+  }
 };
 
 const handleTest = async () => {
-  if (direction.value === 'notion-to-google-sheet') {
-    const config = {
-      sourceId: notionTB.value,
-      createDestination: newGoogleSheet.value,
-      newDestinationName: newGoogleSheet.value ? googleSheetName.value : undefined,
-      destinationId: !newGoogleSheet.value ? googleSheet.value : undefined,
-    };
-    await automationsRepo.createNotionToGoogleSheetAutomation(config);
-    navigateTo('/notion-to-google-sheets');
+  // For notion-to-google-sheet direction, emit database-selected event
+  if (direction.value === 'notion-to-google-sheet' && notionTB.value) {
+    emit("database-selected", {
+      notionEntityId: notionTB.value,
+      googleSheetId: !newGoogleSheet.value ? googleSheet.value : undefined,
+      createNewSheet: newGoogleSheet.value,
+      newSheetName: newGoogleSheet.value ? googleSheetName.value : undefined,
+    });
   } else {
+    // Keep old behavior for other directions
     const config = {
       sourceId: googleSheet.value,
       createDestination: newNotionTB.value,

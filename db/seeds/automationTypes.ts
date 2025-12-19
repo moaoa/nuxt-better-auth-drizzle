@@ -41,6 +41,30 @@ async function main() {
         createdAt: new Date(),
         updatedAt: new Date(),
       },
+      {
+        name: "Notion Database to Google Sheet",
+        uuid: crypto.randomUUID(),
+        automationTypeKey: "notion_db_to_google_sheet",
+        id: 4,
+        description: "Sync data from a Notion database to a Google Sheet",
+        disabled: false,
+        icon: "",
+        isHidden: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        name: "Google Sheet to Notion",
+        uuid: crypto.randomUUID(),
+        automationTypeKey: "google_sheet_to_notion",
+        id: 5,
+        description: "Sync data from a Google Sheet to a Notion database",
+        disabled: false,
+        icon: "",
+        isHidden: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
     ]);
   });
 }

@@ -54,13 +54,20 @@ export interface NotionWebhookUser {
 }
 
 /**
- * Parent reference for pages
+ * Parent reference for pages in webhook data
  */
 export interface NotionWebhookParent {
-  type: "database_id" | "page_id" | "workspace" | "block_id";
-  database_id?: string;
-  page_id?: string;
-  block_id?: string;
+  id: string;
+  type: "database" | "page" | "workspace" | "block";
+  data_source_id?: string;
+}
+
+/**
+ * Event-specific data payload
+ */
+export interface NotionWebhookEventData {
+  parent?: NotionWebhookParent;
+  [key: string]: any;
 }
 
 /**
@@ -74,15 +81,24 @@ export interface NotionWebhookEvent {
   /** The entity that was affected */
   entity: NotionWebhookEntity;
   /** Workspace where the event occurred */
-  workspace: NotionWebhookWorkspace;
+  workspace_id: string;
+  workspace_name?: string;
   /** Timestamp when the event occurred (ISO 8601) */
   timestamp: string;
   /** Integration ID that received the event */
   integration_id: string;
+  /** Subscription ID */
+  subscription_id?: string;
   /** User who triggered the event (if available) */
-  user?: NotionWebhookUser;
-  /** Parent of the entity (for pages) */
-  parent?: NotionWebhookParent;
+  authors?: NotionWebhookUser[];
+  /** Users who can access the entity */
+  accessible_by?: NotionWebhookUser[];
+  /** Attempt number for retries */
+  attempt_number?: number;
+  /** API version */
+  api_version?: string;
+  /** Event-specific data */
+  data?: NotionWebhookEventData;
 }
 
 /**
@@ -95,7 +111,9 @@ export interface NotionWebhookVerification {
 /**
  * Union type for all possible webhook payloads
  */
-export type NotionWebhookPayload = NotionWebhookEvent | NotionWebhookVerification;
+export type NotionWebhookPayload =
+  | NotionWebhookEvent
+  | NotionWebhookVerification;
 
 /**
  * Type guard to check if payload is a verification request
@@ -134,4 +152,3 @@ export interface WebhookProcessingResult {
   skipped?: boolean;
   reason?: "inactive" | "not_found" | "invalid_signature" | "unsupported_event";
 }
-

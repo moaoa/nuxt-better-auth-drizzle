@@ -4,8 +4,12 @@ import GoogleSheetsStepper from "@/components/stepper/GoogleSheetsStepper.vue";
 import NotionConnectStep from "@/components/stepper/NotionConnectStep.vue";
 import GoogleSheetsConnectStep from "@/components/stepper/GoogleSheetsConnectStep.vue";
 import ChooseDirectionStep from "~/components/stepper/ChooseDirectionStep.vue";
-import { useMutation } from "@tanstack/vue-query";
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import { useStepper } from "~~/composables/useStepper";
+import { useToast } from "@/components/ui/toast/use-toast";
+
+const { toast } = useToast();
+const queryClient = useQueryClient();
 
 const steps = [
   {
@@ -22,7 +26,7 @@ const steps = [
   },
 ];
 
-const { currentStep, prevStep, nextStep } = useStepper();
+const { currentStep, prevStep, nextStep, selectedAccounts } = useStepper();
 
 // Ensure currentStep is within valid bounds
 onMounted(() => {
@@ -55,16 +59,105 @@ const handlePrev = () => {
 
 const { data: connections } = await useFetch("/api/connections");
 
-const selectedDatabaseId = ref<string | null>(null);
+// State management for collected data
+// Use stepper's stored state as source of truth, with local refs as fallback
+const selectedNotionAccountId = computed(() => selectedAccounts.value.notion);
+const selectedGoogleSheetsAccountId = computed(
+  () => selectedAccounts.value.googleSheets
+);
+const selectedNotionEntityId = ref<string | null>(null);
+const selectedGoogleSheetId = ref<string | null>(null);
+const createNewGoogleSheet = ref(false);
+const newGoogleSheetName = ref("");
+
+// Handle account selections from stepper components
+// Note: The child components already update the stepper state via setNotionAccount/setGoogleSheetsAccount
+// These handlers are kept for event consistency, but the state is managed by the stepper composable
+const onNotionAccountSelected = (accountId: string) => {
+  console.log("Notion account selected event received:", accountId);
+};
+
+const onGoogleSheetsAccountSelected = (accountId: string) => {
+  console.log("Google Sheets account selected event received:", accountId);
+};
+
+// Handle database selection from ChooseDirectionStep
+const onDatabaseSelected = (data: {
+  notionEntityId: string;
+  googleSheetId?: string;
+  createNewSheet?: boolean;
+  newSheetName?: string;
+}) => {
+  selectedNotionEntityId.value = data.notionEntityId;
+  if (data.createNewSheet) {
+    createNewGoogleSheet.value = true;
+    newGoogleSheetName.value = data.newSheetName || "";
+    selectedGoogleSheetId.value = null;
+  } else {
+    createNewGoogleSheet.value = false;
+    selectedGoogleSheetId.value = data.googleSheetId || null;
+    newGoogleSheetName.value = "";
+  }
+
+  // Automatically save when database is selected
+  saveServiceMutation.mutate();
+};
 
 const saveServiceMutation = useMutation({
-  mutationFn: async (notion_db_id: string) => {
-    // TODO: Implement googleSheetsRepository.saveService
-    // return googleSheetsRepository.saveService("google-sheets", notion_db_id);
+  mutationFn: async () => {
+    const notionAccountId = selectedNotionAccountId.value;
+    const googleSheetsAccountId = selectedGoogleSheetsAccountId.value;
+    const notionEntityId = selectedNotionEntityId.value;
+
+    if (!notionAccountId || !googleSheetsAccountId || !notionEntityId) {
+      console.log({
+        selectedNotionAccountId: notionAccountId,
+        selectedGoogleSheetsAccountId: googleSheetsAccountId,
+        selectedNotionEntityId: notionEntityId,
+        stepperAccounts: selectedAccounts.value,
+      });
+      throw new Error("Missing required selections");
+    }
+
+    if (!createNewGoogleSheet.value && !selectedGoogleSheetId.value) {
+      throw new Error("Please select a Google Sheet or create a new one");
+    }
+
+    const payload = {
+      type: "notion_db_to_google_sheet" as const,
+      notionEntityId: notionEntityId,
+      notionAccountId: notionAccountId,
+      googleSheetsAccountId: googleSheetsAccountId,
+      googleSheetId: selectedGoogleSheetId.value || "",
+      config: {
+        createNewGoogleSheet: createNewGoogleSheet.value,
+        createNewNotionDb: false,
+      },
+    };
+
+    const response = await $fetch("/api/automations", {
+      method: "POST",
+      body: payload,
+    });
+
+    return response;
   },
   onSuccess: () => {
-    // queryClient.invalidateQueries({ queryKey: ["notionDatabases"] });
-    // Optionally, you can move to a final "completed" step
+    queryClient.invalidateQueries({ queryKey: ["automations"] });
+    toast({
+      title: "Success",
+      description: "Automation created successfully",
+    });
+    navigateTo("/app/automations");
+  },
+  onError: (error: any) => {
+    console.error("Failed to create automation:", error);
+    toast({
+      title: "Error",
+      description:
+        error.data?.message || error.message || "Failed to create automation",
+      variant: "destructive",
+    });
   },
 });
 
@@ -88,11 +181,6 @@ const googleSheetsAccountsOptions = computed(() => {
     id: account.googleSheetsId,
   }));
 });
-
-const onDatabaseSelected = (dbId: string) => {
-  selectedDatabaseId.value = dbId;
-  saveServiceMutation.mutate(dbId);
-};
 </script>
 
 <template>
@@ -107,6 +195,8 @@ const onDatabaseSelected = (dbId: string) => {
         @prev="handlePrev"
         @next="handleNext"
         @database-selected="onDatabaseSelected"
+        @notion-account-selected="onNotionAccountSelected"
+        @google-sheets-account-selected="onGoogleSheetsAccountSelected"
       />
       <template #fallback>
         <div class="stepper-container">

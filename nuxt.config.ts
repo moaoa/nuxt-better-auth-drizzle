@@ -133,6 +133,8 @@ export default defineNuxtConfig({
   runtimeConfig: {
     NOTION_OAUTH_CLIENT_SECRET: process.env.NOTION_OAUTH_CLIENT_SECRET,
     GOOGLE_SHEETS_CLIENT_SECRET: process.env.GOOGLE_SHEETS_CLIENT_SECRET,
+    // Better Auth Google OAuth secret (server-side only)
+    NUXT_GOOGLE_CLIENT_SECRET: process.env.NUXT_GOOGLE_CLIENT_SECRET,
 
     // Redis configuration
     redisHost: process.env.REDIS_HOST || "localhost",

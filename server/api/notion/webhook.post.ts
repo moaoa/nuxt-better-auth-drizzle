@@ -11,6 +11,7 @@ import type {
   NotionWebhookPayload,
 } from "~~/types/webhook";
 import { isEventPayload } from "~~/types/webhook";
+import { NotionWebhookPayloadSchema } from "~~/types/webhook.schema";
 
 /**
  * Validate webhook signature using HMAC-SHA256
@@ -40,7 +41,47 @@ export default defineEventHandler(async (event) => {
     }
 
     // Parse JSON body
-    const payload: NotionWebhookPayload = JSON.parse(rawBody);
+    let parsedBody: any;
+    try {
+      parsedBody = JSON.parse(rawBody);
+    } catch (parseError: any) {
+      notionLogger.error("Failed to parse webhook JSON body", {
+        error: parseError.message,
+        body: rawBody.substring(0, 500), // Log first 500 chars
+      });
+      throw createError({
+        statusCode: 400,
+        message: "Invalid JSON in webhook body",
+      });
+    }
+
+    // Validate webhook payload with Zod
+    const validationResult = NotionWebhookPayloadSchema.safeParse(parsedBody);
+
+    if (!validationResult.success) {
+      const errors = validationResult.error.errors;
+      notionLogger.error("Webhook payload validation failed", {
+        errors: errors.map((err) => ({
+          path: err.path.join("."),
+          message: err.message,
+          code: err.code,
+        })),
+        receivedPayload: parsedBody,
+      });
+
+      throw createError({
+        statusCode: 400,
+        message: "Invalid webhook payload structure",
+        data: {
+          validationErrors: errors.map((err) => ({
+            path: err.path.join("."),
+            message: err.message,
+          })),
+        },
+      });
+    }
+
+    const payload: NotionWebhookPayload = validationResult.data;
 
     // Handle verification payload (during webhook setup)
     if (!isEventPayload(payload)) {
@@ -84,16 +125,31 @@ export default defineEventHandler(async (event) => {
     // For page events, check the parent database
     if (
       webhookEvent.entity.type === "page" &&
-      webhookEvent.parent?.database_id
+      webhookEvent.data?.parent?.type === "database" &&
+      webhookEvent.data.parent.id
     ) {
+      const parentDatabaseId = webhookEvent.data.parent.id;
+
+      notionLogger.info(
+        `Looking for parent database ${parentDatabaseId} for page ${webhookEvent.entity.id}`
+      );
+
       const parentEntity = await useDrizzle().query.notionEntity.findFirst({
-        where: eq(notionEntity.notionId, webhookEvent.parent.database_id),
+        where: eq(notionEntity.notionId, parentDatabaseId),
       });
 
       if (parentEntity) {
         automationRecord = await useDrizzle().query.automation.findFirst({
           where: eq(automation.notionEntityId, parentEntity.id),
         });
+
+        notionLogger.info(
+          `Found automation ${automationRecord?.id} for parent database ${parentDatabaseId}`
+        );
+      } else {
+        notionLogger.warn(
+          `Parent database ${parentDatabaseId} not found in notionEntity table`
+        );
       }
     }
 

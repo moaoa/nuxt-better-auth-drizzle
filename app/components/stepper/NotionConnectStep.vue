@@ -17,6 +17,10 @@ defineProps<{
   notionAccountsOptions: { title: string; id: string }[];
 }>();
 
+const emit = defineEmits<{
+  "account-selected": [accountId: string];
+}>();
+
 const { initiateAuth } = useNotionAuth();
 const { setNotionAccount, nextStep, selectedAccounts } = useStepper();
 
@@ -39,6 +43,7 @@ const handleConnect = () => {
 const handleNext = () => {
   if (selectedAccount.value && selectedAccount.value !== CONNECT_NEW_VALUE) {
     setNotionAccount(selectedAccount.value);
+    emit("account-selected", selectedAccount.value);
     nextStep();
   }
 };
