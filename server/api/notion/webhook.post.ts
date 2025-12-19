@@ -49,10 +49,12 @@ export default defineEventHandler(async (event) => {
         error: parseError.message,
         body: rawBody.substring(0, 500), // Log first 500 chars
       });
-      throw createError({
-        statusCode: 400,
+      return {
+        status: "ok",
         message: "Invalid JSON in webhook body",
-      });
+        skipped: true,
+        reason: "parse_error",
+      };
     }
 
     // Validate webhook payload with Zod
@@ -69,16 +71,12 @@ export default defineEventHandler(async (event) => {
         receivedPayload: parsedBody,
       });
 
-      throw createError({
-        statusCode: 400,
+      return {
+        status: "ok",
         message: "Invalid webhook payload structure",
-        data: {
-          validationErrors: errors.map((err) => ({
-            path: err.path.join("."),
-            message: err.message,
-          })),
-        },
-      });
+        skipped: true,
+        reason: "validation_error",
+      };
     }
 
     const payload: NotionWebhookPayload = validationResult.data;
@@ -100,18 +98,22 @@ export default defineEventHandler(async (event) => {
         notionLogger.warn(
           "Missing signature or verification token in production"
         );
-        throw createError({
-          statusCode: 401,
+        return {
+          status: "ok",
           message: "Invalid webhook signature",
-        });
+          skipped: true,
+          reason: "invalid_signature",
+        };
       }
 
       if (!validateSignature(rawBody, signature, verificationToken)) {
         notionLogger.warn("Invalid webhook signature");
-        throw createError({
-          statusCode: 401,
+        return {
+          status: "ok",
           message: "Invalid webhook signature",
-        });
+          skipped: true,
+          reason: "invalid_signature",
+        };
       }
     }
 
@@ -298,8 +300,10 @@ export default defineEventHandler(async (event) => {
     });
 
     return {
-      status: "error",
-      message: error.message,
+      status: "ok",
+      message: "Webhook processing failed",
+      skipped: true,
+      reason: "processing_error",
     };
   }
 });
