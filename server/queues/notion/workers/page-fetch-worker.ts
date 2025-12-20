@@ -11,6 +11,10 @@ import type {
   NotionPageFetchJobData,
   NotionPageFetchJobResult,
 } from "../queue";
+import {
+  extractParentId,
+  extractPageTitle,
+} from "~~/server/utils/notion";
 
 const connection = {
   host: process.env.REDIS_HOST!,
@@ -18,135 +22,114 @@ const connection = {
   password: process.env.REDIS_PASSWORD!,
 };
 
-function getParentId(
-  parent: PageObjectResponse["parent"]
-): string | null {
-  if ("database_id" in parent) {
-    return parent.database_id;
-  }
-  if ("page_id" in parent) {
-    return parent.page_id;
-  }
-  if ("block_id" in parent) {
-    return parent.block_id;
-  }
-  return null;
-}
+async function fetchAndStorePage(
+  automationId: number,
+  notionPageId: string,
+  eventType?: string
+): Promise<NotionPageFetchJobResult> {
+  const db = useDrizzle();
 
-function getTitle(page: PageObjectResponse): string {
-  const titleProperty = Object.values(page.properties).find(
-    (property) => property.type === "title"
-  );
-  if (titleProperty?.type === "title") {
-    return (
-      titleProperty.title.map((richText) => richText.plain_text).join("") ||
-      "Untitled"
+  // Get automation
+  const automationRecord = await db.query.automation.findFirst({
+    where: eq(automation.id, automationId),
+  });
+
+  if (!automationRecord?.notionAccountId) {
+    throw new Error(
+      `Automation ${automationId} not found or has no Notion account`
     );
   }
-  return "Untitled";
+
+  // Get Notion account
+  const account = await db.query.notionAccount.findFirst({
+    where: eq(notionAccount.id, automationRecord.notionAccountId),
+  });
+
+  if (!account) {
+    throw new Error("Notion account not found");
+  }
+
+  // Initialize Notion client
+  const notion = new Client({
+    auth: account.access_token,
+  });
+
+  // Fetch the page from Notion API
+  const page = (await notion.pages.retrieve({
+    page_id: notionPageId,
+  })) as PageObjectResponse;
+
+  // Transform page data for storage
+  const titlePlain = extractPageTitle(page);
+  const parentId = extractParentId(page.parent);
+
+  // Store or update the page in the database
+  await db
+    .insert(notionEntity)
+    .values({
+      notionId: page.id,
+      parentId: parentId,
+      type: page.object as "page" | "database",
+      accountId: account.id,
+      workspaceId: account.workspace_id,
+      archived: page.archived,
+      titlePlain,
+      createdTime: new Date(page.created_time),
+      lastEditedTime: new Date(page.last_edited_time),
+      propertiesJson: page,
+    })
+    .onConflictDoUpdate({
+      target: notionEntity.notionId,
+      set: {
+        parentId: parentId,
+        type: page.object as "page" | "database",
+        titlePlain,
+        archived: page.archived,
+        lastEditedTime: new Date(page.last_edited_time),
+        propertiesJson: page,
+      },
+    });
+
+  notionLogger.info(
+    `Fetched and stored Notion page ${notionPageId} for automation ${automationId}`
+  );
+
+  // Queue Google Sheets write job
+  await addGoogleSheetsWriteRowJob({
+    automationId,
+    notionPageId,
+    eventType,
+  });
+
+  notionLogger.info(
+    `Queued Google Sheets write job for page ${notionPageId} after fetch`
+  );
+
+  return {
+    status: "completed",
+    message: `Page ${notionPageId} fetched and queued for sync`,
+    notionPageId,
+  };
 }
 
-/**
- * Worker for fetching individual Notion pages (used by webhooks)
- * After fetching, it queues a mapping sync job
- */
 export const notionPageFetchWorker = new Worker<
   NotionPageFetchJobData,
   NotionPageFetchJobResult
 >(
   "notion-page-fetch",
   async (job) => {
-    const { automationId, notionPageId } = job.data;
-    const db = useDrizzle();
+    const { automationId, notionPageId, eventType } = job.data;
 
     try {
-      // Get automation to find the Notion account
-      const automationRecord = await db.query.automation.findFirst({
-        where: eq(automation.id, automationId),
-      });
-
-      if (!automationRecord || !automationRecord.notionAccountId) {
-        throw new Error(
-          `Automation ${automationId} not found or has no Notion account`
-        );
-      }
-
-      // Get Notion account
-      const account = await db.query.notionAccount.findFirst({
-        where: eq(notionAccount.id, automationRecord.notionAccountId),
-      });
-
-      if (!account) {
-        throw new Error("Notion account not found");
-      }
-
-      // Initialize Notion client
-      const notion = new Client({
-        auth: account.access_token,
-      });
-
-      // Fetch the page from Notion API
-      const page = (await notion.pages.retrieve({
-        page_id: notionPageId,
-      })) as PageObjectResponse;
-
-      // Transform page data for storage
-      const titlePlain = getTitle(page);
-      const parentId = getParentId(page.parent);
-
-      // Store or update the page in the database
-      await db
-        .insert(notionEntity)
-        .values({
-          notionId: page.id,
-          parentId: parentId,
-          type: page.object as "page" | "database",
-          accountId: account.id,
-          workspaceId: account.workspace_id,
-          archived: page.archived,
-          titlePlain,
-          createdTime: new Date(page.created_time),
-          lastEditedTime: new Date(page.last_edited_time),
-          propertiesJson: page,
-        })
-        .onConflictDoUpdate({
-          target: notionEntity.notionId,
-          set: {
-            parentId: parentId,
-            type: page.object as "page" | "database",
-            titlePlain,
-            archived: page.archived,
-            lastEditedTime: new Date(page.last_edited_time),
-            propertiesJson: page,
-          },
-        });
-
-      notionLogger.info(
-        `Fetched and stored Notion page ${notionPageId} for automation ${automationId}`
-      );
-
-      // Queue Google Sheets write job after successful fetch
-      // Pass eventType so the worker knows if it's a new row or update
-      await addGoogleSheetsWriteRowJob({
-        automationId,
-        notionPageId,
-        eventType: job.data.eventType,
-      });
-
-      notionLogger.info(
-        `Queued Google Sheets write job for page ${notionPageId} after fetch`
-      );
-
-      return {
-        status: "completed",
-        message: `Page ${notionPageId} fetched and queued for sync`,
-        notionPageId,
-      };
-    } catch (error: any) {
+      return await fetchAndStorePage(automationId, notionPageId, eventType);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      
       notionLogger.error(
-        `Page fetch failed for ${notionPageId}: ${error.message}`
+        `Page fetch failed for ${notionPageId}: ${errorMessage}`
       );
-      throw new Error(`Page fetch failed: ${error.message}`);
+      
+      throw new Error(`Page fetch failed: ${errorMessage}`);
     }
   },
   {
@@ -154,8 +137,7 @@ export const notionPageFetchWorker = new Worker<
     telemetry: new BullMQOtel("notion-page-fetch-worker"),
     limiter: {
       max: 3,
-      duration: 1000, // 3 requests per second (Notion rate limit)
+      duration: 1000,
     },
   }
 );
-
