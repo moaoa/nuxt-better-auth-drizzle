@@ -11,10 +11,7 @@ import type {
   NotionPageFetchJobData,
   NotionPageFetchJobResult,
 } from "../queue";
-import {
-  extractParentId,
-  extractPageTitle,
-} from "~~/server/utils/notion";
+import { extractParentId, extractPageTitle } from "~~/server/utils/notion";
 
 const connection = {
   host: process.env.REDIS_HOST!,
@@ -91,7 +88,9 @@ async function fetchAndStorePage(
     });
 
   notionLogger.info(
-    `Fetched and stored Notion page ${notionPageId} for automation ${automationId} (event: ${eventType || "unknown"})`
+    `Fetched and stored Notion page ${notionPageId} for automation ${automationId} (event: ${
+      eventType || "unknown"
+    })`
   );
 
   // Queue Google Sheets write job
@@ -127,12 +126,13 @@ export const notionPageFetchWorker = new Worker<
     try {
       return await fetchAndStorePage(automationId, notionPageId, eventType);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+
       notionLogger.error(
         `Page fetch failed for ${notionPageId}: ${errorMessage}`
       );
-      
+
       throw new Error(`Page fetch failed: ${errorMessage}`);
     }
   },
