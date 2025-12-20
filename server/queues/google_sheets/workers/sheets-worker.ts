@@ -316,8 +316,14 @@ async function handleWriteRowJob(
 
   let existingRowNumber: number | null = null;
 
+  // Find existing row by Notion UUID if includeNotionId is enabled
   if (mappingConfig.includeNotionId) {
     const uuidColumnIndex = rowValues.length - 1;
+    
+    logger.info(
+      `Looking for existing row with Notion UUID ${notionPageId} in column index ${uuidColumnIndex} for automation ${automationId}`
+    );
+
     const allRowsResponse = await sheets.spreadsheets.values.get({
       spreadsheetId,
       range: `${mappingConfig.sheetName}!${mappingConfig.dataStartRow}:${
@@ -332,9 +338,24 @@ async function handleWriteRowJob(
       notionPageId,
       mappingConfig.dataStartRow
     );
+
+    if (existingRowNumber !== null) {
+      logger.info(
+        `Found existing row at row ${existingRowNumber} for Notion page ${notionPageId} in automation ${automationId}`
+      );
+    } else {
+      logger.info(
+        `No existing row found for Notion page ${notionPageId} in automation ${automationId}, will create new row`
+      );
+    }
+  } else {
+    logger.warn(
+      `includeNotionId is false for automation ${automationId}, cannot detect existing rows. Will append new row.`
+    );
   }
 
   if (existingRowNumber !== null) {
+    // Row exists, check if it needs updating
     const existingRowResponse = await sheets.spreadsheets.values.get({
       spreadsheetId,
       range: `${mappingConfig.sheetName}!${existingRowNumber}:${existingRowNumber}`,
@@ -344,6 +365,11 @@ async function handleWriteRowJob(
     const existingChecksum = computeRowChecksum(existingRow);
 
     if (existingChecksum !== newChecksum) {
+      // Row has changed, update it
+      logger.info(
+        `Updating row ${existingRowNumber} for Notion page ${notionPageId} in automation ${automationId}`
+      );
+
       await sheets.spreadsheets.values.update({
         spreadsheetId,
         range: `${mappingConfig.sheetName}!${existingRowNumber}:${existingRowNumber}`,
@@ -352,8 +378,20 @@ async function handleWriteRowJob(
       });
 
       rowsUpdated = 1;
+      logger.info(
+        `Successfully updated row ${existingRowNumber} for Notion page ${notionPageId} in automation ${automationId}`
+      );
+    } else {
+      logger.info(
+        `Row ${existingRowNumber} for Notion page ${notionPageId} in automation ${automationId} has no changes, skipping update`
+      );
     }
   } else {
+    // Row doesn't exist, create new one
+    logger.info(
+      `Creating new row for Notion page ${notionPageId} in automation ${automationId}`
+    );
+
     await sheets.spreadsheets.values.append({
       spreadsheetId,
       range: `${mappingConfig.sheetName}!A${mappingConfig.dataStartRow}`,
@@ -362,6 +400,9 @@ async function handleWriteRowJob(
     });
 
     rowsCreated = 1;
+    logger.info(
+      `Successfully created new row for Notion page ${notionPageId} in automation ${automationId}`
+    );
   }
 
   await db

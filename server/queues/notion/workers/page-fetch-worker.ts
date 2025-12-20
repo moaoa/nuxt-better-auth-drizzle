@@ -91,10 +91,14 @@ async function fetchAndStorePage(
     });
 
   notionLogger.info(
-    `Fetched and stored Notion page ${notionPageId} for automation ${automationId}`
+    `Fetched and stored Notion page ${notionPageId} for automation ${automationId} (event: ${eventType || "unknown"})`
   );
 
   // Queue Google Sheets write job
+  // This job will:
+  // 1. Load the page data from notionEntity table
+  // 2. Find the corresponding row in Google Sheets using the Notion UUID column
+  // 3. Update the row if it exists, or create a new one if it doesn't
   await addGoogleSheetsWriteRowJob({
     automationId,
     notionPageId,
@@ -102,7 +106,7 @@ async function fetchAndStorePage(
   });
 
   notionLogger.info(
-    `Queued Google Sheets write job for page ${notionPageId} after fetch`
+    `Queued Google Sheets write job for page ${notionPageId} after fetch. The job will detect and update the corresponding row using the Notion UUID column.`
   );
 
   return {
