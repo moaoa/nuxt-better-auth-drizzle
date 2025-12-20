@@ -5,7 +5,9 @@ import {
   type NotionEntity,
   notionEntity,
   automation,
+  notionSheetsMapping,
 } from "~~/db/schema";
+import type { MappingConfig } from "~~/types/mapping";
 import { useDrizzle } from "~~/server/utils/drizzle";
 import { eq } from "drizzle-orm";
 import { BullMQOtel } from "bullmq-otel";
@@ -17,6 +19,7 @@ import {
 import {
   addGoogleSheetsWriteRowJob,
   addGoogleSheetsDeleteRowJob,
+  addGoogleSheetsWriteHeadersJob,
 } from "./googleSheetsQueue";
 import { notionLogger } from "~~/lib/loggers";
 
@@ -369,7 +372,35 @@ export const notionSyncWorker = new Worker<
             `Stored ${pages.length} pages in notionEntity table for automation ${automationId}`
           );
 
-          // 7. Queue Google Sheets write jobs for fetched pages
+          // 7. Queue headers job (only on first batch, when cursor is undefined)
+          if (!cursor) {
+            // Get mapping config to extract header names
+            const mappingRecord = await db.query.notionSheetsMapping.findFirst({
+              where: eq(notionSheetsMapping.automationId, automationId),
+            });
+
+            if (mappingRecord) {
+              const mappingConfig =
+                mappingRecord.mappingConfig as MappingConfig;
+
+              // Extract header names from column mappings in order
+              const headers = mappingConfig.columns.map(
+                (col) => col.notionPropertyName
+              );
+
+              // Queue write-headers job
+              await addGoogleSheetsWriteHeadersJob({
+                automationId,
+                headers,
+              });
+
+              notionLogger.info(
+                `Queued write-headers job for automation ${automationId} with ${headers.length} headers`
+              );
+            }
+          }
+
+          // 8. Queue Google Sheets write jobs for fetched pages
           for (const page of pages) {
             await addGoogleSheetsWriteRowJob({
               automationId,
@@ -382,13 +413,13 @@ export const notionSyncWorker = new Worker<
             `Queued ${pages.length} Google Sheets write jobs for automation ${automationId}`
           );
 
-          // 8. Calculate total pages fetched so far
+          // 9. Calculate total pages fetched so far
           const currentTotal = automationRecord.import_total_rows || 0;
           const newTotal = cursor
             ? currentTotal + pages.length // For subsequent batches, add to existing total
             : pages.length; // For first batch, set to pages fetched
 
-          // 9. If there are more pages and we haven't exceeded 100 pages, queue next batch
+          // 10. If there are more pages and we haven't exceeded 100 pages, queue next batch
           if (response.has_more && response.next_cursor && newTotal < 100) {
             // Update total rows and queue next batch
             await db

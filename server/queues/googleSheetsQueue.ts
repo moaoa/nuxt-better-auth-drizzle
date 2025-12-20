@@ -85,12 +85,22 @@ export interface GoogleSheetsDeleteRowJobData {
 }
 
 /**
+ * Job data for writing headers to Google Sheets
+ */
+export interface GoogleSheetsWriteHeadersJobData {
+  jobType: "write-headers";
+  automationId: number;
+  headers: string[]; // Array of header names in order
+}
+
+/**
  * Union type for all Google Sheets job data
  */
 export type GoogleSheetsJobData =
   | GoogleSheetsListJobData
   | GoogleSheetsWriteRowJobData
-  | GoogleSheetsDeleteRowJobData;
+  | GoogleSheetsDeleteRowJobData
+  | GoogleSheetsWriteHeadersJobData;
 
 export interface GoogleSheetsJobResult {
   status: "completed" | "failed";
@@ -149,6 +159,20 @@ export const addGoogleSheetsWriteRowJob = async (
   return googleSheetsQueue.add(
     "write-row",
     { ...data, jobType: "write-row" },
+    { jobId }
+  );
+};
+
+/**
+ * Add a job to write headers to Google Sheets
+ */
+export const addGoogleSheetsWriteHeadersJob = async (
+  data: Omit<GoogleSheetsWriteHeadersJobData, "jobType">
+) => {
+  const jobId = `write-headers-${data.automationId}-${Date.now()}`;
+  return googleSheetsQueue.add(
+    "write-headers",
+    { ...data, jobType: "write-headers" },
     { jobId }
   );
 };
@@ -340,6 +364,126 @@ export const googleSheetsWorker = new Worker<
       } catch (error: any) {
         console.error("Google Sheets list sync failed:", error);
         throw new Error(`Google Sheets list sync failed: ${error.message}`);
+      }
+    }
+
+    // Handle write-headers job (write headers to Google Sheets)
+    if (job.data.jobType === "write-headers") {
+      const { automationId, headers } = job.data;
+
+      console.log(
+        `Processing write-headers job for automation ${automationId} with ${headers.length} headers`
+      );
+
+      try {
+        // 1. Load automation config
+        const automationRecord = await db.query.automation.findFirst({
+          where: eq(automation.id, automationId),
+        });
+
+        if (!automationRecord) {
+          throw new Error(`Automation ${automationId} not found`);
+        }
+
+        // 2. Load mapping config
+        const mappingRecord = await db.query.notionSheetsMapping.findFirst({
+          where: eq(notionSheetsMapping.automationId, automationId),
+        });
+
+        if (!mappingRecord) {
+          throw new Error(
+            `Mapping config for automation ${automationId} not found`
+          );
+        }
+
+        const mappingConfig = mappingRecord.mappingConfig as MappingConfig;
+
+        // 3. Get Google Sheets account
+        if (!automationRecord.googleSheetsAccountId) {
+          throw new Error(
+            `Automation ${automationId} has no Google Sheets account`
+          );
+        }
+
+        const sheetsAccount = await db.query.googleSheetsAccount.findFirst({
+          where: eq(
+            googleSheetsAccount.id,
+            automationRecord.googleSheetsAccountId
+          ),
+        });
+
+        if (!sheetsAccount) {
+          throw new Error("Google Sheets account not found");
+        }
+
+        // 4. Get the Google Spreadsheet
+        if (!automationRecord.googleSpreadSheetId) {
+          throw new Error(
+            `Automation ${automationId} has no Google Spreadsheet`
+          );
+        }
+
+        const spreadsheetRecord = await db.query.googleSpreadsheet.findFirst({
+          where: eq(googleSpreadsheet.id, automationRecord.googleSpreadSheetId),
+        });
+
+        if (!spreadsheetRecord) {
+          throw new Error("Google Spreadsheet not found");
+        }
+
+        // 5. Initialize Google Sheets API with OAuth2Client
+        const oauthConfig = getGoogleSheetsOAuthConfig();
+        const oauth2Client = new google.auth.OAuth2(
+          oauthConfig.clientId,
+          oauthConfig.clientSecret
+        );
+
+        // Set the credentials with the access token
+        oauth2Client.setCredentials({
+          access_token: sheetsAccount.access_token,
+          refresh_token: sheetsAccount.refresh_token,
+        });
+
+        const sheets = google.sheets({
+          version: "v4",
+          auth: oauth2Client,
+        });
+
+        const spreadsheetId = spreadsheetRecord.googleSpreadsheetId;
+        const sheetName = mappingConfig.sheetName || "Sheet1";
+        const headerRow = mappingConfig.headerRow || 1;
+
+        // 6. Build header row values
+        // Headers should be in the order of columns, plus UUID column at the end if includeNotionId is true
+        const headerValues: string[] = headers;
+
+        // Add UUID column header at the end if includeNotionId is true
+        if (mappingConfig.includeNotionId) {
+          headerValues.push("Notion UUID");
+        }
+
+        // 7. Write headers to Google Sheets
+        const range = `${sheetName}!${headerRow}:${headerRow}`;
+        await sheets.spreadsheets.values.update({
+          spreadsheetId,
+          range,
+          valueInputOption: "USER_ENTERED",
+          requestBody: { values: [headerValues] },
+        });
+
+        logger.info(
+          `Headers written to Google Sheets for automation ${automationId}: ${headerValues.join(
+            ", "
+          )}`
+        );
+
+        return {
+          status: "completed",
+          message: `Headers written to Google Sheets for automation ${automationId}`,
+        };
+      } catch (error: any) {
+        console.error("Google Sheets write-headers failed:", error);
+        throw new Error(`Google Sheets write-headers failed: ${error.message}`);
       }
     }
 
