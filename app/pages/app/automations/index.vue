@@ -146,7 +146,7 @@ import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { useToast } from "@/components/ui/toast/use-toast";
 import { Loader2, CheckCircle, XCircle } from "lucide-vue-next";
-import type { Automation } from "~/types/automations";
+import type { Automation } from "~~/types/automations";
 import { computed, onMounted, onUnmounted, watch } from "vue";
 
 const { toast } = useToast();
@@ -161,10 +161,33 @@ const {
 } = useQuery({
   queryKey: ["automations"],
   queryFn: async () => {
-    const response = await $fetch<Automation[]>("/api/automations");
-    return response;
+    try {
+      const response = await $fetch<Automation[]>("/api/automations");
+      return response;
+    } catch (error: any) {
+      // If unauthorized, stop polling and show error
+      if (error.statusCode === 401 || error.statusMessage === "Unauthorized") {
+        stopPolling();
+        toast({
+          title: "Session Expired",
+          description: "Please log in again to continue",
+          variant: "destructive",
+        });
+        // Optionally redirect to login after a delay
+        setTimeout(() => {
+          navigateTo("/auth/signin");
+        }, 2000);
+      }
+      throw error;
+    }
   },
-  retry: 3,
+  retry: (failureCount, error: any) => {
+    // Don't retry on auth errors
+    if (error?.statusCode === 401) {
+      return false;
+    }
+    return failureCount < 3;
+  },
   retryDelay: 1000,
 });
 
@@ -181,12 +204,23 @@ const startPolling = () => {
   if (pollInterval) return;
 
   // Poll every 10 seconds
-  pollInterval = setInterval(() => {
-    refetch();
+  pollInterval = setInterval(async () => {
+    try {
+      await refetch();
 
-    // Stop polling if no importing automations
-    if (!hasImportingAutomations.value) {
-      stopPolling();
+      // Stop polling if no importing automations
+      if (!hasImportingAutomations.value) {
+        stopPolling();
+      }
+    } catch (error: any) {
+      // Stop polling on auth errors
+      if (
+        error?.statusCode === 401 ||
+        error?.statusMessage === "Unauthorized"
+      ) {
+        stopPolling();
+        console.error("Polling stopped due to authentication error");
+      }
     }
   }, 10000); // 10 seconds
 };

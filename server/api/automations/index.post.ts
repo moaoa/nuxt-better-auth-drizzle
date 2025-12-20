@@ -14,7 +14,8 @@ import { and, eq } from "drizzle-orm";
 import { AutomationType } from "~~/types/automations";
 import { useDrizzle } from "~~/server/utils/drizzle";
 import { addNotionImportJob } from "~~/server/queues/notion-sync";
-import type { MappingConfig } from "~~/types/mapping";
+import type { MappingConfig, ColumnMapping } from "~~/types/mapping";
+import type { NotionPropertyType } from "~~/types/mapping";
 
 const CreateNotionDbToGoogleSheetAutomationSchema = z.object({
   type: z.literal(AutomationType.NotionDbToGoogleSheet),
@@ -22,6 +23,16 @@ const CreateNotionDbToGoogleSheetAutomationSchema = z.object({
   notionEntityId: z.string(),
   googleSheetsAccountId: z.string(),
   notionAccountId: z.string(),
+  selectedColumns: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        type: z.string(),
+      })
+    )
+    .optional()
+    .default([]),
   config: z.object({
     createNewGoogleSheet: z.boolean(),
     createNewNotionDb: z.boolean(),
@@ -56,6 +67,7 @@ export default defineEventHandler(async (event) => {
     notionEntityId,
     googleSheetsAccountId,
     notionAccountId,
+    selectedColumns = [],
     config,
   } = validation.data;
 
@@ -175,13 +187,45 @@ export default defineEventHandler(async (event) => {
       })
       .returning();
 
-    // 2. Create notionSheetsMapping record
+    // 2. Build ColumnMapping array from selected columns
+    // Get database properties to build column mappings
+    const propertiesJson = _notionEntity.propertiesJson as any;
+    const properties = propertiesJson?.properties || {};
+
+    // Helper function to convert column index to letter (A, B, C, etc.)
+    const indexToColumnLetter = (index: number): string => {
+      let result = "";
+      index++;
+      while (index > 0) {
+        index--;
+        result = String.fromCharCode(65 + (index % 26)) + result;
+        index = Math.floor(index / 26);
+      }
+      return result;
+    };
+
+    // Build column mappings from selected columns
+    const columns: ColumnMapping[] = selectedColumns.map(
+      (selectedCol, index) => {
+        const propData = properties[selectedCol.id] || {};
+        return {
+          notionPropertyId: selectedCol.id,
+          notionPropertyName: selectedCol.name,
+          notionPropertyType: (selectedCol.type ||
+            "rich_text") as NotionPropertyType,
+          sheetColumnIndex: index,
+          sheetColumnLetter: indexToColumnLetter(index),
+        };
+      }
+    );
+
+    // 3. Create notionSheetsMapping record
     const mappingConfig: MappingConfig = {
       automationId: newAutomation[0].id,
       headerRow: 1,
       dataStartRow: 2,
-      columns: [], // Will be populated later or from user input
-      includeNotionId: true,
+      columns: columns,
+      includeNotionId: true, // Always include UUID column (hidden from user)
       includeLastSync: false,
       sheetName: "Sheet1", // Default sheet name
     };
@@ -191,13 +235,24 @@ export default defineEventHandler(async (event) => {
       mappingConfig: mappingConfig,
     });
 
-    // 3. Queue initial import job
+    // 4. Queue initial import job
     await addNotionImportJob({
       automationId: newAutomation[0].id,
       notionDatabaseId: _notionEntity.notionId,
     });
 
-    return newAutomation;
+    // Return only public fields (no internal IDs)
+    return newAutomation.map((auto) => ({
+      uuid: auto.uuid,
+      name: auto.name,
+      is_active: auto.is_active,
+      import_status: auto.import_status,
+      import_started_at: auto.import_started_at,
+      import_completed_at: auto.import_completed_at,
+      import_total_rows: auto.import_total_rows,
+      createdAt: auto.createdAt,
+      updatedAt: auto.updatedAt,
+    }));
   } catch (error) {
     console.error("Error creating automation record:", error);
     throw createError({

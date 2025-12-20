@@ -81,6 +81,12 @@ const {
 const handleProceed = () => {
   // For notion-to-google-sheet direction, emit database-selected event
   if (direction.value === 'notion-to-google-sheet' && notionTB.value) {
+    // Validate that Google Sheet is selected if not creating new
+    if (!newGoogleSheet.value && !googleSheet.value) {
+      alert("Please select a Google Sheet or create a new one");
+      return;
+    }
+    
     emit("database-selected", {
       notionEntityId: notionTB.value,
       googleSheetId: !newGoogleSheet.value ? googleSheet.value : undefined,

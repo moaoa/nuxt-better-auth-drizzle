@@ -8,9 +8,8 @@ import {
   googleSheetsAccount,
   notionEntity,
   notionSheetsMapping,
-  notionSheetsRowMapping,
 } from "~~/db/schema";
-import { eq, and, count } from "drizzle-orm";
+import { eq, and, count, sql } from "drizzle-orm";
 import { propertyTransformer } from "~~/server/services/propertyTransformer";
 import type { MappingConfig, ColumnMapping } from "~~/types/mapping";
 import { createHash } from "crypto";
@@ -446,7 +445,12 @@ export const googleSheetsWorker = new Worker<
         const pageData = entity.propertiesJson as any;
         const rowValues = transformPageToRow(pageData, mappingConfig.columns);
 
-        // Add Notion page ID if configured
+        // Calculate UUID column index (last column if includeNotionId is true)
+        const uuidColumnIndex = mappingConfig.includeNotionId
+          ? rowValues.length
+          : -1;
+
+        // Add Notion page ID if configured (always add it, but hide from user)
         if (mappingConfig.includeNotionId) {
           rowValues.push(notionPageId);
         }
@@ -456,102 +460,78 @@ export const googleSheetsWorker = new Worker<
         let rowsCreated = 0;
         let rowsUpdated = 0;
 
-        // 8. Handle new rows vs updated rows differently
-        if (isNewRow) {
-          // For new rows, don't check for existing mapping - just append
+        // 8. Find existing row by UUID in Google Sheets
+        let existingRowNumber: number | null = null;
+
+        if (mappingConfig.includeNotionId && uuidColumnIndex >= 0) {
+          // Read all rows from the sheet to find the one with matching UUID
+          const allRowsResponse = await sheets.spreadsheets.values.get({
+            spreadsheetId,
+            range: `${mappingConfig.sheetName}!${mappingConfig.dataStartRow}:${
+              mappingConfig.dataStartRow + 10000
+            }`, // Read up to 10k rows
+          });
+
+          const allRows = allRowsResponse.data.values || [];
+          const uuidColumn = uuidColumnIndex;
+
+          // Find the row with matching UUID
+          for (let i = 0; i < allRows.length; i++) {
+            const row = allRows[i];
+            if (row && row[uuidColumn] === notionPageId) {
+              existingRowNumber = mappingConfig.dataStartRow + i;
+              break;
+            }
+          }
+        }
+
+        // 9. Update or append row
+        if (existingRowNumber !== null) {
+          // Row exists, check if it changed
           console.log(
-            `Appending new row for page ${notionPageId} (page.created event)`
+            `Found existing row ${existingRowNumber} for page ${notionPageId}, checking for changes`
           );
 
-          const appendResponse = await sheets.spreadsheets.values.append({
+          // Read the existing row to compare checksum
+          const existingRowResponse = await sheets.spreadsheets.values.get({
+            spreadsheetId,
+            range: `${mappingConfig.sheetName}!${existingRowNumber}:${existingRowNumber}`,
+          });
+
+          const existingRow = existingRowResponse.data.values?.[0] || [];
+          const existingChecksum = computeChecksum(existingRow);
+
+          if (existingChecksum !== newChecksum) {
+            await sheets.spreadsheets.values.update({
+              spreadsheetId,
+              range: `${mappingConfig.sheetName}!${existingRowNumber}:${existingRowNumber}`,
+              valueInputOption: "USER_ENTERED",
+              requestBody: { values: [rowValues] },
+            });
+
+            rowsUpdated = 1;
+            console.log(
+              `Updated row ${existingRowNumber} for page ${notionPageId}`
+            );
+          } else {
+            console.log(
+              `Row for page ${notionPageId} unchanged, skipping update`
+            );
+          }
+        } else {
+          // Row doesn't exist, append as new row
+          console.log(
+            `No existing row found for page ${notionPageId}, appending as new row`
+          );
+
+          await sheets.spreadsheets.values.append({
             spreadsheetId,
             range: `${mappingConfig.sheetName}!A${mappingConfig.dataStartRow}`,
             valueInputOption: "USER_ENTERED",
             requestBody: { values: [rowValues] },
           });
 
-          // Extract the row number from the response
-          const updatedRange = appendResponse.data.updates?.updatedRange;
-          const rowNumber = updatedRange
-            ? parseInt(updatedRange.match(/\d+/)?.[0] ?? "0")
-            : mappingConfig.dataStartRow;
-
-          await db.insert(notionSheetsRowMapping).values({
-            automationId,
-            notionPageId: notionPageId,
-            sheetRowNumber: rowNumber,
-            checksum: newChecksum,
-            lastSyncedAt: new Date(),
-          });
-
           rowsCreated = 1;
-        } else {
-          // For updated rows, check for existing mapping and update
-          console.log(
-            `Checking for existing row mapping for page ${notionPageId} (${eventType} event)`
-          );
-
-          const existingMapping =
-            await db.query.notionSheetsRowMapping.findFirst({
-              where: and(
-                eq(notionSheetsRowMapping.automationId, automationId),
-                eq(notionSheetsRowMapping.notionPageId, notionPageId)
-              ),
-            });
-
-          if (existingMapping) {
-            // Row exists, check if it changed
-            if (existingMapping.checksum !== newChecksum) {
-              await sheets.spreadsheets.values.update({
-                spreadsheetId,
-                range: `${mappingConfig.sheetName}!A${existingMapping.sheetRowNumber}`,
-                valueInputOption: "USER_ENTERED",
-                requestBody: { values: [rowValues] },
-              });
-
-              await db
-                .update(notionSheetsRowMapping)
-                .set({
-                  checksum: newChecksum,
-                  lastSyncedAt: new Date(),
-                })
-                .where(eq(notionSheetsRowMapping.id, existingMapping.id));
-
-              rowsUpdated = 1;
-            } else {
-              console.log(
-                `Row for page ${notionPageId} unchanged, skipping update`
-              );
-            }
-          } else {
-            // Row mapping doesn't exist (edge case: update event for a page that wasn't synced before)
-            // Append as new row
-            console.log(
-              `No existing mapping found for page ${notionPageId}, appending as new row`
-            );
-
-            const appendResponse = await sheets.spreadsheets.values.append({
-              spreadsheetId,
-              range: `${mappingConfig.sheetName}!A${mappingConfig.dataStartRow}`,
-              valueInputOption: "USER_ENTERED",
-              requestBody: { values: [rowValues] },
-            });
-
-            const updatedRange = appendResponse.data.updates?.updatedRange;
-            const rowNumber = updatedRange
-              ? parseInt(updatedRange.match(/\d+/)?.[0] ?? "0")
-              : mappingConfig.dataStartRow;
-
-            await db.insert(notionSheetsRowMapping).values({
-              automationId,
-              notionPageId: notionPageId,
-              sheetRowNumber: rowNumber,
-              checksum: newChecksum,
-              lastSyncedAt: new Date(),
-            });
-
-            rowsCreated = 1;
-          }
         }
 
         // 9. Update automation last_synced_at
@@ -562,32 +542,45 @@ export const googleSheetsWorker = new Worker<
 
         // 10. Track import progress if automation is importing
         if (automationRecord.import_status === "importing") {
-          // Count total row mappings for this automation
-          const rowMappingCountResult = await db
-            .select({ count: count() })
-            .from(notionSheetsRowMapping)
-            .where(eq(notionSheetsRowMapping.automationId, automationId));
+          // Increment import_processed_rows in database after successful write
+          // Only increment if this is a new row (not an update)
+          if (rowsCreated > 0) {
+            // Atomically increment import_processed_rows using raw SQL
+            await db.execute(
+              sql`UPDATE ${automation} SET import_processed_rows = COALESCE(import_processed_rows, 0) + 1 WHERE id = ${automationId}`
+            );
 
-          const currentRowCount = rowMappingCountResult[0]?.count || 0;
-          const totalRows = automationRecord.import_total_rows || 0;
+            // Fetch updated values to check completion
+            const updatedAutomation = await db.query.automation.findFirst({
+              where: eq(automation.id, automationId),
+              columns: {
+                import_processed_rows: true,
+                import_total_rows: true,
+              },
+            });
 
-          logger.info(
-            `Import progress for automation ${automationId}: ${currentRowCount}/${totalRows} rows written`
-          );
-
-          // Check if import is complete
-          if (totalRows > 0 && currentRowCount >= totalRows) {
-            await db
-              .update(automation)
-              .set({
-                import_status: "completed",
-                import_completed_at: new Date(),
-              })
-              .where(eq(automation.id, automationId));
+            const newProcessedRows =
+              updatedAutomation?.import_processed_rows || 0;
+            const totalRows = updatedAutomation?.import_total_rows || 0;
 
             logger.info(
-              `Import completed for automation ${automationId}. All ${currentRowCount} rows written.`
+              `Import progress for automation ${automationId}: ${newProcessedRows}/${totalRows} rows written`
             );
+
+            // Check if import is complete
+            if (totalRows > 0 && newProcessedRows >= totalRows) {
+              await db
+                .update(automation)
+                .set({
+                  import_status: "completed",
+                  import_completed_at: new Date(),
+                })
+                .where(eq(automation.id, automationId));
+
+              logger.info(
+                `Import completed for automation ${automationId}. All ${newProcessedRows} rows written.`
+              );
+            }
           }
         }
 
@@ -690,28 +683,41 @@ export const googleSheetsWorker = new Worker<
 
         const spreadsheetId = spreadsheetRecord.googleSpreadsheetId;
 
-        // 6. Find existing row mapping
-        const existingMapping = await db.query.notionSheetsRowMapping.findFirst(
-          {
-            where: and(
-              eq(notionSheetsRowMapping.automationId, automationId),
-              eq(notionSheetsRowMapping.notionPageId, notionPageId)
-            ),
-          }
-        );
+        // 6. Find existing row by UUID in Google Sheets
+        const uuidColumnIndex = mappingConfig.includeNotionId
+          ? mappingConfig.columns.length
+          : -1;
 
-        if (existingMapping) {
+        let existingRowNumber: number | null = null;
+
+        if (mappingConfig.includeNotionId && uuidColumnIndex >= 0) {
+          // Read all rows from the sheet to find the one with matching UUID
+          const allRowsResponse = await sheets.spreadsheets.values.get({
+            spreadsheetId,
+            range: `${mappingConfig.sheetName}!${mappingConfig.dataStartRow}:${
+              mappingConfig.dataStartRow + 10000
+            }`,
+          });
+
+          const allRows = allRowsResponse.data.values || [];
+
+          // Find the row with matching UUID
+          for (let i = 0; i < allRows.length; i++) {
+            const row = allRows[i];
+            if (row && row[uuidColumnIndex] === notionPageId) {
+              existingRowNumber = mappingConfig.dataStartRow + i;
+              break;
+            }
+          }
+        }
+
+        if (existingRowNumber !== null) {
           // Clear the row in Google Sheets (set to empty)
-          const range = `${mappingConfig.sheetName}!A${existingMapping.sheetRowNumber}:ZZ${existingMapping.sheetRowNumber}`;
+          const range = `${mappingConfig.sheetName}!A${existingRowNumber}:ZZ${existingRowNumber}`;
           await sheets.spreadsheets.values.clear({
             spreadsheetId,
             range,
           });
-
-          // Delete the row mapping
-          await db
-            .delete(notionSheetsRowMapping)
-            .where(eq(notionSheetsRowMapping.id, existingMapping.id));
 
           return {
             status: "completed",
@@ -725,7 +731,7 @@ export const googleSheetsWorker = new Worker<
 
         return {
           status: "completed",
-          message: `No row mapping found for page ${notionPageId}`,
+          message: `No row found for page ${notionPageId}`,
           rowsProcessed: 0,
           rowsCreated: 0,
           rowsUpdated: 0,

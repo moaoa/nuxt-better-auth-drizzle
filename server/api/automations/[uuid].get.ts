@@ -1,6 +1,6 @@
 import { auth } from "~~/lib/auth";
-import { automation, notionSheetsRowMapping } from "~~/db/schema";
-import { and, eq, count } from "drizzle-orm";
+import { automation } from "~~/db/schema";
+import { and, eq } from "drizzle-orm";
 import { useDrizzle } from "~~/server/utils/drizzle";
 
 export default defineEventHandler(async (event) => {
@@ -26,7 +26,6 @@ export default defineEventHandler(async (event) => {
       eq(automation.user_id, session.user.id)
     ),
     columns: {
-      id: true,
       uuid: true,
       name: true,
       is_active: true,
@@ -34,6 +33,7 @@ export default defineEventHandler(async (event) => {
       import_started_at: true,
       import_completed_at: true,
       import_total_rows: true,
+      import_processed_rows: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -44,21 +44,6 @@ export default defineEventHandler(async (event) => {
       statusCode: 404,
       message: "Automation not found",
     });
-  }
-
-  // Calculate import_processed_rows by counting row mappings if import is in progress
-  if (automationRecord.import_status === "importing") {
-    const rowMappingCountResult = await db
-      .select({ count: count() })
-      .from(notionSheetsRowMapping)
-      .where(eq(notionSheetsRowMapping.automationId, automationRecord.id));
-
-    const import_processed_rows = rowMappingCountResult[0]?.count || 0;
-
-    return {
-      ...automationRecord,
-      import_processed_rows,
-    };
   }
 
   return automationRecord;

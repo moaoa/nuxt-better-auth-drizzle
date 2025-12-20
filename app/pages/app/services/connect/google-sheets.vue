@@ -4,6 +4,7 @@ import GoogleSheetsStepper from "@/components/stepper/GoogleSheetsStepper.vue";
 import NotionConnectStep from "@/components/stepper/NotionConnectStep.vue";
 import GoogleSheetsConnectStep from "@/components/stepper/GoogleSheetsConnectStep.vue";
 import ChooseDirectionStep from "~/components/stepper/ChooseDirectionStep.vue";
+import SelectColumnsStep from "~/components/stepper/SelectColumnsStep.vue";
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import { useStepper } from "~~/composables/useStepper";
 import { useToast } from "@/components/ui/toast/use-toast";
@@ -23,6 +24,10 @@ const steps = [
   {
     name: "Select Database",
     component: ChooseDirectionStep,
+  },
+  {
+    name: "Select Columns",
+    component: SelectColumnsStep,
   },
 ];
 
@@ -69,6 +74,7 @@ const selectedNotionEntityId = ref<string | null>(null);
 const selectedGoogleSheetId = ref<string | null>(null);
 const createNewGoogleSheet = ref(false);
 const newGoogleSheetName = ref("");
+const selectedColumns = ref<Array<{ id: string; name: string; type: string }>>([]);
 
 // Handle account selections from stepper components
 // Note: The child components already update the stepper state via setNotionAccount/setGoogleSheetsAccount
@@ -82,6 +88,7 @@ const onGoogleSheetsAccountSelected = (accountId: string) => {
 };
 
 // Handle database selection from ChooseDirectionStep
+// Don't auto-save, just store the selection and move to next step
 const onDatabaseSelected = (data: {
   notionEntityId: string;
   googleSheetId?: string;
@@ -98,8 +105,15 @@ const onDatabaseSelected = (data: {
     selectedGoogleSheetId.value = data.googleSheetId || null;
     newGoogleSheetName.value = "";
   }
+  
+  // Move to next step (column selection)
+  handleNext();
+};
 
-  // Automatically save when database is selected
+// Handle column selection from SelectColumnsStep
+const onColumnsSelected = (columns: Array<{ id: string; name: string; type: string }>) => {
+  selectedColumns.value = columns;
+  // Now save the automation with selected columns
   saveServiceMutation.mutate();
 };
 
@@ -129,6 +143,7 @@ const saveServiceMutation = useMutation({
       notionAccountId: notionAccountId,
       googleSheetsAccountId: googleSheetsAccountId,
       googleSheetId: selectedGoogleSheetId.value || "",
+      selectedColumns: selectedColumns.value,
       config: {
         createNewGoogleSheet: createNewGoogleSheet.value,
         createNewNotionDb: false,
@@ -192,9 +207,11 @@ const googleSheetsAccountsOptions = computed(() => {
         :current-step-index="Number(currentStep)"
         :notion-accounts-options="notionAccountsOptions"
         :google-sheets-accounts-options="googleSheetsAccountsOptions"
+        :selected-notion-entity-id="selectedNotionEntityId"
         @prev="handlePrev"
         @next="handleNext"
         @database-selected="onDatabaseSelected"
+        @columns-selected="onColumnsSelected"
         @notion-account-selected="onNotionAccountSelected"
         @google-sheets-account-selected="onGoogleSheetsAccountSelected"
       />

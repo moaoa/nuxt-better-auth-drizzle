@@ -190,6 +190,45 @@ notionSyncQueueEvents.on("completed", async ({ jobId, returnvalue }) => {
   const job = await notionSyncQueue.getJob(jobId);
   if (job && returnvalue && typeof returnvalue === "object") {
     const jobData = job.data as NotionSyncJobData;
+    const result = returnvalue as NotionSyncJobResult;
+
+    // Handle import job completion
+    if (jobData.jobType === "import" && jobData.automationId) {
+      // When import job completes and there are no more pages to fetch,
+      // ensure import_total_rows is set correctly
+      if (!result.hasMore && result.pagesFetched !== undefined) {
+        const db = useDrizzle();
+        const automationRecord = await db.query.automation.findFirst({
+          where: eq(automation.id, jobData.automationId),
+          columns: {
+            import_total_rows: true,
+            import_status: true,
+          },
+        });
+
+        if (
+          automationRecord &&
+          automationRecord.import_status === "importing"
+        ) {
+          // Ensure the total is set correctly (it should already be set, but double-check)
+          const currentTotal = automationRecord.import_total_rows || 0;
+          if (currentTotal === 0 && result.pagesFetched > 0) {
+            // This shouldn't happen, but if it does, set it
+            await db
+              .update(automation)
+              .set({
+                import_total_rows: result.pagesFetched,
+              })
+              .where(eq(automation.id, jobData.automationId));
+
+            notionLogger.info(
+              `Updated import_total_rows to ${result.pagesFetched} for automation ${jobData.automationId} after Notion fetch completed`
+            );
+          }
+        }
+      }
+    }
+
     // Only auto-continue for sync jobs, not import jobs
     if (
       jobData.jobType === "sync" &&
@@ -199,8 +238,7 @@ notionSyncQueueEvents.on("completed", async ({ jobId, returnvalue }) => {
       await addNotionSyncJob({
         userId: jobData.userId,
         notionAccountId: jobData.notionAccountId,
-        cursor:
-          (returnvalue as NotionSyncJobResult).next_cursor || jobData.cursor,
+        cursor: result.next_cursor || jobData.cursor,
       });
     }
   }
@@ -344,26 +382,22 @@ export const notionSyncWorker = new Worker<
             `Queued ${pages.length} Google Sheets write jobs for automation ${automationId}`
           );
 
-          // 8. Update automation total rows
+          // 8. Calculate total pages fetched so far
           const currentTotal = automationRecord.import_total_rows || 0;
-          const estimatedTotal = cursor
-            ? Math.max(currentTotal, pages.length) // For subsequent batches
-            : Math.max(100, pages.length); // For first batch, estimate at least 100
-
-          await db
-            .update(automation)
-            .set({
-              import_total_rows: estimatedTotal,
-            })
-            .where(eq(automation.id, automationId));
+          const newTotal = cursor
+            ? currentTotal + pages.length // For subsequent batches, add to existing total
+            : pages.length; // For first batch, set to pages fetched
 
           // 9. If there are more pages and we haven't exceeded 100 pages, queue next batch
-          const currentProcessed = pages.length; // This is just for this batch
-          if (
-            response.has_more &&
-            response.next_cursor &&
-            estimatedTotal < 100
-          ) {
+          if (response.has_more && response.next_cursor && newTotal < 100) {
+            // Update total rows and queue next batch
+            await db
+              .update(automation)
+              .set({
+                import_total_rows: newTotal,
+              })
+              .where(eq(automation.id, automationId));
+
             await addNotionImportJob({
               automationId,
               notionDatabaseId,
@@ -372,17 +406,26 @@ export const notionSyncWorker = new Worker<
             });
 
             notionLogger.info(
-              `Queued next batch for automation ${automationId} with cursor ${response.next_cursor}`
+              `Queued next batch for automation ${automationId} with cursor ${response.next_cursor}. Total pages so far: ${newTotal}`
             );
           } else {
-            // All pages fetched (or reached 100 limit)
-            if (estimatedTotal >= 100) {
+            // All pages fetched (or reached 100 limit) - update final total
+            const finalTotal = Math.min(newTotal, 100); // Cap at 100 for initial import
+
+            await db
+              .update(automation)
+              .set({
+                import_total_rows: finalTotal,
+              })
+              .where(eq(automation.id, automationId));
+
+            if (finalTotal >= 100) {
               notionLogger.info(
-                `Reached 100 page limit for automation ${automationId}. Waiting for Google Sheets writes to complete.`
+                `Reached 100 page limit for automation ${automationId}. Fetched ${finalTotal} pages. Waiting for Google Sheets writes to complete.`
               );
             } else {
               notionLogger.info(
-                `All pages fetched for automation ${automationId}. Waiting for Google Sheets writes to complete.`
+                `All pages fetched for automation ${automationId}. Total: ${finalTotal} pages. Waiting for Google Sheets writes to complete.`
               );
             }
           }
