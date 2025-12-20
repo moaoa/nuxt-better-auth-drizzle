@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { googleSheetsQueue } from "~~/server/queues/googleSheetsQueue";
-import { notionSyncQueue } from "~~/server/queues/notion-sync";
+import { googleSheetsQueue } from "~~/server/queues/google_sheets/queue";
+import { notionSyncQueue } from "~~/server/queues/notion/queue";
 import { requireUserSession } from "~~/server/utils/session";
 
 const existingDbSchema = z.object({

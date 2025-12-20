@@ -4,8 +4,8 @@ import { useDrizzle } from "~~/server/utils/drizzle";
 import { automation, notionEntity } from "~~/db/schema";
 import { eq } from "drizzle-orm";
 import { notionLogger } from "~~/lib/loggers";
-import { addNotionPageFetchJob } from "~~/server/queues/notion-sync";
-import { addGoogleSheetsDeleteRowJob } from "~~/server/queues/googleSheetsQueue";
+import { addNotionPageFetchJob } from "~~/server/queues/notion/queue";
+import { addGoogleSheetsDeleteRowJob } from "~~/server/queues/google_sheets/queue";
 import type {
   NotionWebhookEvent,
   NotionWebhookPayload,

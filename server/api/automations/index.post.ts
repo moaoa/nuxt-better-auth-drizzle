@@ -13,7 +13,7 @@ import {
 import { and, eq } from "drizzle-orm";
 import { AutomationType } from "~~/types/automations";
 import { useDrizzle } from "~~/server/utils/drizzle";
-import { addNotionImportJob } from "~~/server/queues/notion-sync";
+import { addNotionImportJob } from "~~/server/queues/notion/queue";
 import type { MappingConfig, ColumnMapping } from "~~/types/mapping";
 import type { NotionPropertyType } from "~~/types/mapping";
 

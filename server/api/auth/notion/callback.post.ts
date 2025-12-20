@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { automationType, notionAccount, workspace } from "~~/db/schema";
 import { NotionOAuthResponse } from "~~/types/notion";
 import { auth } from "~~/lib/auth";
-import { addNotionSyncJob } from "~~/server/queues/notion-sync";
+import { addNotionSyncJob } from "~~/server/queues/notion/queue";
 import { notionLogger } from "~~/lib/loggers";
 
 export default defineEventHandler(async (event) => {

@@ -1,8 +1,8 @@
 import { useDrizzle } from "~~/server/utils/drizzle";
 import { eq } from "drizzle-orm";
 import { automation, googleSheetsAccount } from "~~/db/schema";
-import { addNotionSyncJob } from "./notion-sync";
-import { addGoogleSheetsJob } from "./googleSheetsQueue";
+import { addNotionSyncJob } from "./notion/queue";
+import { addGoogleSheetsJob } from "./google_sheets/queue";
 import { automationCache } from "~~/server/utils/automationCache";
 
 function parseInterval(interval: string): number {

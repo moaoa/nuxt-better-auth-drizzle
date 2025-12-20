@@ -12,7 +12,6 @@
     "preview": "tsx ./db/migrate.ts && nuxt preview ",
     "lint": " eslint . --fix",
     "start": "nuxt start",
-    "worker": "tsx --env-file=.env ./server/queues/googleSheetsQueue.ts",
     "postinstall": "nuxt prepare",
     "db:generate": "drizzle-kit generate --config ./config/drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config ./config/drizzle.config.ts",

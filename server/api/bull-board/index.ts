@@ -4,8 +4,8 @@ import { H3Adapter } from "@bull-board/h3";
 import {
   notionSyncQueue,
   notionPageFetchQueue,
-} from "~~/server/queues/notion-sync";
-import { googleSheetsQueue } from "~~/server/queues/googleSheetsQueue";
+} from "~~/server/queues/notion/queue";
+import { googleSheetsQueue } from "~~/server/queues/google_sheets/queue";
 
 const serverAdapter = new H3Adapter();
 serverAdapter.setBasePath("/api/bull-board");

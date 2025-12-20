@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { automationType, googleSheetsAccount } from "~~/db/schema";
 import { auth } from "~~/lib/auth";
 import { googleSheetsLogger } from "~~/lib/loggers";
-import { addGoogleSheetsJob } from "~~/server/queues/googleSheetsQueue";
+import { addGoogleSheetsJob } from "~~/server/queues/google_sheets/queue";
 import { ServiceKey } from "~~/types/services";
 
 interface GoogleOAuthResponse {
