@@ -2,7 +2,7 @@ import { useDrizzle } from "~~/server/utils/drizzle";
 import { automationType } from "~~/db/schema";
 import { eq, sql } from "drizzle-orm";
 
-async function main() {
+export async function addAutomationTypes() {
   const db = useDrizzle();
 
   // Fix the sequence if it's out of sync
@@ -80,11 +80,14 @@ async function main() {
   } else {
     console.log("All automation types already exist");
   }
-
-  process.exit(0);
 }
 
-main().catch((error) => {
-  console.error("Error adding automation types:", error);
-  process.exit(1);
-});
+// Allow running directly: tsx db/seeds/add-automation-types.ts
+if (process.argv[1]?.endsWith("add-automation-types.ts")) {
+  addAutomationTypes()
+    .then(() => process.exit(0))
+    .catch((error) => {
+      console.error("Error adding automation types:", error);
+      process.exit(1);
+    });
+}
