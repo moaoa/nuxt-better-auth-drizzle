@@ -6,22 +6,4 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { useNotionAuth } from "~~/composables/useNotionAuth";
-import { useWorkspaces } from "~~/composables/useWorkspaces";
-
-const { initiateAuth } = useNotionAuth();
-const { workspaces, loading, error } = useWorkspaces();
-
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-};
-
-const initiateNotionAuth = () => {
-  initiateAuth();
-};
-</script>
+<script setup lang="ts"></script>

@@ -1,10 +1,16 @@
 import { OgImage } from "./.nuxt/components.d";
+// Import polyfill early to ensure it's available before Vite initializes
+import "./polyfills/crypto-hash";
 // https://nuxt.com/docs/api/configuration/nuxt-config
 
 export default defineNuxtConfig({
   vite: {
     server: {
       allowedHosts: ["localhost", "127.0.0.1", "webhook.moaad.ly", "moaad.ly"],
+      hmr: {
+        clientPort: 3000,
+        port: 3000,
+      },
     },
   },
   devServer: {
@@ -105,31 +111,6 @@ export default defineNuxtConfig({
       global: true,
     },
   },
-  content: {
-    // studio: {
-    //   enabled: true
-    // },
-    build: {
-      pathMeta: {
-        forceLeadingSlash: true,
-      },
-      markdown: {
-        highlight: {
-          // Theme used in all color schemes.
-          // theme: 'github-light',
-          // OR
-          theme: {
-            // Default theme (same as single string)
-            default: "github-light",
-            // Theme used if `html.dark`
-            dark: "monokai",
-            // Theme used if `html.sepia`
-            sepia: "monokai",
-          },
-        },
-      },
-    },
-  },
   runtimeConfig: {
     NOTION_OAUTH_CLIENT_SECRET: process.env.NOTION_OAUTH_CLIENT_SECRET,
     GOOGLE_SHEETS_CLIENT_SECRET: process.env.GOOGLE_SHEETS_CLIENT_SECRET,
@@ -140,6 +121,18 @@ export default defineNuxtConfig({
     redisHost: process.env.REDIS_HOST || "localhost",
     redisPort: parseInt(process.env.REDIS_PORT || "6379", 10),
     redisPassword: process.env.REDIS_PASSWORD || "",
+
+    DRIVE_WEBHOOK_BASE_URL: process.env.DRIVE_WEBHOOK_BASE_URL,
+
+    TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
+    TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
+    TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER,
+    TWILIO_WEBHOOK_SECRET: process.env.TWILIO_WEBHOOK_SECRET,
+    // Optional: API Key for access tokens (more secure than using Auth Token)
+    TWILIO_API_KEY_SID: process.env.TWILIO_API_KEY_SID,
+    TWILIO_API_KEY_SECRET: process.env.TWILIO_API_KEY_SECRET,
+    // Optional: TwiML App SID (if using TwiML App)
+    TWILIO_APP_SID: process.env.TWILIO_APP_SID,
 
     // Public config (exposed to the client)
     public: {

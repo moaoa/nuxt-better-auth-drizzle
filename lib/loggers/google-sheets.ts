@@ -30,5 +30,13 @@ export const googleSheetsLogger = winston.createLogger({
       return `${timestamp} [${reqId || ""}] ${level}: ${message}`;
     })
   ),
-  // transports: [transport],
+  transports: [
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.simple()
+      ),
+    }),
+    // transport, // Uncomment to enable file logging
+  ],
 });

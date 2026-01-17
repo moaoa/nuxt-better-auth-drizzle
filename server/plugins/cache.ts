@@ -1,4 +1,4 @@
-import { automationCache } from "~~/server/utils/automationCache";
+// import { automationCache } from "~~/server/utils/automationCache";
 
 export default defineNitroPlugin(async (nitroApp) => {
   if (
@@ -15,7 +15,7 @@ export default defineNitroPlugin(async (nitroApp) => {
   }
 
   try {
-    await automationCache.populate();
+    // await automationCache.populate();
   } catch (error) {
     console.error("Failed to populate automation cache:", error);
   }

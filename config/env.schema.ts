@@ -27,6 +27,13 @@ export const envSchema = z.object({
   REDIS_HOST: z.string().min(1),
   REDIS_PORT: z.string().transform(Number).default("6379"),
   REDIS_PASSWORD: z.string().optional(),
+
+  // Twilio
+  TWILIO_ACCOUNT_SID: z.string().min(1),
+  TWILIO_AUTH_TOKEN: z.string().min(1),
+  TWILIO_PHONE_NUMBER: z.string().min(1), // E.164 format
+  TWILIO_WEBHOOK_SECRET: z.string().min(1), // For signature validation
+  CREDIT_USD_RATE: z.string().transform(Number).default("0.01"), // 1 credit = $0.01
 });
 
 // Create a type from the schema
