@@ -3,7 +3,7 @@ import http from "http";
 const PORT = 4000;
 const TARGET_HOST = "localhost";
 const TARGET_PORT = 3000;
-const TARGET_PATH = "/api/google-drive/push";
+const TARGET_PATH = "/api/twilio/voice";
 // const TARGET_PATH = "/api/notion/webhook";
 
 console.log("Starting webhook proxy server...");

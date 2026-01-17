@@ -33,6 +33,13 @@ import {
   Sparkles,
   SquareTerminal,
   Trash2,
+  Phone,
+  Calculator,
+  Clock,
+  FileText,
+  History,
+  Wallet,
+  User,
 } from "lucide-vue-next";
 import { signOut, useSession } from "~~/lib/auth-client";
 
@@ -60,19 +67,46 @@ const data = {
   ],
   projects: [
     {
-      name: "Automations",
-      url: "/app/automations",
-      icon: Folder,
+      name: "Dialer",
+      url: "/app/dialer",
+      icon: Phone,
     },
     {
-      name: "Connections",
-      url: "/app/connections",
-      icon: SquareTerminal,
+      name: "Call History",
+      url: "/app/calls",
+      icon: History,
     },
     {
-      name: "Activity logs",
-      url: "/app/activity-log",
-      icon: SquareTerminal,
+      name: "Wallet",
+      url: "/app/wallet",
+      icon: Wallet,
+    },
+    {
+      name: "Profile",
+      url: "/app/user/profile",
+      icon: User,
+    },
+  ],
+  tools: [
+    {
+      name: "Phone Number Checker",
+      url: "/tools/phone-number-checker",
+      icon: Phone,
+    },
+    {
+      name: "Call Cost Calculator",
+      url: "/tools/international-call-cost-calculator",
+      icon: Calculator,
+    },
+    {
+      name: "Best Time to Call",
+      url: "/tools/best-time-to-call-internationally",
+      icon: Clock,
+    },
+    {
+      name: "Phone Formatter",
+      url: "/tools/phone-number-formatter",
+      icon: FileText,
     },
   ],
 };
@@ -151,14 +185,27 @@ function setActiveTeam(team: (typeof data.teams)[number]) {
       </UiSidebarHeader>
       <UiSidebarContent>
         <UiSidebarGroup class="group-data-[collapsible=icon]:hidden">
-          <!-- <UiSidebarGroupLabel>items</UiSidebarGroupLabel> -->
+          <UiSidebarGroupLabel>App</UiSidebarGroupLabel>
           <UiSidebarMenu>
             <UiSidebarMenuItem v-for="item in data.projects" :key="item.name">
               <UiSidebarMenuButton as-child>
-                <a :href="item.url">
+                <NuxtLink :to="item.url">
                   <component :is="item.icon" />
                   <span>{{ item.name }}</span>
-                </a>
+                </NuxtLink>
+              </UiSidebarMenuButton>
+            </UiSidebarMenuItem>
+          </UiSidebarMenu>
+        </UiSidebarGroup>
+        <UiSidebarGroup class="group-data-[collapsible=icon]:hidden">
+          <UiSidebarGroupLabel>Free Tools</UiSidebarGroupLabel>
+          <UiSidebarMenu>
+            <UiSidebarMenuItem v-for="item in data.tools" :key="item.name">
+              <UiSidebarMenuButton as-child>
+                <NuxtLink :to="item.url">
+                  <component :is="item.icon" />
+                  <span>{{ item.name }}</span>
+                </NuxtLink>
               </UiSidebarMenuButton>
             </UiSidebarMenuItem>
           </UiSidebarMenu>
