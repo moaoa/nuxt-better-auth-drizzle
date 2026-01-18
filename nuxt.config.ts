@@ -134,6 +134,10 @@ export default defineNuxtConfig({
     // Optional: TwiML App SID (if using TwiML App)
     TWILIO_APP_SID: process.env.TWILIO_APP_SID,
 
+    // Stripe configuration (server-side only)
+    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
+    STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+
     // Public config (exposed to the client)
     public: {
       NOTION_OAUTH_REDIRECT_URI: process.env.NOTION_OAUTH_REDIRECT_URI,
@@ -146,6 +150,9 @@ export default defineNuxtConfig({
 
       GOOGLE_SHEETS_CLIENT_ID: process.env.GOOGLE_SHEETS_CLIENT_ID,
       GOOGLE_SHEETS_REDIRECT_URI: process.env.GOOGLE_SHEETS_REDIRECT_URI,
+
+      // Stripe publishable key (safe to expose to client)
+      STRIPE_PUBLISHABLE_KEY: process.env.STRIPE_PUBLISHABLE_KEY,
     },
   },
 });

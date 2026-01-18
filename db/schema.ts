@@ -184,6 +184,41 @@ export const twilioVoiceRate = pgTable("twilio_voice_rate", {
     .notNull(),
 });
 
+export const stripePayment = pgTable(
+  "stripe_payment",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    walletId: integer("wallet_id")
+      .notNull()
+      .references(() => wallet.id, { onDelete: "cascade" }),
+    stripePaymentIntentId: text("stripe_payment_intent_id"),
+    stripeCheckoutSessionId: text("stripe_checkout_session_id"),
+    amountUsd: numeric("amount_usd", { precision: 10, scale: 2 }).notNull(),
+    creditsAmount: integer("credits_amount").notNull(),
+    status: text("status", {
+      enum: ["pending", "processing", "succeeded", "failed", "canceled"],
+    })
+      .notNull()
+      .default("pending"),
+    stripeCustomerId: text("stripe_customer_id"),
+    metadata: jsonb("metadata").default("{}").notNull(),
+    createdAt: timestamp("created_at")
+      .$defaultFn(() => new Date())
+      .notNull(),
+    updatedAt: timestamp("updated_at")
+      .$defaultFn(() => new Date())
+      .notNull(),
+    completedAt: timestamp("completed_at"),
+  },
+  (table) => ({
+    uniqueCheckoutSessionId: unique().on(table.stripeCheckoutSessionId),
+    userIdIdx: unique().on(table.userId, table.stripeCheckoutSessionId),
+  })
+);
+
 /* ---------- RELATIONS ---------- */
 
 export const walletRelations = relations(wallet, ({ one, many }) => ({
@@ -225,6 +260,20 @@ export const callCostBreakdownRelations = relations(
   })
 );
 
+export const stripePaymentRelations = relations(
+  stripePayment,
+  ({ one }) => ({
+    user: one(user, {
+      fields: [stripePayment.userId],
+      references: [user.id],
+    }),
+    wallet: one(wallet, {
+      fields: [stripePayment.walletId],
+      references: [wallet.id],
+    }),
+  })
+);
+
 //Types
 export type User = InferSelectModel<typeof user>;
 export type Wallet = InferSelectModel<typeof wallet>;
@@ -232,3 +281,4 @@ export type CreditTransaction = InferSelectModel<typeof creditTransaction>;
 export type Call = InferSelectModel<typeof call>;
 export type CallCostBreakdown = InferSelectModel<typeof callCostBreakdown>;
 export type TwilioVoiceRate = InferSelectModel<typeof twilioVoiceRate>;
+export type StripePayment = InferSelectModel<typeof stripePayment>;

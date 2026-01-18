@@ -34,6 +34,11 @@ export const envSchema = z.object({
   TWILIO_PHONE_NUMBER: z.string().min(1), // E.164 format
   TWILIO_WEBHOOK_SECRET: z.string().min(1), // For signature validation
   CREDIT_USD_RATE: z.string().transform(Number).default("0.01"), // 1 credit = $0.01
+
+  // Stripe
+  STRIPE_SECRET_KEY: z.string().min(1),
+  STRIPE_PUBLISHABLE_KEY: z.string().min(1), // For frontend (public)
+  STRIPE_WEBHOOK_SECRET: z.string().min(1), // For webhook signature validation
 });
 
 // Create a type from the schema

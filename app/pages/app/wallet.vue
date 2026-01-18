@@ -14,31 +14,36 @@ const { data: wallet, isLoading: walletLoading } = useQuery({
 });
 
 // Fetch credit transactions
-const { data: transactions, isLoading: transactionsLoading } = useQuery({
+const { data: transactionsData, isLoading: transactionsLoading } = useQuery({
   queryKey: ["credit-transactions"],
   queryFn: async () => {
-    // Note: You'd need to create this endpoint
-    // For now, we'll just show wallet info
-    return [];
+    const response = await $fetch("/api/credits/transactions");
+    return response;
   },
 });
+
+const transactions = computed(() => transactionsData.value?.transactions || []);
 
 // Purchase credits form
 const purchaseAmount = ref(10); // Default $10
 const purchaseSchema = z.object({
-  amountUsd: z.number().positive().min(0.01),
+  amountUsd: z.number().positive().min(0.5).max(1000),
 });
 
 const purchaseMutation = useMutation({
   mutationFn: async (amountUsd: number) => {
-    return await $fetch("/api/credits/purchase", {
+    // Create Stripe Checkout session
+    const response = await $fetch("/api/stripe/checkout/create", {
       method: "POST",
       body: { amountUsd },
     });
+    return response;
   },
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ["wallet"] });
-    purchaseAmount.value = 10;
+  onSuccess: (data) => {
+    // Redirect to Stripe Checkout
+    if (data.checkoutUrl) {
+      window.location.href = data.checkoutUrl;
+    }
   },
 });
 
@@ -109,19 +114,23 @@ const presetAmounts = [5, 10, 25, 50, 100];
           <!-- Purchase Button -->
           <UiButton
             @click="handlePurchase"
-            :disabled="purchaseMutation.isPending || purchaseAmount <= 0"
+            :disabled="purchaseMutation.isPending || purchaseAmount < 0.5 || purchaseAmount > 1000"
             class="w-full"
             size="lg"
           >
             <Icon name="lucide:credit-card" class="mr-2" />
-            Purchase ${{ purchaseAmount.toFixed(2) }} in Credits
+            <span v-if="purchaseMutation.isPending">Redirecting to checkout...</span>
+            <span v-else>Purchase ${{ purchaseAmount.toFixed(2) }} in Credits</span>
           </UiButton>
 
-          <p v-if="purchaseMutation.isSuccess" class="text-sm text-green-600 dark:text-green-400">
-            Credits purchased successfully!
+          <p v-if="purchaseAmount < 0.5" class="text-sm text-muted-foreground">
+            Minimum purchase amount is $0.50
+          </p>
+          <p v-if="purchaseAmount > 1000" class="text-sm text-muted-foreground">
+            Maximum purchase amount is $1,000
           </p>
           <p v-if="purchaseMutation.isError" class="text-sm text-destructive">
-            Failed to purchase credits. Please try again.
+            Failed to create checkout session. Please try again.
           </p>
         </div>
       </div>
@@ -136,8 +145,37 @@ const presetAmounts = [5, 10, 25, 50, 100];
           <p class="text-muted-foreground">No transactions yet</p>
         </div>
         <div v-else class="space-y-2">
-          <!-- Transaction items would go here -->
-          <p class="text-sm text-muted-foreground">Transaction history coming soon</p>
+          <div
+            v-for="transaction in transactions"
+            :key="transaction.id"
+            class="p-4 border rounded-lg flex items-center justify-between"
+          >
+            <div>
+              <p class="font-medium">
+                {{ transaction.type === 'purchase' ? 'Credit Purchase' : transaction.type === 'call_charge' ? 'Call Charge' : 'Refund' }}
+              </p>
+              <p class="text-sm text-muted-foreground">
+                {{ new Date(transaction.createdAt).toLocaleString() }}
+              </p>
+              <p v-if="transaction.stripePayment" class="text-xs text-muted-foreground mt-1">
+                Status: {{ transaction.stripePayment.status }}
+              </p>
+            </div>
+            <div class="text-right">
+              <p
+                class="font-bold"
+                :class="{
+                  'text-green-600 dark:text-green-400': transaction.creditsAmount > 0,
+                  'text-red-600 dark:text-red-400': transaction.creditsAmount < 0,
+                }"
+              >
+                {{ transaction.creditsAmount > 0 ? '+' : '' }}{{ transaction.creditsAmount }} credits
+              </p>
+              <p v-if="transaction.stripePayment" class="text-sm text-muted-foreground">
+                ${{ transaction.stripePayment.amountUsd.toFixed(2) }}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
