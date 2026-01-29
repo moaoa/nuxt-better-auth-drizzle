@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { markRaw, shallowRef } from "vue";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/vue-query";
 import { isValidPhoneNumber } from "libphonenumber-js";
 import { Device, Call } from "@twilio/voice-sdk";
@@ -27,8 +28,10 @@ const currentCall = ref<{
 const pollingInterval = ref<NodeJS.Timeout | null>(null);
 
 // Twilio Voice SDK
-const device = ref<Device | null>(null);
-const activeCall = ref<Call | null>(null);
+// Use shallowRef to prevent Vue from making Twilio SDK objects reactive
+// This avoids proxy conflicts with read-only internal properties
+const device = shallowRef<Device | null>(null);
+const activeCall = shallowRef<Call | null>(null);
 const isDeviceReady = ref(false);
 const deviceError = ref<string | null>(null);
 const isInitializingDevice = ref(false);
@@ -75,8 +78,73 @@ const initializeDevice = async () => {
     const tokenResponse = await $fetch("/api/twilio/token");
     const { token } = tokenResponse;
 
+    // ========== CLIENT-SIDE DEBUG ==========
+    console.log("🔍 CLIENT DEBUG: Token received from server");
+    console.log("Token length:", token.length);
+    console.log("Token type:", typeof token);
+    console.log("Token preview (first 50):", token.substring(0, 50));
+    console.log("Token preview (last 50):", token.substring(token.length - 50));
+    
+    // Decode token to verify structure
+    try {
+      const parts = token.split(".");
+      if (parts.length === 3 && parts[0] && parts[1]) {
+        const header = JSON.parse(atob(parts[0]));
+        const payload = JSON.parse(atob(parts[1]));
+        
+        console.log("Decoded token header:", header);
+        console.log("Decoded token payload (full):", JSON.stringify(payload, null, 2));
+        console.log("Grants structure:", {
+          hasGrants: !!payload.grants,
+          identity: payload.grants?.identity,
+          hasVoiceGrant: !!payload.grants?.voice,
+          voiceGrant: payload.grants?.voice,
+          outgoingAppSid: payload.grants?.voice?.outgoing?.application_sid,
+        });
+        console.log("Key validations:", {
+          iss: payload.iss,
+          sub: payload.sub,
+          exp: new Date(payload.exp * 1000).toISOString(),
+          iat: new Date(payload.iat * 1000).toISOString(),
+        });
+        
+        // Verify token is not expired
+        const now = Math.floor(Date.now() / 1000);
+        const isExpired = payload.exp < now;
+        console.log("Token expiration check:", {
+          now: new Date(now * 1000).toISOString(),
+          exp: new Date(payload.exp * 1000).toISOString(),
+          isExpired: isExpired,
+          timeUntilExpiry: payload.exp - now,
+        });
+        
+        if (isExpired) {
+          console.error("⚠️ TOKEN IS ALREADY EXPIRED!");
+        }
+      } else {
+        console.error("⚠️ Invalid token format - expected 3 parts, got:", parts.length);
+      }
+    } catch (decodeError) {
+      console.error("⚠️ Could not decode token:", decodeError);
+    }
+    // ========== END CLIENT-SIDE DEBUG ==========
+
     // Create new device
+    console.log("About to create Device with token...");
+    console.log("Token being passed to Device:", token.substring(0, 100) + "...");
+    console.log("Token full length:", token.length);
+    console.log("Token is string:", typeof token === 'string');
+    
+    // Verify token is not empty or undefined
+    if (!token || typeof token !== 'string' || token.length === 0) {
+      throw new Error("Invalid token: token is empty or not a string");
+    }
+    
+    // Create Device with token
+    // The Device constructor accepts: new Device(token) or new Device(token, options)
     const newDevice = new Device(token);
+    console.log("Device object created successfully, about to register...");
+    console.log("Device state:", newDevice.state);
 
     // Set up device event listeners
     newDevice.on("registered", () => {
@@ -87,7 +155,17 @@ const initializeDevice = async () => {
     });
 
     newDevice.on("error", (error: any) => {
-      console.error("Twilio Device error:", error);
+      console.error("=".repeat(80));
+      console.error("🚨 Twilio Device Error Details:");
+      console.error("=".repeat(80));
+      console.error("Error object:", error);
+      console.error("Error message:", error.message);
+      console.error("Error code:", error.code);
+      console.error("Error name:", error.name);
+      console.error("Error toString:", error.toString());
+      console.error("Full error stack:", error.stack);
+      console.error("=".repeat(80));
+      
       deviceError.value = error.message || "Device error";
       isDeviceReady.value = false;
       isInitializingDevice.value = false;
@@ -98,9 +176,13 @@ const initializeDevice = async () => {
       // Handle incoming calls if needed
     });
 
+    console.log('before register')
     // Register the device
     newDevice.register();
-    device.value = newDevice;
+    console.log('after register')
+    // Use markRaw to prevent Vue from making the Device object reactive
+    // This avoids proxy conflicts with Twilio SDK's internal properties
+    device.value = markRaw(newDevice);
   } catch (error: any) {
     console.error("Failed to initialize device:", error);
     deviceError.value = error.message || "Failed to initialize device";
@@ -134,7 +216,9 @@ const startCallMutation = useMutation({
         },
       });
 
-      activeCall.value = call;
+      // Use markRaw to prevent Vue from making the Call object reactive
+      // This avoids proxy conflicts with Twilio SDK's internal properties
+      activeCall.value = markRaw(call);
       currentCall.value = {
         callId: data.callId,
         twilioCallSid: "", // Will be updated by webhook

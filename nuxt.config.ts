@@ -153,6 +153,9 @@ export default defineNuxtConfig({
 
       // Stripe publishable key (safe to expose to client)
       STRIPE_PUBLISHABLE_KEY: process.env.STRIPE_PUBLISHABLE_KEY,
+
+      // Base URL for webhooks and API endpoints (safe to expose)
+      BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
     },
   },
 });

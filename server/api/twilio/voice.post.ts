@@ -20,18 +20,25 @@ export default defineEventHandler(async (event) => {
   // Get request body as form data
   const body = await readBody(event);
   
-  // Get full URL
-  const protocol = headers["x-forwarded-proto"] || "http";
-  const host = headers.host || "localhost:3000";
-  const url = `${protocol}://${host}${event.path}`;
+  // Skip signature validation in development
+  const isDevelopment = process.env.NODE_ENV === "development" || !process.env.NODE_ENV;
+  
+  if (!isDevelopment) {
+    // Get full URL for signature validation
+    // Twilio signs the request using the URL it calls (the public URL)
+    // We need to reconstruct the exact URL Twilio used
+    const protocol = headers["x-forwarded-proto"] || "https";
+    const host = headers.host || headers["x-original-host"] || "";
+    const url = `${protocol}://${host}${event.path}`;
 
-  // Validate signature
-  const isValid = validateWebhookSignature(url, body, signature);
-  if (!isValid) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: "Invalid Twilio signature",
-    });
+    // Validate signature
+    const isValid = validateWebhookSignature(url, body, signature);
+    if (!isValid) {
+      throw createError({
+        statusCode: 401,
+        statusMessage: "Invalid Twilio signature",
+      });
+    }
   }
 
   // Get destination number from call parameters

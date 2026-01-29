@@ -37,6 +37,7 @@ const server = http.createServer((req, res) => {
 
     // Prepare headers for forwarding (exclude connection-specific headers)
     const forwardHeaders: Record<string, string> = {};
+    
     for (const [key, value] of Object.entries(req.headers)) {
       const lowerKey = key.toLowerCase();
       // Skip headers that shouldn't be forwarded
