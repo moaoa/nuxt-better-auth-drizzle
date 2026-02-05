@@ -4,13 +4,25 @@ import { useRuntimeConfig } from "#imports";
 import { useDrizzle } from "~~/server/utils/drizzle";
 import { call } from "~~/db/schema";
 import { eq } from "drizzle-orm";
+import { twilioLogger } from "~~/lib/loggers/twilio";
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig();
   const headers = getHeaders(event);
   const signature = headers["x-twilio-signature"];
 
+  // Log incoming webhook request
+  twilioLogger.info("Voice webhook received", {
+    webhookType: "voice",
+    headers: headers,
+    timestamp: new Date().toISOString(),
+  });
+
   if (!signature) {
+    twilioLogger.warn("Voice webhook missing signature", {
+      headers: headers,
+      timestamp: new Date().toISOString(),
+    });
     throw createError({
       statusCode: 401,
       statusMessage: "Missing Twilio signature",
@@ -19,6 +31,15 @@ export default defineEventHandler(async (event) => {
 
   // Get request body as form data
   const body = await readBody(event);
+  
+  // Log body after reading
+  twilioLogger.info("Voice webhook body", {
+    webhookType: "voice",
+    body: body,
+    callSid: body.CallSid,
+    toNumber: body.To || body.Called,
+    timestamp: new Date().toISOString(),
+  });
   
   // Skip signature validation in development
   const isDevelopment = process.env.NODE_ENV === "development" || !process.env.NODE_ENV;
@@ -34,6 +55,11 @@ export default defineEventHandler(async (event) => {
     // Validate signature
     const isValid = validateWebhookSignature(url, body, signature);
     if (!isValid) {
+      twilioLogger.warn("Voice webhook invalid signature", {
+        url: url,
+        callSid: body.CallSid,
+        timestamp: new Date().toISOString(),
+      });
       throw createError({
         statusCode: 401,
         statusMessage: "Invalid Twilio signature",
@@ -59,13 +85,30 @@ export default defineEventHandler(async (event) => {
           status: "ringing",
         })
         .where(eq(call.id, parseInt(callId)));
+      
+      twilioLogger.info("Call record updated with Twilio Call SID", {
+        callId: callId,
+        callSid: callSid,
+        timestamp: new Date().toISOString(),
+      });
     } catch (error) {
-      console.error("Error updating call record:", error);
+      twilioLogger.error("Error updating call record", {
+        callId: callId,
+        callSid: callSid,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        timestamp: new Date().toISOString(),
+      });
       // Continue even if update fails
     }
   }
 
   if (!toNumber) {
+    twilioLogger.warn("Voice webhook missing destination number", {
+      body: body,
+      callSid: body.CallSid,
+      timestamp: new Date().toISOString(),
+    });
     throw createError({
       statusCode: 400,
       statusMessage: "Missing destination number",
@@ -74,9 +117,19 @@ export default defineEventHandler(async (event) => {
 
   // Return TwiML response to dial the destination number
   // This works for both browser-initiated calls and server-initiated calls
-  return `<?xml version="1.0" encoding="UTF-8"?>
+  const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Dial callerId="${config.TWILIO_PHONE_NUMBER}">${toNumber}</Dial>
 </Response>`;
+
+  twilioLogger.info("Voice webhook processed, returning TwiML", {
+    callSid: body.CallSid,
+    toNumber: toNumber,
+    fromNumber: config.TWILIO_PHONE_NUMBER,
+    twimlResponse: twimlResponse,
+    timestamp: new Date().toISOString(),
+  });
+
+  return twimlResponse;
 });
 

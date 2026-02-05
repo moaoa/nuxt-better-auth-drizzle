@@ -1,14 +1,15 @@
 import http from "http";
+import { twilioLogger } from "./lib/loggers/twilio";
+import querystring from "querystring";
 
 const PORT = 4000;
 const TARGET_HOST = "localhost";
 const TARGET_PORT = 3000;
-const TARGET_PATH = "/api/twilio/voice";
-// const TARGET_PATH = "/api/notion/webhook";
 
 console.log("Starting webhook proxy server...");
 console.log(`Will listen on port ${PORT}`);
-console.log(`Will forward to ${TARGET_HOST}:${TARGET_PORT}${TARGET_PATH}\n`);
+console.log(`Will forward to ${TARGET_HOST}:${TARGET_PORT}\n`);
+twilioLogger.info("Webhook proxy server started", { port: PORT });
 
 const server = http.createServer((req, res) => {
   // Log request details immediately
@@ -28,12 +29,49 @@ const server = http.createServer((req, res) => {
   });
 
   req.on("end", () => {
+    // Parse body to determine webhook type
+    let parsedBody: Record<string, any> = {};
+    let webhookType = "unknown";
+    let targetPath = "/api/twilio/voice"; // default
+    
     if (body) {
+      try {
+        // Twilio sends form-encoded data
+        parsedBody = querystring.parse(body);
+        
+        // Determine webhook type based on body content
+        if (parsedBody.CallStatus) {
+          webhookType = "call-status";
+          targetPath = "/api/twilio/call-status";
+        } else if (parsedBody.CallSid || parsedBody.To || parsedBody.Called) {
+          webhookType = "voice";
+          targetPath = "/api/twilio/voice";
+        }
+      } catch (e) {
+        // If parsing fails, try JSON
+        try {
+          parsedBody = JSON.parse(body);
+        } catch (e2) {
+          // Keep as string if both fail
+        }
+      }
+      
       console.log(`Body:`, body);
     } else {
       console.log(`Body: (empty)`);
     }
     console.log("--- End Request Collection ---\n");
+    
+    // Log to file using Twilio logger
+    twilioLogger.info("Twilio webhook received", {
+      webhookType,
+      method: req.method,
+      url: req.url,
+      headers: req.headers,
+      body: parsedBody,
+      rawBody: body,
+      timestamp: new Date().toISOString(),
+    });
 
     // Prepare headers for forwarding (exclude connection-specific headers)
     const forwardHeaders: Record<string, string> = {};
@@ -72,7 +110,7 @@ const server = http.createServer((req, res) => {
     const options = {
       hostname: TARGET_HOST,
       port: TARGET_PORT,
-      path: TARGET_PATH,
+      path: targetPath,
       method: req.method || "POST",
       headers: forwardHeaders,
     };
@@ -110,6 +148,16 @@ const server = http.createServer((req, res) => {
           console.log(`Body: (empty)`);
         }
         console.log("--- End Response from Target Server ---\n");
+        
+        // Log response to file
+        twilioLogger.info("Webhook response", {
+          webhookType,
+          statusCode: proxyRes.statusCode,
+          statusMessage: proxyRes.statusMessage,
+          responseHeaders: proxyRes.headers,
+          responseBody: responseBody,
+          timestamp: new Date().toISOString(),
+        });
 
         // Return the response from the target endpoint
         res.writeHead(proxyRes.statusCode || 200, proxyRes.headers);
@@ -119,6 +167,12 @@ const server = http.createServer((req, res) => {
 
     proxyReq.on("error", (error) => {
       console.error("Error forwarding request:", error);
+      twilioLogger.error("Error forwarding webhook", {
+        webhookType,
+        error: error.message,
+        stack: error.stack,
+        timestamp: new Date().toISOString(),
+      });
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(
         JSON.stringify({
@@ -159,7 +213,7 @@ server.listen(PORT, () => {
   console.log(`✅ Webhook test server listening on port ${PORT}`);
   console.log(`✅ Ready to receive requests...`);
   console.log(
-    `✅ Will forward to: http://${TARGET_HOST}:${TARGET_PORT}/api/notion/webhook`
+    `✅ Will forward Twilio webhooks to: http://${TARGET_HOST}:${TARGET_PORT}/api/twilio/*`
   );
   console.log("=".repeat(50));
   console.log("");
