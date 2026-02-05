@@ -3,7 +3,6 @@ import { requireUserSession } from "~~/server/utils/session";
 import { useDrizzle } from "~~/server/utils/drizzle";
 import { wallet, stripePayment } from "~~/db/schema";
 import { eq } from "drizzle-orm";
-import { usdToCredits } from "~~/server/utils/credits";
 import { createCheckoutSession } from "~~/server/utils/stripe";
 import { useRuntimeConfig } from "#imports";
 
@@ -29,14 +28,11 @@ export default defineEventHandler(async (event) => {
       .insert(wallet)
       .values({
         userId: session.user.id,
-        balanceCredits: 0,
+        balanceUsd: "0.00",
       })
       .returning();
     userWallet = newWallet;
   }
-
-  // Calculate credits to add
-  const creditsAmount = usdToCredits(validated.amountUsd);
 
   // Create success and cancel URLs
   const baseUrl = config.public.BETTER_AUTH_URL || "http://localhost:3000";
@@ -49,7 +45,6 @@ export default defineEventHandler(async (event) => {
       userId: session.user.id,
       walletId: userWallet.id,
       amountUsd: validated.amountUsd,
-      creditsAmount,
       successUrl,
       cancelUrl,
     });
@@ -60,7 +55,6 @@ export default defineEventHandler(async (event) => {
       walletId: userWallet.id,
       stripeCheckoutSessionId: sessionId,
       amountUsd: validated.amountUsd.toString(),
-      creditsAmount,
       status: "pending",
       metadata: {
         createdAt: new Date().toISOString(),

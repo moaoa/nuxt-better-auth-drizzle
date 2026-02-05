@@ -10,7 +10,6 @@ import {
   isValidE164,
 } from "~~/server/utils/twilio";
 import {
-  usdToCredits,
   calculateMaxAllowedSeconds,
 } from "~~/server/utils/credits";
 
@@ -49,7 +48,7 @@ export default defineEventHandler(async (event) => {
       .insert(wallet)
       .values({
         userId: session.user.id,
-        balanceCredits: 0,
+        balanceUsd: "0.00",
       })
       .returning();
     userWallet = newWallet;
@@ -59,19 +58,24 @@ export default defineEventHandler(async (event) => {
   const countryCode = extractCountryCode(validated.toNumber);
   const ratePerMinUsd = await getVoiceRate(countryCode, "mobile");
 
-  // 4. Check if user has at least 1 minute worth of credits
-  const creditsPerMinute = usdToCredits(ratePerMinUsd);
-  if (userWallet.balanceCredits < creditsPerMinute) {
+  // 4. Get profit margin
+  const profitMargin = config.CALL_PROFIT_MARGIN || 0.50;
+  const userRatePerMinUsd = ratePerMinUsd * (1 + profitMargin);
+
+  // 5. Check if user has at least 1 minute worth of balance
+  const balanceUsd = parseFloat(userWallet.balanceUsd || "0.00");
+  if (balanceUsd < userRatePerMinUsd) {
     throw createError({
       statusCode: 400,
-      statusMessage: "Insufficient credits. Please purchase more credits to make calls.",
+      statusMessage: "Insufficient balance. Please add more funds to make calls.",
     });
   }
 
-  // 5. Calculate max allowed seconds
+  // 6. Calculate max allowed seconds
   const maxAllowedSeconds = calculateMaxAllowedSeconds(
-    userWallet.balanceCredits,
-    ratePerMinUsd
+    balanceUsd,
+    ratePerMinUsd,
+    profitMargin
   );
 
   if (maxAllowedSeconds < 60) {

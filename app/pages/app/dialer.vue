@@ -44,9 +44,9 @@ const isValidPhone = computed(() => {
 
 const remainingMinutes = computed(() => {
   if (!wallet.value || !isValidPhone.value) return 0;
-  // TODO: get the credits per minute from the server
-  const creditsPerMinute = 100;
-  return Math.floor(wallet.value.balanceCredits / creditsPerMinute);
+  // TODO: get the rate per minute from the server and apply profit margin
+  // For now, return 0 as this would require server-side calculation
+  return 0;
 });
 
 const invalidateQueries = () => {
@@ -336,9 +336,6 @@ onUnmounted(() => {
             <p class="text-2xl font-bold" v-if="!walletLoading">
               ${{ wallet?.balanceUsd?.toFixed(2) || "0.00" }}
             </p>
-            <p class="text-sm text-muted-foreground" v-if="!walletLoading">
-              {{ wallet?.balanceCredits || 0 }} credits
-            </p>
           </div>
           <UiButton variant="outline" as-child>
             <NuxtLink to="/app/wallet">Manage Wallet</NuxtLink>
@@ -467,7 +464,7 @@ onUnmounted(() => {
                 !isValidPhone ||
                 isCalling ||
                 walletLoading ||
-                (wallet?.balanceCredits || 0) < 100
+                (wallet?.balanceUsd || 0) < 0.01
               "
               class="flex-1"
               size="lg"
@@ -488,10 +485,10 @@ onUnmounted(() => {
           </div>
 
           <p
-            v-if="(wallet?.balanceCredits || 0) < 100"
+            v-if="(wallet?.balanceUsd || 0) < 0.01"
             class="text-sm text-destructive"
           >
-            Insufficient credits. Please purchase more credits to make calls.
+            Insufficient balance. Please add more funds to make calls.
           </p>
         </div>
       </div>

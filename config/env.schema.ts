@@ -33,7 +33,7 @@ export const envSchema = z.object({
   TWILIO_AUTH_TOKEN: z.string().min(1),
   TWILIO_PHONE_NUMBER: z.string().min(1), // E.164 format
   TWILIO_WEBHOOK_SECRET: z.string().min(1), // For signature validation
-  CREDIT_USD_RATE: z.string().transform(Number).default("0.01"), // 1 credit = $0.01
+  CALL_PROFIT_MARGIN: z.string().transform(Number).default("0.50"), // 50% default
 
   // Stripe
   STRIPE_SECRET_KEY: z.string().min(1),

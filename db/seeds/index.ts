@@ -1,13 +1,11 @@
-import { addAutomationTypes } from "./add-automation-types";
-import { automationTypes } from "./automationTypes";
+import { topupFirstUser } from "./topup-first-user";
 
 /**
  * Array of seeder functions to run
  * Each seeder should be an async function that returns void
  */
 const seeders = [
-  { name: "addAutomationTypes", fn: addAutomationTypes },
-  { name: "automationTypes", fn: automationTypes },
+  { name: "topupFirstUser", fn: topupFirstUser },
 ];
 
 async function main() {
@@ -15,6 +13,10 @@ async function main() {
 
   for (let i = 0; i < seeders.length; i++) {
     const seeder = seeders[i];
+    if (!seeder) {
+      console.error(`Seeder ${i} is undefined`);
+      process.exit(1);
+    }
     const seederName = seeder.name;
 
     try {

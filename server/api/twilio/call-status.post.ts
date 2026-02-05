@@ -1,11 +1,11 @@
 import { readBody } from "h3";
 import { validateWebhookSignature } from "~~/server/utils/twilio";
 import { useDrizzle } from "~~/server/utils/drizzle";
-import { call, wallet, creditTransaction, callCostBreakdown } from "~~/db/schema";
+import { call, wallet, transaction, callCostBreakdown } from "~~/db/schema";
 import { eq } from "drizzle-orm";
 import {
-  calculateCallCredits,
-  usdToCredits,
+  calculateUserPrice,
+  calculateCallCostUsd,
 } from "~~/server/utils/credits";
 
 export default defineEventHandler(async (event) => {
@@ -40,6 +40,8 @@ export default defineEventHandler(async (event) => {
   const callSid = body.CallSid;
   const callStatus = body.CallStatus;
   const callDuration = body.CallDuration ? parseInt(body.CallDuration) : null;
+  const twilioPrice = body.Price ? parseFloat(body.Price) : null;
+  const twilioPriceUnit = body.PriceUnit || "USD";
 
   if (!callSid) {
     throw createError({
@@ -85,6 +87,7 @@ export default defineEventHandler(async (event) => {
 
       const endedAt = new Date();
       const durationSeconds = callDuration || 0;
+      const twilioDurationSeconds = callDuration || 0;
 
       // Only bill if call was answered (duration > 0)
       if (durationSeconds > 0 && existingCall.answeredAt) {
@@ -97,13 +100,28 @@ export default defineEventHandler(async (event) => {
           throw new Error("Wallet not found for user");
         }
 
-        // Calculate credits to charge using the rate stored in call record
-        const ratePerMinUsd = parseFloat(existingCall.ratePerMinUsd || "0.01");
-        const creditsCharged = calculateCallCredits(ratePerMinUsd, durationSeconds);
+        // Get profit margin from config
+        const profitMargin = config.CALL_PROFIT_MARGIN || 0.50;
 
-        // Check if user has enough credits (shouldn't happen due to pre-auth, but safety check)
-        if (userWallet.balanceCredits < creditsCharged) {
-          // Insufficient credits - mark as failed
+        // Calculate costs
+        const ratePerMinUsd = parseFloat(existingCall.ratePerMinUsd || "0.01");
+        
+        // Use Twilio price if available, otherwise calculate from rate
+        let twilioPriceUsd: number;
+        if (twilioPrice !== null && twilioPrice !== undefined) {
+          twilioPriceUsd = twilioPrice;
+        } else {
+          // Fallback: calculate from rate and duration
+          twilioPriceUsd = calculateCallCostUsd(ratePerMinUsd, durationSeconds);
+        }
+
+        // Calculate user price with profit margin
+        const userPriceUsd = calculateUserPrice(twilioPriceUsd, profitMargin);
+
+        // Check if user has enough balance (shouldn't happen due to pre-auth, but safety check)
+        const currentBalance = parseFloat(userWallet.balanceUsd || "0.00");
+        if (currentBalance < userPriceUsd) {
+          // Insufficient balance - mark as failed
           await tx
             .update(call)
             .set({
@@ -115,20 +133,21 @@ export default defineEventHandler(async (event) => {
           return;
         }
 
-        // Deduct credits
+        // Deduct user price from wallet
+        const newBalance = currentBalance - userPriceUsd;
         await tx
           .update(wallet)
           .set({
-            balanceCredits: userWallet.balanceCredits - creditsCharged,
+            balanceUsd: newBalance.toFixed(2),
             updatedAt: new Date(),
           })
           .where(eq(wallet.id, userWallet.id));
 
-        // Create credit transaction
-        await tx.insert(creditTransaction).values({
+        // Create transaction
+        await tx.insert(transaction).values({
           walletId: userWallet.id,
           type: "call_charge",
-          creditsAmount: -creditsCharged, // Negative for charges
+          amountUsd: (-userPriceUsd).toFixed(2), // Negative for charges
           referenceType: "call",
           referenceId: existingCall.id.toString(),
         });
@@ -139,12 +158,20 @@ export default defineEventHandler(async (event) => {
           callId: existingCall.id,
           ratePerMinUsd: ratePerMinUsd.toString(),
           billedMinutes,
-          creditsCharged,
+          twilioPriceUsd: twilioPriceUsd.toFixed(6),
+          twilioPriceUnit: twilioPriceUnit,
+          userPriceUsd: userPriceUsd.toFixed(6),
+          profitMargin: profitMargin.toFixed(4),
+          twilioDurationSeconds: twilioDurationSeconds,
           pricingSnapshot: {
             ratePerMinUsd,
             durationSeconds,
             billedMinutes,
-            creditsCharged,
+            twilioPriceUsd,
+            twilioPriceUnit,
+            userPriceUsd,
+            profitMargin,
+            twilioDurationSeconds,
           },
         });
       }

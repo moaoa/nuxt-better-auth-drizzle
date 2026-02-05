@@ -5,9 +5,9 @@ import { eq } from "drizzle-orm";
 /**
  * Seeder to add $10 to the first user's wallet
  * This seeder is NOT included in the main seeders index and should be run separately
- * @deprecated Use topup-first-user.ts instead
+ * Usage: tsx db/seeds/topup-first-user.ts
  */
-export async function addCreditsToFirstUser() {
+export async function topupFirstUser() {
   const db = useDrizzle();
 
   // Find the first user (by creation date)
@@ -71,9 +71,9 @@ export async function addCreditsToFirstUser() {
   console.log(`  New balance: $${newBalance.toFixed(2)}`);
 }
 
-// Allow running directly: tsx db/seeds/add-credits-to-first-user.ts
-if (process.argv[1]?.endsWith("add-credits-to-first-user.ts")) {
-  addCreditsToFirstUser()
+// Allow running directly: tsx db/seeds/topup-first-user.ts
+if (process.argv[1]?.endsWith("topup-first-user.ts")) {
+  topupFirstUser()
     .then(() => {
       console.log("\nSeeder completed successfully!");
       process.exit(0);

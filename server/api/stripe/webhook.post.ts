@@ -1,6 +1,6 @@
 import { readRawBody } from "h3";
 import { useDrizzle } from "~~/server/utils/drizzle";
-import { stripePayment, wallet, creditTransaction } from "~~/db/schema";
+import { stripePayment, wallet, transaction } from "~~/db/schema";
 import { eq } from "drizzle-orm";
 import {
   validateWebhookSignature,
@@ -110,27 +110,29 @@ export default defineEventHandler(async (event) => {
           throw new Error("Wallet not found");
         }
 
-        // Add credits to wallet
+        // Add USD to wallet
+        const currentBalance = parseFloat(currentWallet.balanceUsd || "0.00");
+        const newBalance = currentBalance + metadata.amountUsd;
         await tx
           .update(wallet)
           .set({
-            balanceCredits: currentWallet.balanceCredits + metadata.creditsAmount,
+            balanceUsd: newBalance.toFixed(2),
             updatedAt: new Date(),
           })
           .where(eq(wallet.id, metadata.walletId));
 
-        // Create credit transaction record
-        await tx.insert(creditTransaction).values({
+        // Create transaction record
+        await tx.insert(transaction).values({
           walletId: metadata.walletId,
           type: "purchase",
-          creditsAmount: metadata.creditsAmount,
+          amountUsd: metadata.amountUsd.toFixed(2),
           referenceType: "purchase",
           referenceId: `stripe-${paymentRecord.id}`,
         });
       });
 
       console.log(
-        `Successfully processed payment ${paymentRecord.id} for ${metadata.creditsAmount} credits`
+        `Successfully processed payment ${paymentRecord.id} for $${metadata.amountUsd.toFixed(2)}`
       );
       return { received: true, processed: true, paymentId: paymentRecord.id };
     } else if (stripeEvent.type === "checkout.session.async_payment_succeeded") {
@@ -166,18 +168,20 @@ export default defineEventHandler(async (event) => {
           throw new Error("Wallet not found");
         }
 
+        const currentBalance = parseFloat(currentWallet.balanceUsd || "0.00");
+        const newBalance = currentBalance + metadata.amountUsd;
         await tx
           .update(wallet)
           .set({
-            balanceCredits: currentWallet.balanceCredits + metadata.creditsAmount,
+            balanceUsd: newBalance.toFixed(2),
             updatedAt: new Date(),
           })
           .where(eq(wallet.id, metadata.walletId));
 
-        await tx.insert(creditTransaction).values({
+        await tx.insert(transaction).values({
           walletId: metadata.walletId,
           type: "purchase",
-          creditsAmount: metadata.creditsAmount,
+          amountUsd: metadata.amountUsd.toFixed(2),
           referenceType: "purchase",
           referenceId: `stripe-${paymentRecord.id}`,
         });

@@ -1,7 +1,7 @@
 import { requireUserSession } from "~~/server/utils/session";
 import { useDrizzle } from "~~/server/utils/drizzle";
-import { creditTransaction, stripePayment } from "~~/db/schema";
-import { eq, desc, and } from "drizzle-orm";
+import { transaction, stripePayment } from "~~/db/schema";
+import { eq, desc } from "drizzle-orm";
 import { wallet } from "~~/db/schema";
 
 export default defineEventHandler(async (event) => {
@@ -31,10 +31,10 @@ export default defineEventHandler(async (event) => {
     };
   }
 
-  // Get credit transactions
-  const transactions = await db.query.creditTransaction.findMany({
-    where: eq(creditTransaction.walletId, userWallet.id),
-    orderBy: [desc(creditTransaction.createdAt)],
+  // Get transactions
+  const transactions = await db.query.transaction.findMany({
+    where: eq(transaction.walletId, userWallet.id),
+    orderBy: [desc(transaction.createdAt)],
     limit,
     offset,
   });
@@ -42,21 +42,21 @@ export default defineEventHandler(async (event) => {
   // Get total count
   const totalTransactions = await db
     .select()
-    .from(creditTransaction)
-    .where(eq(creditTransaction.walletId, userWallet.id));
+    .from(transaction)
+    .where(eq(transaction.walletId, userWallet.id));
 
   // Enrich transactions with Stripe payment info if available
   const enrichedTransactions = await Promise.all(
-    transactions.map(async (transaction) => {
+    transactions.map(async (tx) => {
       let stripePaymentInfo = null;
 
       // If transaction references a Stripe payment, fetch payment details
       if (
-        transaction.referenceType === "purchase" &&
-        transaction.referenceId?.startsWith("stripe-")
+        tx.referenceType === "purchase" &&
+        tx.referenceId?.startsWith("stripe-")
       ) {
         const paymentId = parseInt(
-          transaction.referenceId.replace("stripe-", ""),
+          tx.referenceId.replace("stripe-", ""),
           10
         );
         if (paymentId) {
@@ -77,7 +77,13 @@ export default defineEventHandler(async (event) => {
       }
 
       return {
-        ...transaction,
+        id: tx.id,
+        walletId: tx.walletId,
+        type: tx.type,
+        amountUsd: tx.amountUsd,
+        referenceType: tx.referenceType,
+        referenceId: tx.referenceId,
+        createdAt: tx.createdAt,
         stripePayment: stripePaymentInfo,
       };
     })

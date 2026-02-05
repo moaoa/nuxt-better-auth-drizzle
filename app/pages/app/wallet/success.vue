@@ -53,7 +53,7 @@ const goToWallet = () => {
           </div>
           <h1 class="text-3xl font-bold mb-2">Payment Successful!</h1>
           <p class="text-muted-foreground">
-            Your credits have been added to your wallet.
+            Funds have been added to your wallet.
           </p>
         </div>
 
@@ -61,9 +61,6 @@ const goToWallet = () => {
           <p class="text-sm text-muted-foreground mb-1">New Balance</p>
           <p class="text-2xl font-bold">
             ${{ wallet.balanceUsd?.toFixed(2) || "0.00" }}
-          </p>
-          <p class="text-sm text-muted-foreground">
-            {{ wallet.balanceCredits || 0 }} credits
           </p>
         </div>
 

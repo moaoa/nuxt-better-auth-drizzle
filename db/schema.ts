@@ -87,7 +87,12 @@ export const wallet = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    balanceCredits: integer("balance_credits").notNull().default(0),
+    balanceUsd: numeric("balance_usd", {
+      precision: 10,
+      scale: 2,
+    })
+      .notNull()
+      .default("0.00"),
     updatedAt: timestamp("updated_at")
       .$defaultFn(() => new Date())
       .notNull(),
@@ -97,7 +102,7 @@ export const wallet = pgTable(
   })
 );
 
-export const creditTransaction = pgTable("credit_transaction", {
+export const transaction = pgTable("transaction", {
   id: serial("id").primaryKey(),
   walletId: integer("wallet_id")
     .notNull()
@@ -105,7 +110,10 @@ export const creditTransaction = pgTable("credit_transaction", {
   type: text("type", {
     enum: ["purchase", "call_charge", "refund"],
   }).notNull(),
-  creditsAmount: integer("credits_amount").notNull(),
+  amountUsd: numeric("amount_usd", {
+    precision: 10,
+    scale: 2,
+  }).notNull(),
   referenceType: text("reference_type"), // 'call' | 'purchase' | null
   referenceId: text("reference_id"), // callId or purchaseId
   createdAt: timestamp("created_at")
@@ -162,7 +170,20 @@ export const callCostBreakdown = pgTable("call_cost_breakdown", {
     scale: 6,
   }).notNull(),
   billedMinutes: integer("billed_minutes").notNull(),
-  creditsCharged: integer("credits_charged").notNull(),
+  twilioPriceUsd: numeric("twilio_price_usd", {
+    precision: 10,
+    scale: 6,
+  }),
+  twilioPriceUnit: text("twilio_price_unit"),
+  userPriceUsd: numeric("user_price_usd", {
+    precision: 10,
+    scale: 6,
+  }),
+  profitMargin: numeric("profit_margin", {
+    precision: 5,
+    scale: 4,
+  }),
+  twilioDurationSeconds: integer("twilio_duration_seconds"),
   pricingSnapshot: jsonb("pricing_snapshot").default("{}").notNull(),
   createdAt: timestamp("created_at")
     .$defaultFn(() => new Date())
@@ -197,7 +218,6 @@ export const stripePayment = pgTable(
     stripePaymentIntentId: text("stripe_payment_intent_id"),
     stripeCheckoutSessionId: text("stripe_checkout_session_id"),
     amountUsd: numeric("amount_usd", { precision: 10, scale: 2 }).notNull(),
-    creditsAmount: integer("credits_amount").notNull(),
     status: text("status", {
       enum: ["pending", "processing", "succeeded", "failed", "canceled"],
     })
@@ -226,14 +246,14 @@ export const walletRelations = relations(wallet, ({ one, many }) => ({
     fields: [wallet.userId],
     references: [user.id],
   }),
-  creditTransactions: many(creditTransaction),
+  transactions: many(transaction),
 }));
 
-export const creditTransactionRelations = relations(
-  creditTransaction,
+export const transactionRelations = relations(
+  transaction,
   ({ one }) => ({
     wallet: one(wallet, {
-      fields: [creditTransaction.walletId],
+      fields: [transaction.walletId],
       references: [wallet.id],
     }),
   })
@@ -277,7 +297,7 @@ export const stripePaymentRelations = relations(
 //Types
 export type User = InferSelectModel<typeof user>;
 export type Wallet = InferSelectModel<typeof wallet>;
-export type CreditTransaction = InferSelectModel<typeof creditTransaction>;
+export type Transaction = InferSelectModel<typeof transaction>;
 export type Call = InferSelectModel<typeof call>;
 export type CallCostBreakdown = InferSelectModel<typeof callCostBreakdown>;
 export type TwilioVoiceRate = InferSelectModel<typeof twilioVoiceRate>;

@@ -21,7 +21,6 @@ export interface CreateCheckoutSessionData {
   userId: string;
   walletId: number;
   amountUsd: number;
-  creditsAmount: number;
   successUrl: string;
   cancelUrl: string;
 }
@@ -44,8 +43,8 @@ export async function createCheckoutSession(
         price_data: {
           currency: "usd",
           product_data: {
-            name: "Phone Call Credits",
-            description: `${data.creditsAmount} credits for phone calls`,
+            name: "Phone Call Balance",
+            description: `Add $${data.amountUsd.toFixed(2)} to your wallet`,
           },
           unit_amount: Math.round(data.amountUsd * 100), // Convert to cents
         },
@@ -59,7 +58,6 @@ export async function createCheckoutSession(
     metadata: {
       userId: data.userId,
       walletId: data.walletId.toString(),
-      creditsAmount: data.creditsAmount.toString(),
       amountUsd: data.amountUsd.toString(),
     },
   });
@@ -125,7 +123,6 @@ export function extractPaymentMetadata(
 ): {
   userId: string;
   walletId: number;
-  creditsAmount: number;
   amountUsd: number;
 } {
   const metadata = session.metadata;
@@ -136,17 +133,15 @@ export function extractPaymentMetadata(
 
   const userId = metadata.userId;
   const walletId = parseInt(metadata.walletId, 10);
-  const creditsAmount = parseInt(metadata.creditsAmount, 10);
   const amountUsd = parseFloat(metadata.amountUsd);
 
-  if (!userId || !walletId || !creditsAmount || !amountUsd) {
+  if (!userId || !walletId || !amountUsd) {
     throw new Error("Invalid payment metadata");
   }
 
   return {
     userId,
     walletId,
-    creditsAmount,
     amountUsd,
   };
 }

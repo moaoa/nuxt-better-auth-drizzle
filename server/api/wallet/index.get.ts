@@ -2,7 +2,6 @@ import { requireUserSession } from "~~/server/utils/session";
 import { useDrizzle } from "~~/server/utils/drizzle";
 import { wallet } from "~~/db/schema";
 import { eq } from "drizzle-orm";
-import { creditsToUsd } from "~~/server/utils/credits";
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event);
@@ -19,15 +18,14 @@ export default defineEventHandler(async (event) => {
       .insert(wallet)
       .values({
         userId: session.user.id,
-        balanceCredits: 0,
+        balanceUsd: "0.00",
       })
       .returning();
     userWallet = newWallet;
   }
 
   return {
-    balanceCredits: userWallet.balanceCredits,
-    balanceUsd: creditsToUsd(userWallet.balanceCredits),
+    balanceUsd: parseFloat(userWallet.balanceUsd || "0.00"),
   };
 });
 

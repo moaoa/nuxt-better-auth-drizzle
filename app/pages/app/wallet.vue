@@ -13,11 +13,11 @@ const { data: wallet, isLoading: walletLoading } = useQuery({
   },
 });
 
-// Fetch credit transactions
+// Fetch transactions
 const { data: transactionsData, isLoading: transactionsLoading } = useQuery({
-  queryKey: ["credit-transactions"],
+  queryKey: ["transactions"],
   queryFn: async () => {
-    const response = await $fetch("/api/credits/transactions");
+    const response = await $fetch("/api/wallet/transactions");
     return response;
   },
 });
@@ -68,19 +68,13 @@ const presetAmounts = [5, 10, 25, 50, 100];
             <p class="text-4xl font-bold" v-if="!walletLoading">
               ${{ wallet?.balanceUsd?.toFixed(2) || "0.00" }}
             </p>
-            <p class="text-lg text-muted-foreground" v-if="!walletLoading">
-              {{ wallet?.balanceCredits || 0 }} credits
-            </p>
-            <p class="text-xs text-muted-foreground mt-2">
-              1 credit = $0.01 USD
-            </p>
           </div>
         </div>
       </div>
 
-      <!-- Purchase Credits -->
+      <!-- Add Funds -->
       <div class="mb-6 p-6 bg-card rounded-lg border">
-        <h2 class="text-xl font-semibold mb-4">Purchase Credits</h2>
+        <h2 class="text-xl font-semibold mb-4">Add Funds</h2>
         
         <div class="space-y-4">
           <!-- Preset Amounts -->
@@ -120,7 +114,7 @@ const presetAmounts = [5, 10, 25, 50, 100];
           >
             <Icon name="lucide:credit-card" class="mr-2" />
             <span v-if="purchaseMutation.isPending">Redirecting to checkout...</span>
-            <span v-else>Purchase ${{ purchaseAmount.toFixed(2) }} in Credits</span>
+            <span v-else>Add ${{ purchaseAmount.toFixed(2) }} to Wallet</span>
           </UiButton>
 
           <p v-if="purchaseAmount < 0.5" class="text-sm text-muted-foreground">
@@ -165,14 +159,14 @@ const presetAmounts = [5, 10, 25, 50, 100];
               <p
                 class="font-bold"
                 :class="{
-                  'text-green-600 dark:text-green-400': transaction.creditsAmount > 0,
-                  'text-red-600 dark:text-red-400': transaction.creditsAmount < 0,
+                  'text-green-600 dark:text-green-400': transaction.amountUsd > 0,
+                  'text-red-600 dark:text-red-400': transaction.amountUsd < 0,
                 }"
               >
-                {{ transaction.creditsAmount > 0 ? '+' : '' }}{{ transaction.creditsAmount }} credits
+                {{ transaction.amountUsd > 0 ? '+' : '' }}${{ Math.abs(parseFloat(transaction.amountUsd || '0')).toFixed(2) }}
               </p>
               <p v-if="transaction.stripePayment" class="text-sm text-muted-foreground">
-                ${{ transaction.stripePayment.amountUsd.toFixed(2) }}
+                {{ transaction.stripePayment.status }}
               </p>
             </div>
           </div>

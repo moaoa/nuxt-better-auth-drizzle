@@ -74,6 +74,7 @@ const getStatusColor = (status: string) => {
                 <th class="text-left p-4 font-medium">From</th>
                 <th class="text-left p-4 font-medium">Status</th>
                 <th class="text-left p-4 font-medium">Duration</th>
+                <th class="text-left p-4 font-medium">Cost</th>
                 <th class="text-left p-4 font-medium">Date</th>
               </tr>
             </thead>
@@ -93,7 +94,13 @@ const getStatusColor = (status: string) => {
                     {{ call.status }}
                   </span>
                 </td>
-                <td class="p-4">{{ formatDuration(call.durationSeconds) }}</td>
+                <td class="p-4">{{ formatDuration(call.cost?.durationSeconds || call.durationSeconds) }}</td>
+                <td class="p-4">
+                  <span v-if="call.cost?.userPriceUsd" class="font-medium">
+                    ${{ call.cost.userPriceUsd.toFixed(2) }}
+                  </span>
+                  <span v-else class="text-muted-foreground">—</span>
+                </td>
                 <td class="p-4 text-sm text-muted-foreground">
                   {{ formatDate(call.createdAt) }}
                 </td>

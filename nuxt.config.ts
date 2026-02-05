@@ -138,6 +138,9 @@ export default defineNuxtConfig({
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
 
+    // Call profit margin (server-side only)
+    CALL_PROFIT_MARGIN: parseFloat(process.env.CALL_PROFIT_MARGIN || "0.50"),
+
     // Public config (exposed to the client)
     public: {
       NOTION_OAUTH_REDIRECT_URI: process.env.NOTION_OAUTH_REDIRECT_URI,
