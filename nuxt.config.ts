@@ -159,6 +159,9 @@ export default defineNuxtConfig({
 
       // Base URL for webhooks and API endpoints (safe to expose)
       BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
+
+      // Twilio region for Voice SDK (safe to expose)
+      TWILIO_REGION: process.env.TWILIO_REGION,
     },
   },
 });

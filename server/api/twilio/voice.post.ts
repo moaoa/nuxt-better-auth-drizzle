@@ -1,10 +1,11 @@
-import { readBody } from "h3";
+import { readRawBody, setResponseHeader } from "h3";
 import { validateWebhookSignature } from "~~/server/utils/twilio";
 import { useRuntimeConfig } from "#imports";
 import { useDrizzle } from "~~/server/utils/drizzle";
 import { call } from "~~/db/schema";
 import { eq } from "drizzle-orm";
 import { twilioLogger } from "~~/lib/loggers/twilio";
+import querystring from "querystring";
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig();
@@ -29,8 +30,17 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Get request body as form data
-  const body = await readBody(event);
+  // Get request body as URL-encoded form data
+  const rawBody = await readRawBody(event, "utf8");
+  const rawBodyString = rawBody ? (typeof rawBody === "string" ? rawBody : String(rawBody)) : "";
+  const parsedBody = querystring.parse(rawBodyString);
+  // Normalize to Record<string, string> (querystring.parse returns string | string[] | undefined)
+  const body: Record<string, string> = {};
+  for (const [key, value] of Object.entries(parsedBody)) {
+    if (value !== undefined) {
+      body[key] = Array.isArray(value) ? value[0] || "" : value;
+    }
+  }
   
   // Log body after reading
   twilioLogger.info("Voice webhook body", {
@@ -128,7 +138,11 @@ export default defineEventHandler(async (event) => {
     fromNumber: config.TWILIO_PHONE_NUMBER,
     twimlResponse: twimlResponse,
     timestamp: new Date().toISOString(),
-  });
+});
+
+  // Set Content-Type header for TwiML response (required by Twilio)
+  // setResponseHeader(event, "Content-Type", "application/xml; charset=utf-8");
+  setResponseHeader(event, "Content-Type", "application/xml;");
 
   return twimlResponse;
 });

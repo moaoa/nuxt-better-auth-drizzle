@@ -1,6 +1,8 @@
 import http from "http";
 import { twilioLogger } from "./lib/loggers/twilio";
+import { webhooksLogger } from "./lib/loggers/webhooks";
 import querystring from "querystring";
+import { parse as parseUrl } from "url";
 
 const PORT = 4000;
 const TARGET_HOST = "localhost";
@@ -18,6 +20,36 @@ const server = http.createServer((req, res) => {
   console.log(`URL: ${req.url}`);
   console.log(`Headers:`, req.headers);
 
+  // Parse URL to get pathname (ignoring query string)
+  const parsedUrl = parseUrl(req.url || '/');
+  const pathname = parsedUrl.pathname || '/';
+
+  // Route based on pathname
+  let webhookType = "unknown";
+  let targetPath: string;
+
+  console.log('==================================================')
+  console.log('pathname', pathname);
+  console.log('==================================================')
+
+  if (pathname === '/') {
+    webhookType = "voice";
+    targetPath = "/api/twilio/voice";
+  } else if (pathname.includes('call-status')) {
+    webhookType = "call-status";
+    targetPath = "/api/twilio/call-status";
+  } else {
+    // Return 404 for unmatched paths
+    console.log(`⚠️  Unknown webhook path: ${pathname}`);
+    res.writeHead(404, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      status: "error",
+      message: "Webhook endpoint not found",
+      path: pathname
+    }));
+    return;
+  }
+
   // Collect request body if present
   let body = "";
   req.on("data", (chunk) => {
@@ -29,24 +61,13 @@ const server = http.createServer((req, res) => {
   });
 
   req.on("end", () => {
-    // Parse body to determine webhook type
+    // Parse body for logging purposes only (not for routing)
     let parsedBody: Record<string, any> = {};
-    let webhookType = "unknown";
-    let targetPath = "/api/twilio/voice"; // default
     
     if (body) {
       try {
         // Twilio sends form-encoded data
         parsedBody = querystring.parse(body);
-        
-        // Determine webhook type based on body content
-        if (parsedBody.CallStatus) {
-          webhookType = "call-status";
-          targetPath = "/api/twilio/call-status";
-        } else if (parsedBody.CallSid || parsedBody.To || parsedBody.Called) {
-          webhookType = "voice";
-          targetPath = "/api/twilio/voice";
-        }
       } catch (e) {
         // If parsing fails, try JSON
         try {
@@ -122,6 +143,16 @@ const server = http.createServer((req, res) => {
     console.log(`Forward Headers:`, forwardHeaders);
     console.log("--- End Forwarding Request ---\n");
 
+    // Log request headers before forwarding to target server
+    webhooksLogger.info("Forwarding request to target server", {
+      webhookType,
+      method: options.method,
+      targetUrl: `http://${options.hostname}:${options.port}${options.path}`,
+      requestHeaders: forwardHeaders,
+      requestBody: body ? body.substring(0, 1000) : null, // Log first 1000 chars of body
+      timestamp: new Date().toISOString(),
+    });
+
     const proxyReq = http.request(options, (proxyRes) => {
       console.log("--- Response from Target Server ---");
       console.log(`Status: ${proxyRes.statusCode}`);
@@ -149,18 +180,60 @@ const server = http.createServer((req, res) => {
         }
         console.log("--- End Response from Target Server ---\n");
         
+        // Explicitly copy response headers to ensure they're preserved
+        // Node.js http module may normalize headers, so we copy them explicitly
+        const responseHeaders: Record<string, string | string[]> = {};
+        for (const [key, value] of Object.entries(proxyRes.headers)) {
+          if (value !== undefined) {
+            responseHeaders[key] = value;
+          }
+        }
+
+        // For voice webhooks, ensure Content-Type is set correctly for TwiML responses
+        if (webhookType === "voice") {
+          // Check if Content-Type is missing or incorrect
+          const contentType = responseHeaders["content-type"] || 
+                             responseHeaders["Content-Type"] || 
+                             responseHeaders["Content-type"];
+          
+          // If response looks like TwiML (starts with <?xml) but Content-Type is missing/wrong
+          if (responseBody && responseBody.trim().startsWith("<?xml")) {
+            if (!contentType || 
+                (typeof contentType === "string" && !contentType.includes("xml"))) {
+              // Set correct Content-Type for TwiML
+              responseHeaders["Content-Type"] = "application/xml; charset=utf-8";
+              console.log("⚠️  Content-Type missing/incorrect for TwiML response, setting to application/xml");
+            }
+          }
+        }
+
         // Log response to file
         twilioLogger.info("Webhook response", {
           webhookType,
           statusCode: proxyRes.statusCode,
           statusMessage: proxyRes.statusMessage,
-          responseHeaders: proxyRes.headers,
+          responseHeaders: responseHeaders,
+          originalHeaders: proxyRes.headers,
           responseBody: responseBody,
           timestamp: new Date().toISOString(),
         });
 
-        // Return the response from the target endpoint
-        res.writeHead(proxyRes.statusCode || 200, proxyRes.headers);
+        console.log("--- Forwarding Response Headers ---");
+        console.log("Response Headers:", responseHeaders);
+        console.log("--- End Forwarding Response Headers ---\n");
+
+        // Log response headers to webhooks.log
+        webhooksLogger.info("Forwarding response to Twilio", {
+          webhookType,
+          statusCode: proxyRes.statusCode,
+          statusMessage: proxyRes.statusMessage,
+          responseHeaders: responseHeaders,
+          responseBody: responseBody ? responseBody.substring(0, 1000) : null, // Log first 1000 chars
+          timestamp: new Date().toISOString(),
+        });
+
+        // Return the response from the target endpoint with explicitly copied headers
+        res.writeHead(proxyRes.statusCode || 200, responseHeaders);
         res.end(responseBody);
       });
     });

@@ -65,24 +65,8 @@ export default defineEventHandler(async (event) => {
   const AccessToken = twilio.jwt.AccessToken;
   const VoiceGrant = AccessToken.VoiceGrant;
 
-  // Get the base URL for the voice webhook
-  // Must be publicly accessible (use HTTPS in production)
   const baseUrl = config.public.BETTER_AUTH_URL || "http://localhost:3000";
   const voiceUrl = `${baseUrl}/api/twilio/voice`;
-
-  // NOTE: The voiceUrl is calculated here for reference, but the actual Voice URL
-  // must be configured in your TwiML App in Twilio Console.
-  // The token uses outgoingApplicationSid (TwiML App SID), not the URL directly.
-  // 
-  // CRITICAL: For browser-to-phone calls, TwiML App SID is REQUIRED
-  // VoiceGrant does NOT support outgoingApplicationUri - only outgoingApplicationSid
-  // 
-  // Configuration steps:
-  // 1. Create a TwiML App in Twilio Console: https://console.twilio.com/us1/develop/runtime/twiml-apps
-  // 2. Set the Voice URL in the TwiML App to: {voiceUrl}
-  //    For local dev with tunnel: https://your-tunnel-url.com/api/twilio/voice
-  //    For production: https://yourdomain.com/api/twilio/voice
-  // 3. Copy the App SID (starts with "AP") and set TWILIO_APP_SID in your .env file
 
   if (!config.TWILIO_APP_SID) {
     throw createError({

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { markRaw, shallowRef, onMounted } from "vue";
+import { markRaw, shallowRef, onMounted, onUnmounted } from "vue";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/vue-query";
 import { isValidPhoneNumber } from "libphonenumber-js";
 import { Device, Call } from "@twilio/voice-sdk";
@@ -30,6 +30,13 @@ const activeCall = shallowRef<Call | null>(null);
 const isDeviceReady = ref(false);
 const deviceError = ref<string | null>(null);
 const isInitializingDevice = ref(false);
+
+// Reconnection state
+const reconnectAttempts = ref(0);
+const maxReconnectAttempts = 3;
+const reconnectTimeout = ref<NodeJS.Timeout | null>(null);
+const isReconnecting = ref(false);
+const config = useRuntimeConfig();
 
 const isValidPhone = computed(() => {
   if (!phoneNumber.value) return false;
@@ -75,42 +82,217 @@ const checkMicrophonePermission = async (): Promise<boolean> => {
   }
 };
 
-const initializeDevice = async () => {
-  if (device.value || isInitializingDevice.value) return;
+// Helper function to log connection events
+const logConnectionEvent = (event: string, details?: any) => {
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[Twilio Device] ${event}`, details || '');
+  }
+};
+
+// Clean up device properly
+const cleanupDevice = () => {
+  if (device.value) {
+    try {
+      device.value.removeAllListeners();
+      device.value.destroy();
+    } catch (error) {
+      logConnectionEvent('Error during device cleanup', error);
+    }
+    device.value = null;
+  }
+  isDeviceReady.value = false;
+};
+
+// Attempt reconnection with exponential backoff
+const attemptReconnection = async () => {
+  if (isReconnecting.value || reconnectAttempts.value >= maxReconnectAttempts) {
+    if (reconnectAttempts.value >= maxReconnectAttempts) {
+      deviceError.value = `Connection failed after ${maxReconnectAttempts} attempts. Please try again.`;
+      isReconnecting.value = false;
+      reconnectAttempts.value = 0;
+      logConnectionEvent('Max reconnection attempts reached');
+    }
+    return;
+  }
+
+  isReconnecting.value = true;
+  reconnectAttempts.value += 1;
+  const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.value - 1), 4000); // 1s, 2s, 4s max
+
+  logConnectionEvent('Scheduling reconnection attempt', {
+    attempt: reconnectAttempts.value,
+    delay: `${delay}ms`,
+  });
+
+  reconnectTimeout.value = setTimeout(async () => {
+    logConnectionEvent('Attempting reconnection', { attempt: reconnectAttempts.value });
+    cleanupDevice();
+    await initializeDevice(true);
+  }, delay);
+};
+
+// Cancel any pending reconnection
+const cancelReconnection = () => {
+  if (reconnectTimeout.value) {
+    clearTimeout(reconnectTimeout.value);
+    reconnectTimeout.value = null;
+  }
+  isReconnecting.value = false;
+};
+
+const initializeDevice = async (isRetry = false) => {
+  // Prevent multiple simultaneous initialization attempts
+  if (device.value || (isInitializingDevice.value && !isRetry)) return;
 
   isInitializingDevice.value = true;
-  deviceError.value = null;
+  if (!isRetry) {
+    deviceError.value = null;
+    reconnectAttempts.value = 0;
+    cancelReconnection();
+  }
 
   try {
+    logConnectionEvent('Fetching Twilio token');
     const { token } = await $fetch("/api/twilio/token");
     
     if (!token || typeof token !== "string" || token.length === 0) {
       throw new Error("Invalid token: token is empty or not a string");
     }
 
-    const newDevice = new Device(token);
+    // Get region from config, default to 'us1'
+    const region = config.public.TWILIO_REGION || 'us1';
+    logConnectionEvent('Initializing Device', { region });
 
+    // Device initialization options
+    const deviceOptions = {
+      region: region,
+      logLevel: process.env.NODE_ENV === 'development' ? 'debug' : 'warn' as 'debug' | 'warn' | 'error' | 'info' | 'silent',
+    };
+
+    const newDevice = new Device(token, deviceOptions);
+
+    // Handle successful registration
     newDevice.on("registered", () => {
+      logConnectionEvent('Device registered successfully', { region });
       isDeviceReady.value = true;
       deviceError.value = null;
       isInitializingDevice.value = false;
+      isReconnecting.value = false;
+      reconnectAttempts.value = 0; // Reset retry counter on success
+      cancelReconnection();
     });
 
-    newDevice.on("error", (error: any) => {
-      deviceError.value = error.message || "Device error";
+    // Handle unregistered event (connection lost)
+    newDevice.on("unregistered", (error: any) => {
+      logConnectionEvent('Device unregistered', { error: error?.message || 'Connection lost' });
       isDeviceReady.value = false;
-      isInitializingDevice.value = false;
+      
+      // Only attempt reconnection if we're not already reconnecting and not during a call
+      if (!isReconnecting.value && !isCalling.value) {
+        attemptReconnection();
+      }
+    });
+
+    // Handle token expiration
+    newDevice.on("tokenWillExpire", async () => {
+      logConnectionEvent('Token will expire soon, refreshing');
+      try {
+        const { token: newToken } = await $fetch("/api/twilio/token");
+        if (newToken && typeof newToken === "string") {
+          newDevice.updateToken(newToken);
+          logConnectionEvent('Token refreshed successfully');
+        }
+      } catch (error: any) {
+        logConnectionEvent('Failed to refresh token', { error: error.message });
+        deviceError.value = "Failed to refresh connection token";
+      }
+    });
+
+    // Enhanced error handling
+    newDevice.on("error", (error: any) => {
+      const errorCode = error.code;
+      const errorMessage = error.message || "Device error";
+      
+      logConnectionEvent('Device error', { 
+        code: errorCode, 
+        message: errorMessage,
+        name: error.name 
+      });
+
+      // Handle specific error codes
+      if (errorCode === 31005) {
+        // WebSocket connection error
+        // Check if this is during a HANGUP event (normal call termination) vs connection setup failure
+        const isHangupError = errorMessage?.toLowerCase().includes('hangup') || 
+                              errorMessage?.toLowerCase().includes('error sent from gateway in hangup');
+        
+        logConnectionEvent('WebSocket connection error (31005) detected', { 
+          isHangupError,
+          isCalling: isCalling.value 
+        });
+        
+        // If this is a HANGUP-related error during a call, it's normal termination - don't reconnect
+        if (isHangupError && isCalling.value) {
+          logConnectionEvent('31005 error during HANGUP (normal call termination), not reconnecting');
+          // Don't change device state or attempt reconnection for normal call terminations
+          return;
+        }
+        
+        // For 31005 errors during connection setup or when not in a call, attempt reconnection
+        isDeviceReady.value = false;
+        isInitializingDevice.value = false;
+        
+        // Attempt reconnection for connection errors (only if not during a call)
+        if (!isReconnecting.value && !isCalling.value) {
+          deviceError.value = "Connection lost. Attempting to reconnect...";
+          attemptReconnection();
+        } else {
+          deviceError.value = "Connection error. Please try again.";
+        }
+      } else if (errorCode === 31205 || errorCode === 31208) {
+        // Token errors - need to get a new token
+        logConnectionEvent('Token error detected, reinitializing with new token', { code: errorCode });
+        isDeviceReady.value = false;
+        isInitializingDevice.value = false;
+        cleanupDevice();
+        
+        // Retry with new token
+        setTimeout(async () => {
+          await initializeDevice(true);
+        }, 1000);
+      } else {
+        // Other errors
+        deviceError.value = errorMessage;
+        isDeviceReady.value = false;
+        isInitializingDevice.value = false;
+        
+        // For other connection-related errors, attempt reconnection
+        if (errorMessage?.toLowerCase().includes('connection') || 
+            errorMessage?.toLowerCase().includes('network') ||
+            errorMessage?.toLowerCase().includes('websocket')) {
+          if (!isReconnecting.value && !isCalling.value) {
+            attemptReconnection();
+          }
+        }
+      }
     });
 
     // newDevice.on("incoming", () => {
     //   // Handle incoming calls if needed
     // });
 
+    logConnectionEvent('Registering device');
     newDevice.register();
     device.value = markRaw(newDevice);
   } catch (error: any) {
+    logConnectionEvent('Failed to initialize device', { error: error.message });
     deviceError.value = error.message || "Failed to initialize device";
     isInitializingDevice.value = false;
+    
+    // Attempt reconnection for initialization failures
+    if (!isReconnecting.value && !isCalling.value) {
+      attemptReconnection();
+    }
   }
 };
 
@@ -311,12 +493,11 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  cancelReconnection();
   if (activeCall.value) {
     activeCall.value.disconnect();
   }
-  if (device.value) {
-    device.value.destroy();
-  }
+  cleanupDevice();
   clearPolling();
 });
 </script>
