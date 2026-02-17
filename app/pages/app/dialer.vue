@@ -347,6 +347,8 @@ const handleCallEnded = () => {
   }
   clearPolling();
   invalidateQueries();
+  // Re-fetch after a short delay to catch billing that completes asynchronously
+  setTimeout(() => invalidateQueries(), 2000);
 };
 
 const startCallMutation = useMutation({
@@ -449,6 +451,8 @@ const pollCallStatus = (callId: number) => {
           isCalling.value = false;
           activeCall.value = null;
           invalidateQueries();
+          // Re-fetch after a short delay to catch billing that completes asynchronously
+          setTimeout(() => invalidateQueries(), 2000);
         }
       }
     } catch (error) {
