@@ -125,24 +125,15 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Build the status callback URL for the Dial verb
-  // This ensures Twilio sends a "completed" webhook when the child call ends
-  const baseUrl = config.public.BETTER_AUTH_URL || "http://localhost:3000";
-  const statusCallbackUrl = `${baseUrl}/api/twilio/call-status`;
-
-  // Return TwiML response to dial the destination number
-  // This works for both browser-initiated calls and server-initiated calls
-  // The action and statusCallbackUrl attributes ensure we get notified when the call ends
   const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Dial callerId="${config.TWILIO_PHONE_NUMBER}" action="${statusCallbackUrl}" statusCallbackEvent="initiated ringing answered completed" statusCallback="${statusCallbackUrl}" statusCallbackMethod="POST">${toNumber}</Dial>
+  <Dial callerId="${config.TWILIO_PHONE_NUMBER}">${toNumber}</Dial>
 </Response>`;
 
   twilioLogger.info("Voice webhook processed, returning TwiML", {
     callSid: body.CallSid,
     toNumber: toNumber,
     fromNumber: config.TWILIO_PHONE_NUMBER,
-    statusCallbackUrl: statusCallbackUrl,
     twimlResponse: twimlResponse,
     timestamp: new Date().toISOString(),
   });

@@ -131,25 +131,35 @@ export async function billCall(
   }
 
   // Calculate duration
+  // Priority: durationSecondsOverride (from Twilio webhook) > answeredAt→endedAt > createdAt→endedAt
   let durationSeconds: number;
   if (opts.durationSecondsOverride != null && opts.durationSecondsOverride > 0) {
+    // Trust Twilio's reported duration (from CallDuration in webhook)
     durationSeconds = opts.durationSecondsOverride;
   } else if (existingCall.answeredAt) {
     const answeredAt = new Date(existingCall.answeredAt);
     const endedAt = existingCall.endedAt
       ? new Date(existingCall.endedAt)
       : new Date();
-    // TODO: should we round or ceil?
     durationSeconds = Math.max(
       0,
       Math.round((endedAt.getTime() - answeredAt.getTime()) / 1000)
+    );
+  } else if (existingCall.createdAt && existingCall.endedAt) {
+    // Fallback: answeredAt was never set (common for browser calls where the
+    // "answered" webhook doesn't fire). Use createdAt as approximate start time.
+    const startTime = new Date(existingCall.createdAt);
+    const endedAt = new Date(existingCall.endedAt);
+    durationSeconds = Math.max(
+      0,
+      Math.round((endedAt.getTime() - startTime.getTime()) / 1000)
     );
   } else {
     durationSeconds = 0;
   }
 
-  // No billing if call was never answered or had zero duration
-  if (durationSeconds <= 0 || !existingCall.answeredAt) {
+  // No billing if zero duration
+  if (durationSeconds <= 0) {
     // Still mark as billed so we don't retry
     await tx
       .update(call)
