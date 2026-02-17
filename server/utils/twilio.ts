@@ -1,6 +1,7 @@
 import twilio from "twilio";
 import crypto from "crypto";
 import { parsePhoneNumber, isValidPhoneNumber, type CountryCode } from "libphonenumber-js";
+import { twilioLogger } from "~~/lib/loggers/twilio";
 
 // Initialize Twilio client (will be created per request)
 function getTwilioClient() {
@@ -59,49 +60,55 @@ export async function endCall(callSid: string): Promise<void> {
 }
 
 /**
- * Get voice rate for a country (from Twilio Pricing API or local table)
- * @param countryCode - ISO 3166-1 alpha-2 country code
- * @param callType - Type of call (mobile, landline, toll-free)
+ * Get voice rate for a specific destination phone number using Twilio Pricing v2 API.
+ * Throws if the rate cannot be determined.
+ *
+ * @param phoneNumber - Destination phone number in E.164 format (e.g., +218910098190)
  * @returns Rate per minute in USD
  */
-export async function getVoiceRate(
-  countryCode: string,
-  callType: "mobile" | "landline" | "toll-free" = "mobile"
-): Promise<number> {
+export async function getVoiceRate(phoneNumber: string): Promise<number> {
+  const twilioClient = getTwilioClient();
+
   try {
-    const twilioClient = getTwilioClient();
-    // Try to fetch from Twilio Pricing API
-    const pricing = await twilioClient.pricing.v1.voice.countries(countryCode).fetch();
-    
-    // Get the rate for the call type
-    let rate: number | undefined;
-    if (callType === "mobile" && pricing.outboundPrefixPrices) {
-      const mobilePrice = pricing.outboundPrefixPrices.find(
-        (p) => p.friendlyName?.toLowerCase().includes("mobile")
-      );
-      rate = mobilePrice?.basePrice ? parseFloat(mobilePrice.basePrice) : undefined;
-    } else if (callType === "landline" && pricing.outboundPrefixPrices) {
-      const landlinePrice = pricing.outboundPrefixPrices.find(
-        (p) => !p.friendlyName?.toLowerCase().includes("mobile")
-      );
-      rate = landlinePrice?.basePrice ? parseFloat(landlinePrice.basePrice) : undefined;
+    const pricing = await twilioClient.pricing.v2.voice.numbers(phoneNumber).fetch();
+
+    if (pricing.outboundCallPrices && pricing.outboundCallPrices.length > 0) {
+      const price = pricing.outboundCallPrices[0];
+      const rate = price.currentPrice ?? price.basePrice ?? 0;
+      if (rate > 0) {
+        twilioLogger.info("Fetched per-number voice rate", {
+          phoneNumber,
+          rate,
+          country: pricing.country,
+          priceEntry: price,
+        });
+        return rate;
+      }
     }
 
-    if (rate !== undefined) {
-      return rate;
+    // API succeeded but returned no usable price
+    twilioLogger.error("Pricing v2 returned no usable outboundCallPrices", {
+      phoneNumber,
+      country: pricing.country,
+      outboundCallPrices: pricing.outboundCallPrices,
+    });
+    throw new Error(
+      `Unable to determine call rate for ${phoneNumber}: no outbound prices returned`
+    );
+  } catch (error: any) {
+    // If we already threw above, re-throw as-is
+    if (error.message?.startsWith("Unable to determine call rate")) {
+      throw error;
     }
 
-    // Fallback: use first available rate or default
-    if (pricing.outboundPrefixPrices && pricing.outboundPrefixPrices.length > 0) {
-      return parseFloat(pricing.outboundPrefixPrices[0].basePrice || "0.01");
-    }
-
-    // Default fallback rate
-    return 0.01;
-  } catch (error) {
-    console.error(`Error fetching Twilio rate for ${countryCode}:`, error);
-    // Default fallback rate
-    return 0.01;
+    twilioLogger.error("Failed to fetch per-number voice rate", {
+      phoneNumber,
+      error: error?.message ?? error,
+      stack: error?.stack,
+    });
+    throw new Error(
+      `Unable to determine call rate for ${phoneNumber}: ${error.message}`
+    );
   }
 }
 

@@ -59,6 +59,18 @@ watch(phoneNumber, (val) => {
   }, 500);
 });
 
+// Validate debounced phone so the query only fires once debounce settles on a valid number
+const isDebouncedPhoneValid = computed(() => {
+  if (!debouncedPhone.value) return false;
+  const e164Regex = /^\+[1-9]\d{1,14}$/;
+  if (!e164Regex.test(debouncedPhone.value)) return false;
+  try {
+    return isValidPhoneNumber(debouncedPhone.value);
+  } catch {
+    return false;
+  }
+});
+
 // Fetch call rate for the current phone number
 const {
   data: callRate,
@@ -72,7 +84,7 @@ const {
       body: { toNumber: debouncedPhone.value },
     });
   },
-  enabled: computed(() => isValidPhone.value && !isCalling.value),
+  enabled: computed(() => isDebouncedPhoneValid.value && !isCalling.value),
   retry: false,
   staleTime: 30_000, // Cache rate for 30 seconds
 });

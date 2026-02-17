@@ -139,6 +139,7 @@ export async function billCall(
     const endedAt = existingCall.endedAt
       ? new Date(existingCall.endedAt)
       : new Date();
+    // TODO: should we round or ceil?
     durationSeconds = Math.max(
       0,
       Math.round((endedAt.getTime() - answeredAt.getTime()) / 1000)

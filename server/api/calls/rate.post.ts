@@ -55,7 +55,7 @@ export default defineEventHandler(async (event) => {
 
   // Determine destination country and fetch rate
   const countryCode = extractCountryCode(validated.toNumber);
-  const ratePerMinUsd = await getVoiceRate(countryCode, "mobile");
+  const ratePerMinUsd = await getVoiceRate(validated.toNumber);
 
   // Get profit margin
   const profitMargin = config.CALL_PROFIT_MARGIN || 0.5;
