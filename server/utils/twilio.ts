@@ -73,8 +73,11 @@ export async function getVoiceRate(phoneNumber: string): Promise<number> {
     const pricing = await twilioClient.pricing.v2.voice.numbers(phoneNumber).fetch();
 
     if (pricing.outboundCallPrices && pricing.outboundCallPrices.length > 0) {
-      const price = pricing.outboundCallPrices[0];
-      const rate = price.currentPrice ?? price.basePrice ?? 0;
+      const price = pricing.outboundCallPrices[0] as Record<string, any>;
+      // The SDK types claim camelCase but the actual runtime payload uses snake_case
+      const raw = price.currentPrice ?? price.current_price
+        ?? price.basePrice ?? price.base_price;
+      const rate = typeof raw === "string" ? parseFloat(raw) : (raw ?? 0);
       if (rate > 0) {
         twilioLogger.info("Fetched per-number voice rate", {
           phoneNumber,
