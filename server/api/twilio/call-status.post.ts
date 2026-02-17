@@ -1,12 +1,9 @@
 import { readRawBody } from "h3";
 import { validateWebhookSignature } from "~~/server/utils/twilio";
 import { useDrizzle } from "~~/server/utils/drizzle";
-import { call, wallet, transaction, callCostBreakdown } from "~~/db/schema";
+import { call } from "~~/db/schema";
 import { eq, and, or, like, gte, inArray, desc } from "drizzle-orm";
-import {
-  calculateUserPrice,
-  calculateCallCostUsd,
-} from "~~/server/utils/credits";
+import { billCall } from "~~/server/utils/credits";
 import { twilioLogger } from "~~/lib/loggers/twilio";
 import querystring from "querystring";
 
@@ -183,156 +180,42 @@ export default defineEventHandler(async (event) => {
       // Note: Forced hangup is handled by cron job that runs every second
       // The cron job will check if answeredAt + maxAllowedSeconds has passed
     } else if (callStatus === "completed") {
-      // Call completed - handle billing (idempotent)
-      if (existingCall.billedAt) {
-        // Already billed - skip (idempotency)
+      // Call completed - handle billing via shared billCall (idempotent via billedAt)
+      const profitMargin = config.CALL_PROFIT_MARGIN || 0.50;
+
+      // Set endedAt on the call before billing
+      if (!existingCall.endedAt) {
+        await tx
+          .update(call)
+          .set({ endedAt: new Date() })
+          .where(eq(call.id, existingCall.id));
+        existingCall = { ...existingCall, endedAt: new Date() };
+      }
+
+      const billingResult = await billCall(tx, existingCall, {
+        profitMargin,
+        twilioPriceUsd: twilioPrice,
+        twilioPriceUnit,
+        durationSecondsOverride: callDuration,
+      });
+
+      if (billingResult.alreadyBilled) {
         twilioLogger.info("Call already billed, skipping", {
           callSid: callSid,
           callId: existingCall.id,
-          billedAt: existingCall.billedAt,
           timestamp: new Date().toISOString(),
         });
-        return;
-      }
-
-      const endedAt = new Date();
-      const durationSeconds = callDuration || 0;
-      const twilioDurationSeconds = callDuration || 0;
-
-      // Only bill if call was answered (duration > 0)
-      if (durationSeconds > 0 && existingCall.answeredAt) {
-        // Get user wallet
-        const userWallet = await tx.query.wallet.findFirst({
-          where: eq(wallet.userId, existingCall.userId),
-        });
-
-        if (!userWallet) {
-          throw new Error("Wallet not found for user");
-        }
-
-        // Get profit margin from config
-        const profitMargin = config.CALL_PROFIT_MARGIN || 0.50;
-
-        // Calculate costs
-        const ratePerMinUsd = parseFloat(existingCall.ratePerMinUsd || "0.01");
-        
-        // Use Twilio price if available, otherwise calculate from rate
-        let twilioPriceUsd: number;
-        if (twilioPrice !== null && twilioPrice !== undefined) {
-          twilioPriceUsd = twilioPrice;
-        } else {
-          // Fallback: calculate from rate and duration
-          twilioPriceUsd = calculateCallCostUsd(ratePerMinUsd, durationSeconds);
-        }
-
-        // Calculate user price with profit margin
-        const userPriceUsd = calculateUserPrice(twilioPriceUsd, profitMargin);
-
-        // Log billing calculation
-        twilioLogger.info("Calculating call billing", {
+      } else {
+        twilioLogger.info("Call billed via webhook", {
           callSid: callSid,
           callId: existingCall.id,
-          durationSeconds: durationSeconds,
-          twilioPriceUsd: twilioPriceUsd,
-          twilioPriceUnit: twilioPriceUnit,
-          profitMargin: profitMargin,
-          userPriceUsd: userPriceUsd,
-          timestamp: new Date().toISOString(),
-        });
-
-        // Check if user has enough balance (shouldn't happen due to pre-auth, but safety check)
-        const currentBalance = parseFloat(userWallet.balanceUsd || "0.00");
-        if (currentBalance < userPriceUsd) {
-          // Insufficient balance - mark as failed
-          twilioLogger.warn("Insufficient balance for call", {
-            callSid: callSid,
-            callId: existingCall.id,
-            currentBalance: currentBalance,
-            requiredBalance: userPriceUsd,
-            timestamp: new Date().toISOString(),
-          });
-          await tx
-            .update(call)
-            .set({
-              status: "failed",
-              endedAt,
-              durationSeconds,
-            })
-            .where(eq(call.id, existingCall.id));
-          return;
-        }
-
-        // Deduct user price from wallet
-        const newBalance = currentBalance - userPriceUsd;
-        await tx
-          .update(wallet)
-          .set({
-            balanceUsd: newBalance.toFixed(2),
-            updatedAt: new Date(),
-          })
-          .where(eq(wallet.id, userWallet.id));
-
-        // Create transaction
-        await tx.insert(transaction).values({
-          walletId: userWallet.id,
-          type: "call_charge",
-          amountUsd: (-userPriceUsd).toFixed(2), // Negative for charges
-          referenceType: "call",
-          referenceId: existingCall.id.toString(),
-        });
-
-        // Create cost breakdown
-        const billedMinutes = Math.ceil(durationSeconds / 60);
-        await tx.insert(callCostBreakdown).values({
-          callId: existingCall.id,
-          ratePerMinUsd: ratePerMinUsd.toString(),
-          billedMinutes,
-          twilioPriceUsd: twilioPriceUsd.toFixed(6),
-          twilioPriceUnit: twilioPriceUnit,
-          userPriceUsd: userPriceUsd.toFixed(6),
-          profitMargin: profitMargin.toFixed(4),
-          twilioDurationSeconds: twilioDurationSeconds,
-          pricingSnapshot: {
-            ratePerMinUsd,
-            durationSeconds,
-            billedMinutes,
-            twilioPriceUsd,
-            twilioPriceUnit,
-            userPriceUsd,
-            profitMargin,
-            twilioDurationSeconds,
-          },
-        });
-
-        // Log successful billing
-        twilioLogger.info("Call billed successfully", {
-          callSid: callSid,
-          callId: existingCall.id,
-          durationSeconds: durationSeconds,
-          twilioPriceUsd: twilioPriceUsd,
-          userPriceUsd: userPriceUsd,
-          newBalance: newBalance.toFixed(2),
+          billed: billingResult.billed,
+          userPriceUsd: billingResult.userPriceUsd,
+          durationSeconds: billingResult.durationSeconds,
+          newBalance: billingResult.newBalance,
           timestamp: new Date().toISOString(),
         });
       }
-
-      // Mark as billed and completed
-      await tx
-        .update(call)
-        .set({
-          status: "completed",
-          endedAt,
-          durationSeconds: durationSeconds || 0,
-          billedAt: new Date(),
-        })
-        .where(eq(call.id, existingCall.id));
-
-      twilioLogger.info("Call marked as completed", {
-        callSid: callSid,
-        callId: existingCall.id,
-        durationSeconds: durationSeconds || 0,
-        timestamp: new Date().toISOString(),
-      });
     } else if (["failed", "busy", "no-answer"].includes(callStatus)) {
       // Call failed - no billing
       await tx

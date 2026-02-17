@@ -1,7 +1,8 @@
 import { useDrizzle } from "~~/server/utils/drizzle";
 import { call } from "~~/db/schema";
-import { eq, and, inArray, isNotNull } from "drizzle-orm";
+import { eq, and, isNotNull } from "drizzle-orm";
 import { endCall } from "~~/server/utils/twilio";
+import { billCall } from "~~/server/utils/credits";
 
 /**
  * Check for active calls that have exceeded their max allowed time
@@ -9,6 +10,7 @@ import { endCall } from "~~/server/utils/twilio";
  * This function is called by a cron job every second.
  */
 export async function checkAndHangupExpiredCalls() {
+  const config = useRuntimeConfig();
   const db = useDrizzle();
   const now = new Date();
 
@@ -47,18 +49,33 @@ export async function checkAndHangupExpiredCalls() {
           // End the call via Twilio API
           await endCall(callRecord.twilioCallSid);
 
-          // Update call status
+          // Set endedAt before billing
           await db
             .update(call)
-            .set({
-              status: "completed",
-              endedAt: now,
-            })
+            .set({ endedAt: now })
             .where(eq(call.id, callRecord.id));
 
-          console.log(
-            `[Cron] Forced hangup for call ${callRecord.id} (exceeded ${callRecord.maxAllowedSeconds}s limit)`
-          );
+          // Re-fetch the call with updated endedAt
+          const updatedCall = await db.query.call.findFirst({
+            where: eq(call.id, callRecord.id),
+          });
+
+          if (updatedCall) {
+            // Bill the call inside a transaction
+            const profitMargin = config.CALL_PROFIT_MARGIN || 0.50;
+
+            await db.transaction(async (tx) => {
+              const result = await billCall(tx, updatedCall, {
+                profitMargin,
+              });
+
+              console.log(
+                `[Cron] Forced hangup for call ${callRecord.id} (exceeded ${callRecord.maxAllowedSeconds}s limit). ` +
+                `Billed: ${result.billed}, Amount: $${result.userPriceUsd.toFixed(2)}, Duration: ${result.durationSeconds}s`
+              );
+            });
+          }
+
           hungupCount++;
         }
       } catch (error) {
@@ -85,4 +102,3 @@ export async function checkAndHangupExpiredCalls() {
     hungup: hungupCount,
   };
 }
-

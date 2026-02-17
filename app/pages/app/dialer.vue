@@ -49,16 +49,46 @@ const isValidPhone = computed(() => {
   }
 });
 
+// Debounced phone number for rate lookup (avoids spamming the API on every keystroke)
+const debouncedPhone = ref(phoneNumber.value);
+let debounceTimer: NodeJS.Timeout | null = null;
+watch(phoneNumber, (val) => {
+  if (debounceTimer) clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    debouncedPhone.value = val;
+  }, 500);
+});
+
+// Fetch call rate for the current phone number
+const {
+  data: callRate,
+  isLoading: rateLoading,
+  error: rateError,
+} = useQuery({
+  queryKey: computed(() => ["callRate", debouncedPhone.value]),
+  queryFn: async () => {
+    return await $fetch("/api/calls/rate", {
+      method: "POST",
+      body: { toNumber: debouncedPhone.value },
+    });
+  },
+  enabled: computed(() => isValidPhone.value && !isCalling.value),
+  retry: false,
+  staleTime: 30_000, // Cache rate for 30 seconds
+});
+
 const remainingMinutes = computed(() => {
-  if (!wallet.value || !isValidPhone.value) return 0;
-  // TODO: get the rate per minute from the server and apply profit margin
-  // For now, return 0 as this would require server-side calculation
-  return 0;
+  return callRate.value?.maxAllowedMinutes ?? 0;
+});
+
+const userRatePerMin = computed(() => {
+  return callRate.value?.userRatePerMinUsd ?? null;
 });
 
 const invalidateQueries = () => {
   queryClient.invalidateQueries({ queryKey: ["wallet"] });
   queryClient.invalidateQueries({ queryKey: ["calls"] });
+  queryClient.invalidateQueries({ queryKey: ["callRate"] });
 };
 
 const clearPolling = () => {
@@ -596,10 +626,23 @@ onUnmounted(() => {
             </p>
           </div>
 
-          <div v-if="isValidPhone && wallet" class="p-3 bg-muted rounded">
-            <p class="text-sm">
-              Estimated remaining minutes:
-              <strong>{{ remainingMinutes }}</strong>
+          <div v-if="isValidPhone && wallet" class="p-3 bg-muted rounded space-y-1">
+            <div v-if="rateLoading" class="flex items-center gap-2">
+              <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+              <p class="text-sm text-muted-foreground">Fetching rate...</p>
+            </div>
+            <template v-else-if="callRate">
+              <p class="text-sm">
+                Rate:
+                <strong>${{ userRatePerMin?.toFixed(4) }}/min</strong>
+              </p>
+              <p class="text-sm">
+                Max minutes:
+                <strong>{{ remainingMinutes }}</strong>
+              </p>
+            </template>
+            <p v-else-if="rateError" class="text-sm text-destructive">
+              Could not fetch rate for this number.
             </p>
           </div>
 
