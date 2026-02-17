@@ -13,16 +13,23 @@ const { data: wallet, isLoading: walletLoading } = useQuery({
   },
 });
 
+// Pagination state
+const currentPage = ref(1);
+const perPage = 10;
+
 // Fetch transactions
 const { data: transactionsData, isLoading: transactionsLoading } = useQuery({
-  queryKey: ["transactions"],
+  queryKey: computed(() => ["transactions", currentPage.value]),
   queryFn: async () => {
-    const response = await $fetch("/api/wallet/transactions");
+    const response = await $fetch("/api/wallet/transactions", {
+      params: { page: currentPage.value, limit: perPage },
+    });
     return response;
   },
 });
 
 const transactions = computed(() => transactionsData.value?.transactions || []);
+const pagination = computed(() => transactionsData.value?.pagination || { page: 1, limit: perPage, total: 0, totalPages: 0 });
 
 // Purchase credits form
 const purchaseAmount = ref(10); // Default $10
@@ -159,15 +166,79 @@ const presetAmounts = [5, 10, 25, 50, 100];
               <p
                 class="font-bold"
                 :class="{
-                  'text-green-600 dark:text-green-400': transaction.amountUsd > 0,
-                  'text-red-600 dark:text-red-400': transaction.amountUsd < 0,
+                  'text-green-600 dark:text-green-400': parseFloat(transaction.amountUsd || '0') > 0,
+                  'text-red-600 dark:text-red-400': parseFloat(transaction.amountUsd || '0') < 0,
                 }"
               >
-                {{ transaction.amountUsd > 0 ? '+' : '' }}${{ Math.abs(parseFloat(transaction.amountUsd || '0')).toFixed(2) }}
+                {{ parseFloat(transaction.amountUsd || '0') > 0 ? '+' : '' }}${{ Math.abs(parseFloat(transaction.amountUsd || '0')).toFixed(2) }}
               </p>
               <p v-if="transaction.stripePayment" class="text-sm text-muted-foreground">
                 {{ transaction.stripePayment.status }}
               </p>
+            </div>
+          </div>
+
+          <!-- Pagination -->
+          <div v-if="pagination.totalPages > 1" class="flex items-center justify-between pt-4">
+            <p class="text-sm text-muted-foreground">
+              Showing {{ (pagination.page - 1) * pagination.limit + 1 }}–{{ Math.min(pagination.page * pagination.limit, pagination.total) }} of {{ pagination.total }} transactions
+            </p>
+            <div class="flex items-center gap-1">
+              <UiButton
+                variant="outline"
+                size="icon"
+                class="h-8 w-8"
+                :disabled="currentPage <= 1"
+                @click="currentPage = 1"
+              >
+                <Icon name="lucide:chevrons-left" class="h-4 w-4" />
+              </UiButton>
+              <UiButton
+                variant="outline"
+                size="icon"
+                class="h-8 w-8"
+                :disabled="currentPage <= 1"
+                @click="currentPage--"
+              >
+                <Icon name="lucide:chevron-left" class="h-4 w-4" />
+              </UiButton>
+
+              <template v-for="page in pagination.totalPages" :key="page">
+                <UiButton
+                  v-if="page === 1 || page === pagination.totalPages || (page >= currentPage - 1 && page <= currentPage + 1)"
+                  :variant="page === currentPage ? 'default' : 'outline'"
+                  size="icon"
+                  class="h-8 w-8"
+                  @click="currentPage = page"
+                >
+                  {{ page }}
+                </UiButton>
+                <span
+                  v-else-if="page === currentPage - 2 || page === currentPage + 2"
+                  class="px-1 text-muted-foreground"
+                >
+                  …
+                </span>
+              </template>
+
+              <UiButton
+                variant="outline"
+                size="icon"
+                class="h-8 w-8"
+                :disabled="currentPage >= pagination.totalPages"
+                @click="currentPage++"
+              >
+                <Icon name="lucide:chevron-right" class="h-4 w-4" />
+              </UiButton>
+              <UiButton
+                variant="outline"
+                size="icon"
+                class="h-8 w-8"
+                :disabled="currentPage >= pagination.totalPages"
+                @click="currentPage = pagination.totalPages"
+              >
+                <Icon name="lucide:chevrons-right" class="h-4 w-4" />
+              </UiButton>
             </div>
           </div>
         </div>
