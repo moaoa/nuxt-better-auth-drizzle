@@ -24,6 +24,11 @@ export async function checkAndHangupExpiredCalls() {
     ),
   });
 
+  // Log every time the cron job runs
+  console.log(
+    `[Cron] Running call hangup check at ${now.toISOString()} - Checking ${activeCalls.length} active call(s)`
+  );
+
   if (activeCalls.length === 0) {
     return { checked: 0, hungup: 0 };
   }

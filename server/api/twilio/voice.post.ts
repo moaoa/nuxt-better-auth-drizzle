@@ -83,6 +83,14 @@ export default defineEventHandler(async (event) => {
   const toNumber = body.To || body.Called || "";
   const callSid = body.CallSid || "";
   const callId = body.CallId; // Custom parameter passed from browser
+  
+  twilioLogger.info("Voice webhook body", {
+    body: body,
+    callSid: callSid,
+    callId: callId,
+    toNumber: toNumber,
+    timestamp: new Date().toISOString(),
+  });
 
   // If this is a browser call with CallId, update the call record with the actual Twilio Call SID
   if (callId && callSid) {
@@ -125,9 +133,25 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // Construct status callback URL for the Dial verb
+  // This ensures browser calls receive status webhooks (answered, completed, etc.)
+  // const protocol = headers["x-forwarded-proto"] || "https";
+  // const host = headers.host || headers["x-original-host"] || "localhost:3000";
+  // const statusCallbackUrl = `${protocol}://${host}/api/twilio/call-status`;
+  const statusCallbackUrl = `https://l3thcazlhlda.share.zrok.io/api/twilio/call-status`;
+
   const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Dial callerId="${config.TWILIO_PHONE_NUMBER}">${toNumber}</Dial>
+  <Dial 
+    callerId="${config.TWILIO_PHONE_NUMBER}" 
+  >
+  <Number
+     statusCallback="${statusCallbackUrl}" 
+     statusCallbackEvent="initiated ringing answered completed"
+  >
+    ${toNumber}
+  </Number>
+  </Dial>
 </Response>`;
 
   twilioLogger.info("Voice webhook processed, returning TwiML", {

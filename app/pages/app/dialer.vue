@@ -456,7 +456,7 @@ const pollCallStatus = (callId: number) => {
         }
       }
     } catch (error) {
-      // Silently handle polling errors
+      console.error("Polling error", error);
     }
   }, 2000);
 

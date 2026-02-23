@@ -1,4 +1,4 @@
-import { readRawBody } from "h3";
+import { readRawBody, setResponseHeader, setResponseStatus } from "h3";
 import { validateWebhookSignature } from "~~/server/utils/twilio";
 import { useDrizzle } from "~~/server/utils/drizzle";
 import { call } from "~~/db/schema";
@@ -95,56 +95,6 @@ export default defineEventHandler(async (event) => {
       where: eq(call.twilioCallSid, callSid),
     });
 
-    // If not found, try to find by destination number and recent timestamp
-    // This handles cases where the status webhook arrives before the voice webhook
-    // updates the twilioCallSid (common for immediate failures like "busy")
-    if (!existingCall) {
-      const toNumber = body.To || body.Called || "";
-      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-
-      if (toNumber) {
-        // Try to find a recent call with matching destination
-        // that hasn't been updated with the real CallSid yet
-        const potentialCalls = await db.query.call.findMany({
-          where: and(
-            eq(call.toNumber, toNumber),
-            or(
-              like(call.twilioCallSid, "browser-%"),
-              like(call.twilioCallSid, "pending-%")
-            ),
-            inArray(call.status, ["initiated", "ringing"]),
-            gte(call.createdAt, fiveMinutesAgo)
-          ),
-          orderBy: [desc(call.createdAt)],
-          limit: 1,
-        });
-        
-        const potentialCall = potentialCalls[0];
-
-        if (potentialCall) {
-          // Update the call with the actual Twilio CallSid
-          await db
-            .update(call)
-            .set({
-              twilioCallSid: callSid,
-            })
-            .where(eq(call.id, potentialCall.id));
-
-          // Fetch the updated call
-          existingCall = await db.query.call.findFirst({
-            where: eq(call.id, potentialCall.id),
-          });
-
-          twilioLogger.info("Call record updated with Twilio Call SID from status webhook", {
-            callId: potentialCall.id,
-            callSid: callSid,
-            toNumber: toNumber,
-            timestamp: new Date().toISOString(),
-          });
-        }
-      }
-    }
-
     if (!existingCall) {
       // Call not found - might be from another system or invalid
       twilioLogger.warn("Call status webhook: Call not found", {
@@ -153,12 +103,15 @@ export default defineEventHandler(async (event) => {
         toNumber: body.To || body.Called || "",
         timestamp: new Date().toISOString(),
       });
+      setResponseHeader(event, "Content-Type", "application/json");
+      setResponseStatus(event, 200);
+
       return { status: "ignored", message: "Call not found" };
     }
 
     // Handle different call statuses
     await db.transaction(async (tx) => {
-    if (callStatus === "answered" && !existingCall.answeredAt) {
+    if (callStatus === "in-progress" && existingCall && !existingCall.answeredAt) {
       // Call was answered
       const answeredAt = new Date();
 
@@ -255,7 +208,9 @@ export default defineEventHandler(async (event) => {
       timestamp: new Date().toISOString(),
     });
 
-    return { status: "processed", callSid };
+    setResponseHeader(event, "Content-Type", "text/xml");
+    setResponseStatus(event, 204);
+    return "";
   } catch (error: any) {
     // Log any errors that occur during processing
     twilioLogger.error("Error processing call status webhook", {

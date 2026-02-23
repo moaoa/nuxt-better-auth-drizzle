@@ -6,7 +6,7 @@ import "./polyfills/crypto-hash";
 export default defineNuxtConfig({
   vite: {
     server: {
-      allowedHosts: ["localhost", "127.0.0.1", "webhook.moaad.ly", "moaad.ly"],
+      allowedHosts: ["localhost", "127.0.0.1", "webhook.moaad.ly", "moaad.ly", "l3thcazlhlda.share.zrok.io"],
       hmr: {
         clientPort: 3000,
         port: 3000,
