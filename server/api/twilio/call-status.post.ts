@@ -93,7 +93,9 @@ export default defineEventHandler(async (event) => {
 
     // Find call by Twilio Call SID (idempotency key)
     let existingCall = await db.query.call.findFirst({
-      where: or(eq(call.twilioCallSid, callSid), eq(call.twilioCallSid, parentCallSid)),
+      where: parentCallSid
+        ? or(eq(call.twilioCallSid, callSid), eq(call.twilioCallSid, parentCallSid))
+        : eq(call.twilioCallSid, callSid),
     });
 
     if (!existingCall) {
