@@ -140,8 +140,6 @@ export default defineEventHandler(async (event) => {
   // const statusCallbackUrl = `${protocol}://${host}/api/twilio/call-status`;
   const statusCallbackUrl = `${config.TWILIO_WEBHOOK_BASE_URL}/api/twilio/call-status`;
 
-  console.log("statusCallbackUrl", statusCallbackUrl);
-
   const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Dial 

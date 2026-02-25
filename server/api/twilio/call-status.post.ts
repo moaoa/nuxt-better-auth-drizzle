@@ -72,6 +72,7 @@ export default defineEventHandler(async (event) => {
     });
 
     const callSid = body.CallSid;
+    const parentCallSid = body.ParentCallSid;
     const callStatus = body.CallStatus;
     const callDuration = body.CallDuration ? parseInt(body.CallDuration) : null;
     const twilioPrice = body.Price ? parseFloat(body.Price) : null;
@@ -92,7 +93,7 @@ export default defineEventHandler(async (event) => {
 
     // Find call by Twilio Call SID (idempotency key)
     let existingCall = await db.query.call.findFirst({
-      where: eq(call.twilioCallSid, callSid),
+      where: or(eq(call.twilioCallSid, callSid), eq(call.twilioCallSid, parentCallSid)),
     });
 
     if (!existingCall) {
@@ -112,8 +113,18 @@ export default defineEventHandler(async (event) => {
     // Handle different call statuses
     await db.transaction(async (tx) => {
     if (callStatus === "in-progress" && existingCall && !existingCall.answeredAt) {
-      // Call was answered
-      const answeredAt = new Date();
+      let answeredAt: Date;
+      if (body.Timestamp) {
+        // Format: "Wed, 25 Feb 2026 00:10:14 +0000"
+        const parsedDate = Date.parse(body.Timestamp);
+        if (!isNaN(parsedDate)) {
+          answeredAt = new Date(parsedDate);
+        } else {
+          answeredAt = new Date();
+        }
+      } else {
+        answeredAt = new Date();
+      }
 
       await tx
         .update(call)
