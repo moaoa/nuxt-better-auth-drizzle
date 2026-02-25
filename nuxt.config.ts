@@ -6,7 +6,7 @@ import "./polyfills/crypto-hash";
 export default defineNuxtConfig({
   vite: {
     server: {
-      allowedHosts: ["localhost", "127.0.0.1", "webhook.moaad.ly", "moaad.ly", "l3thcazlhlda.share.zrok.io"],
+      allowedHosts: ["localhost", "127.0.0.1", "webhook.moaad.ly", "moaad.ly", "w2svdl2ix6xq.share.zrok.io"],
       hmr: {
         clientPort: 3000,
         port: 3000,
@@ -140,6 +140,7 @@ export default defineNuxtConfig({
 
     // Call profit margin (server-side only)
     CALL_PROFIT_MARGIN: parseFloat(process.env.CALL_PROFIT_MARGIN || "0.50"),
+    TWILIO_WEBHOOK_BASE_URL: process.env.TWILIO_WEBHOOK_BASE_URL,
 
     // Public config (exposed to the client)
     public: {

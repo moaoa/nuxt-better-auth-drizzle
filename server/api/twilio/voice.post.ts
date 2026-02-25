@@ -138,7 +138,9 @@ export default defineEventHandler(async (event) => {
   // const protocol = headers["x-forwarded-proto"] || "https";
   // const host = headers.host || headers["x-original-host"] || "localhost:3000";
   // const statusCallbackUrl = `${protocol}://${host}/api/twilio/call-status`;
-  const statusCallbackUrl = `https://l3thcazlhlda.share.zrok.io/api/twilio/call-status`;
+  const statusCallbackUrl = `${config.TWILIO_WEBHOOK_BASE_URL}/api/twilio/call-status`;
+
+  console.log("statusCallbackUrl", statusCallbackUrl);
 
   const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
