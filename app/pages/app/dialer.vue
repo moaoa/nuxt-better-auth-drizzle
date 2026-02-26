@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { markRaw, shallowRef, onMounted, onUnmounted } from "vue";
+import { markRaw, shallowRef, onUnmounted } from "vue";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/vue-query";
 import { isValidPhoneNumber } from "libphonenumber-js";
 import { Device, Call } from "@twilio/voice-sdk";
@@ -13,7 +13,8 @@ const { data: wallet, isLoading: walletLoading } = useQuery({
   queryFn: async () => await $fetch("/api/wallet"),
 });
 
-const phoneNumber = ref("+218910098190");
+const phoneNumber = ref("");
+const isStartingCall = ref(false);
 const isCalling = ref(false);
 const callStatus = ref<string | null>(null);
 const currentCall = ref<{
@@ -110,19 +111,23 @@ const clearPolling = () => {
   }
 };
 
-const checkMicrophonePermission = async (): Promise<boolean> => {
-  try {
-    if (!navigator.permissions) {
-      // Permissions API not supported, return false to show button
-      return false;
-    }
-    const result = await navigator.permissions.query({ name: 'microphone' as PermissionName });
-    return result.state === 'granted';
-  } catch (error) {
-    // If permission check fails, default to showing button
-    return false;
-  }
+// Keypad helpers
+const handleKeyPress = (key: string) => {
+  if (isCalling.value) return;
+  if (key === '+' && phoneNumber.value.includes('+')) return;
+  phoneNumber.value += key;
 };
+
+const handleBackspace = () => {
+  if (isCalling.value || !phoneNumber.value) return;
+  phoneNumber.value = phoneNumber.value.slice(0, -1);
+};
+
+// Show validation error only when the user has typed enough characters
+const showValidationError = computed(() => {
+  if (!phoneNumber.value || phoneNumber.value.length < 4) return false;
+  return !isValidPhone.value;
+});
 
 // Helper function to log connection events
 const logConnectionEvent = (event: string, details?: any) => {
@@ -470,14 +475,59 @@ const pollCallStatus = (callId: number) => {
   }, 5 * 60 * 1000);
 };
 
-const handleStartCall = async () => {
-  if (!isValidPhone.value || isCalling.value || !isDeviceReady.value) return;
-  startCallMutation.mutate(phoneNumber.value);
+// Wait for device to be ready, initializing if needed
+const ensureDeviceReady = (): Promise<void> => {
+  if (isDeviceReady.value) return Promise.resolve();
+
+  return new Promise((resolve, reject) => {
+    if (!device.value && !isInitializingDevice.value) {
+      initializeDevice();
+    }
+
+    const stopWatch = watch(
+      [isDeviceReady, deviceError, isInitializingDevice, isReconnecting],
+      ([ready, error, initializing, reconnecting]) => {
+        if (ready) {
+          stopWatch();
+          resolve();
+        } else if (error && !initializing && !reconnecting) {
+          stopWatch();
+          reject(new Error(error));
+        }
+      },
+      { immediate: true },
+    );
+
+    // Timeout after 15 seconds
+    setTimeout(() => {
+      stopWatch();
+      if (!isDeviceReady.value) {
+        reject(new Error("Device initialization timed out. Please try again."));
+      }
+    }, 15000);
+  });
 };
 
-const handleInitializeDevice = async () => {
-  if (device.value || isInitializingDevice.value) return;
-  await initializeDevice();
+const handleStartCall = async () => {
+  if (!isValidPhone.value || isCalling.value || isStartingCall.value) return;
+
+  isStartingCall.value = true;
+
+  try {
+    if (!isDeviceReady.value) {
+      await ensureDeviceReady();
+    }
+    startCallMutation.mutate(phoneNumber.value);
+  } catch (error: any) {
+    toast({
+      title: "Unable to start call",
+      description:
+        error.message || "Failed to initialize calling. Please try again.",
+      variant: "destructive",
+    });
+  } finally {
+    isStartingCall.value = false;
+  }
 };
 
 const endCallMutation = useMutation({
@@ -531,12 +581,7 @@ const handleEndCall = () => {
   invalidateQueries();
 };
 
-onMounted(async () => {
-  const hasPermission = await checkMicrophonePermission();
-  if (hasPermission && !device.value && !isInitializingDevice.value) {
-    await initializeDevice();
-  }
-});
+// Device is initialized on-demand when user clicks Start Call
 
 onUnmounted(() => {
   cancelReconnection();
@@ -570,64 +615,10 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- Initialization Screen -->
-      <div v-if="!isDeviceReady" class="p-6 bg-card rounded-lg border">
-        <div class="flex flex-col items-center justify-center py-12 space-y-6">
-          <div
-            v-if="isInitializingDevice"
-            class="flex flex-col items-center space-y-4"
-          >
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-            <div class="text-center">
-              <p class="text-lg font-medium">Preparing to make calls...</p>
-              <p class="text-sm text-muted-foreground mt-2">
-                Please allow microphone access when prompted
-              </p>
-            </div>
-          </div>
-
-          <div
-            v-else-if="deviceError"
-            class="flex flex-col items-center space-y-4 text-center"
-          >
-            <Icon name="lucide:alert-circle" class="h-12 w-12 text-destructive" />
-            <div>
-              <p class="text-lg font-medium text-destructive">Unable to initialize</p>
-              <p class="text-sm text-muted-foreground mt-2">
-                {{ deviceError }}
-              </p>
-            </div>
-            <UiButton @click="handleInitializeDevice" variant="outline">
-              Try Again
-            </UiButton>
-          </div>
-
-          <div
-            v-else
-            class="flex flex-col items-center space-y-4 text-center"
-          >
-            <Icon name="lucide:phone" class="h-12 w-12 text-muted-foreground" />
-            <div>
-              <p class="text-lg font-medium">Ready to start calling</p>
-              <p class="text-sm text-muted-foreground mt-2">
-                Click the button below to enable calling features
-              </p>
-            </div>
-            <UiButton
-              @click="handleInitializeDevice"
-              size="lg"
-              :disabled="isInitializingDevice"
-            >
-              <Icon name="lucide:phone" class="mr-2" />
-              Enable Calling
-            </UiButton>
-          </div>
-        </div>
-      </div>
-
-      <!-- Dialer (shown only when device is ready) -->
-      <div v-else class="p-6 bg-card rounded-lg border">
+      <!-- Dialer -->
+      <div class="p-6 bg-card rounded-lg border">
         <div class="space-y-4">
+          <!-- Phone Number Input -->
           <div>
             <label class="text-sm font-medium mb-2 block">Phone Number</label>
             <UiInput
@@ -635,13 +626,65 @@ onUnmounted(() => {
               type="tel"
               placeholder="+1234567890"
               :disabled="isCalling"
-              class="text-lg"
+              class="text-lg text-center tracking-widest font-mono"
             />
-            <p class="text-xs text-muted-foreground mt-1">
+            <p
+              v-if="showValidationError"
+              class="text-xs text-destructive mt-1"
+            >
+              Invalid phone number. Use E.164 format (e.g., +1234567890)
+            </p>
+            <p
+              v-else
+              class="text-xs text-muted-foreground mt-1"
+            >
               Enter number in E.164 format (e.g., +1234567890)
             </p>
           </div>
 
+          <!-- Number Keypad -->
+          <div class="grid grid-cols-3 gap-2 max-w-xs mx-auto">
+            <UiButton
+              v-for="key in ['1', '2', '3', '4', '5', '6', '7', '8', '9']"
+              :key="key"
+              variant="outline"
+              size="lg"
+              class="h-14 text-xl font-semibold"
+              :disabled="isCalling"
+              @click="handleKeyPress(key)"
+            >
+              {{ key }}
+            </UiButton>
+            <UiButton
+              variant="outline"
+              size="lg"
+              class="h-14 text-xl font-semibold"
+              :disabled="isCalling || phoneNumber.includes('+')"
+              @click="handleKeyPress('+')"
+            >
+              +
+            </UiButton>
+            <UiButton
+              variant="outline"
+              size="lg"
+              class="h-14 text-xl font-semibold"
+              :disabled="isCalling"
+              @click="handleKeyPress('0')"
+            >
+              0
+            </UiButton>
+            <UiButton
+              variant="outline"
+              size="lg"
+              class="h-14 text-xl font-semibold"
+              :disabled="isCalling || !phoneNumber"
+              @click="handleBackspace"
+            >
+              <Icon name="lucide:delete" />
+            </UiButton>
+          </div>
+
+          <!-- Rate Info -->
           <div v-if="isValidPhone && wallet" class="p-3 bg-muted rounded space-y-1">
             <div v-if="rateLoading" class="flex items-center gap-2">
               <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
@@ -703,14 +746,25 @@ onUnmounted(() => {
               :disabled="
                 !isValidPhone ||
                 isCalling ||
+                isStartingCall ||
                 walletLoading ||
                 (wallet?.balanceUsd || 0) < 0.01
               "
               class="flex-1"
               size="lg"
             >
-              <Icon name="lucide:phone" class="mr-2" />
-              {{ isCalling ? "Calling..." : "Start Call" }}
+              <template v-if="isStartingCall">
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                Connecting...
+              </template>
+              <template v-else-if="isCalling">
+                <Icon name="lucide:phone" class="mr-2" />
+                Calling...
+              </template>
+              <template v-else>
+                <Icon name="lucide:phone" class="mr-2" />
+                Start Call
+              </template>
             </UiButton>
 
             <UiButton

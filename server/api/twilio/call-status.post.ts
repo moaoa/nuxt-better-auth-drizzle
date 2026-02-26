@@ -2,7 +2,8 @@ import { readRawBody, setResponseHeader, setResponseStatus } from "h3";
 import { validateWebhookSignature } from "~~/server/utils/twilio";
 import { useDrizzle } from "~~/server/utils/drizzle";
 import { call } from "~~/db/schema";
-import { eq, and, or, like, gte, inArray, desc } from "drizzle-orm";
+import type { Call } from "~~/db/schema";
+import { eq } from "drizzle-orm";
 import { billCall } from "~~/server/utils/credits";
 import { twilioLogger } from "~~/lib/loggers/twilio";
 import querystring from "querystring";
@@ -91,128 +92,126 @@ export default defineEventHandler(async (event) => {
 
     const db = useDrizzle();
 
-    // Find call by Twilio Call SID (idempotency key)
-    let existingCall = await db.query.call.findFirst({
-      where: parentCallSid
-        ? or(eq(call.twilioCallSid, callSid), eq(call.twilioCallSid, parentCallSid))
-        : eq(call.twilioCallSid, callSid),
+    // For "in-progress" (child leg), look up by parentCallSid; otherwise by callSid directly
+    const lookupSid = callStatus === "in-progress" && parentCallSid
+      ? parentCallSid
+      : callSid;
+
+    const existingCall = await db.query.call.findFirst({
+      where: eq(call.twilioCallSid, lookupSid),
     });
 
     if (!existingCall) {
-      // Call not found - might be from another system or invalid
       twilioLogger.warn("Call status webhook: Call not found", {
         callSid: callSid,
+        parentCallSid: parentCallSid,
+        lookupSid: lookupSid,
         callStatus: callStatus,
         toNumber: body.To || body.Called || "",
         timestamp: new Date().toISOString(),
       });
       setResponseHeader(event, "Content-Type", "application/json");
       setResponseStatus(event, 200);
-
       return { status: "ignored", message: "Call not found" };
     }
 
     // Handle different call statuses
     await db.transaction(async (tx) => {
-    if (callStatus === "in-progress" && existingCall && !existingCall.answeredAt) {
-      let answeredAt: Date;
-      if (body.Timestamp) {
-        // Format: "Wed, 25 Feb 2026 00:10:14 +0000"
-        const parsedDate = Date.parse(body.Timestamp);
-        if (!isNaN(parsedDate)) {
-          answeredAt = new Date(parsedDate);
-        } else {
-          answeredAt = new Date();
-        }
-      } else {
-        answeredAt = new Date();
-      }
-
-      await tx
-        .update(call)
-        .set({
-          status: "answered",
-          answeredAt,
-        })
-        .where(eq(call.id, existingCall.id));
-
-      twilioLogger.info("Call answered", {
-        callSid: callSid,
-        callId: existingCall.id,
-        answeredAt: answeredAt.toISOString(),
-        timestamp: new Date().toISOString(),
-      });
-
-      // Note: Forced hangup is handled by cron job that runs every second
-      // The cron job will check if answeredAt + maxAllowedSeconds has passed
-    } else if (callStatus === "completed") {
-      // Call completed - handle billing via shared billCall (idempotent via billedAt)
-      const profitMargin = config.CALL_PROFIT_MARGIN || 0.50;
-
-      // Set endedAt on the call before billing
-      if (!existingCall.endedAt) {
+      if (callStatus === "ringing") {
         await tx
           .update(call)
-          .set({ endedAt: new Date() })
+          .set({ status: "ringing" })
           .where(eq(call.id, existingCall.id));
-        existingCall = { ...existingCall, endedAt: new Date() };
-      }
 
-      const billingResult = await billCall(tx, existingCall, {
-        profitMargin,
-        twilioPriceUsd: twilioPrice,
-        twilioPriceUnit,
-        durationSecondsOverride: callDuration,
-      });
-
-      if (billingResult.alreadyBilled) {
-        twilioLogger.info("Call already billed, skipping", {
+        twilioLogger.info("Call status updated to ringing", {
           callSid: callSid,
           callId: existingCall.id,
           timestamp: new Date().toISOString(),
         });
-      } else {
-        twilioLogger.info("Call billed via webhook", {
+        return;
+      }
+
+      if (callStatus === "in-progress" && !existingCall.answeredAt) {
+        const answeredAt = body.Timestamp
+          ? (isNaN(Date.parse(body.Timestamp)) ? new Date() : new Date(Date.parse(body.Timestamp)))
+          : new Date();
+
+        await tx
+          .update(call)
+          .set({ status: "answered", answeredAt })
+          .where(eq(call.id, existingCall.id));
+
+        twilioLogger.info("Call answered", {
           callSid: callSid,
           callId: existingCall.id,
-          billed: billingResult.billed,
-          userPriceUsd: billingResult.userPriceUsd,
-          durationSeconds: billingResult.durationSeconds,
-          newBalance: billingResult.newBalance,
+          answeredAt: answeredAt.toISOString(),
           timestamp: new Date().toISOString(),
         });
+        // Note: Forced hangup is handled by cron job that runs every second
+        // The cron job will check if answeredAt + maxAllowedSeconds has passed
+        return;
       }
-    } else if (["failed", "busy", "no-answer"].includes(callStatus)) {
-      // Call failed - no billing
-      await tx
-        .update(call)
-        .set({
-          status: callStatus as "failed" | "busy" | "no-answer",
-          endedAt: new Date(),
-        })
-        .where(eq(call.id, existingCall.id));
 
-      twilioLogger.info("Call ended with failure status", {
-        callSid: callSid,
-        callId: existingCall.id,
-        status: callStatus,
-        timestamp: new Date().toISOString(),
-      });
-    } else if (callStatus === "ringing") {
-      // Update status to ringing
-      await tx
-        .update(call)
-        .set({
-          status: "ringing",
-        })
-        .where(eq(call.id, existingCall.id));
+      if (callStatus === "completed") {
+        const profitMargin = config.CALL_PROFIT_MARGIN || 0.50;
 
-      twilioLogger.info("Call status updated to ringing", {
-        callSid: callSid,
-        callId: existingCall.id,
-        timestamp: new Date().toISOString(),
-      });
-    }
+        // Set endedAt on the call before billing
+        if (!existingCall.endedAt) {
+          await tx
+            .update(call)
+            .set({ endedAt: new Date() })
+            .where(eq(call.id, existingCall.id));
+        }
+
+        const callForBilling: Call = {
+          ...existingCall,
+          endedAt: existingCall.endedAt ?? new Date(),
+        };
+
+        const billingResult = await billCall(tx, callForBilling, {
+          profitMargin,
+          twilioPriceUsd: twilioPrice,
+          twilioPriceUnit,
+          durationSecondsOverride: callDuration,
+        });
+
+        if (billingResult.alreadyBilled) {
+          twilioLogger.info("Call already billed, skipping", {
+            callSid: callSid,
+            callId: existingCall.id,
+            timestamp: new Date().toISOString(),
+          });
+        } else {
+          twilioLogger.info("Call billed via webhook", {
+            callSid: callSid,
+            callId: existingCall.id,
+            billed: billingResult.billed,
+            userPriceUsd: billingResult.userPriceUsd,
+            durationSeconds: billingResult.durationSeconds,
+            newBalance: billingResult.newBalance,
+            timestamp: new Date().toISOString(),
+          });
+        }
+        return;
+      }
+
+      if (["failed", "busy", "no-answer"].includes(callStatus)) {
+        await tx
+          .update(call)
+          .set({
+            status: callStatus as "failed" | "busy" | "no-answer",
+            endedAt: new Date(),
+          })
+          .where(eq(call.id, existingCall.id));
+
+        twilioLogger.info("Call ended with failure status", {
+          callSid: callSid,
+          callId: existingCall.id,
+          status: callStatus,
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
     });
 
     twilioLogger.info("Call status webhook processed successfully", {
@@ -234,4 +233,3 @@ export default defineEventHandler(async (event) => {
     throw error;
   }
 });
-
