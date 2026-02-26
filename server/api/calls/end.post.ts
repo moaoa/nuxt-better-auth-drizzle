@@ -5,6 +5,7 @@ import { call } from "~~/db/schema";
 import { eq } from "drizzle-orm";
 import { endCall } from "~~/server/utils/twilio";
 import { billCall } from "~~/server/utils/credits";
+import { twilioLogger } from "~~/lib/loggers/twilio";
 
 const endCallSchema = z.object({
   callId: z.number().optional(),
@@ -60,11 +61,36 @@ export default defineEventHandler(async (event) => {
     };
   }
 
+  // If the call was never answered (still "initiated" or "ringing"), cancel it without billing
+  if (["initiated", "ringing"].includes(existingCall.status) && !existingCall.answeredAt) {
+    try {
+      await endCall(existingCall.twilioCallSid);
+    } catch (error) {
+      console.error("Error ending unanswered call via Twilio:", error);
+    }
+
+    await db
+      .update(call)
+      .set({
+        status: "no-answer",
+        endedAt: new Date(),
+      })
+      .where(eq(call.id, existingCall.id));
+
+    return {
+      success: true,
+      message: "Unanswered call cancelled (no charge)",
+      callId: existingCall.id,
+      status: "no-answer",
+    };
+  }
+
   try {
     // End the call via Twilio
     await endCall(existingCall.twilioCallSid);
   } catch (error) {
     console.error("Error ending call via Twilio (continuing with billing):", error);
+    twilioLogger.error("Error ending call via Twilio (continuing with billing):", error);
     // Continue even if Twilio hangup fails — we still need to bill
   }
 

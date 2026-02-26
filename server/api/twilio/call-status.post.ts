@@ -153,6 +153,29 @@ export default defineEventHandler(async (event) => {
       }
 
       if (callStatus === "completed") {
+        // If the call was never answered and Twilio reports zero/no duration,
+        // treat it as unanswered — no billing.
+        const wasNeverAnswered = !existingCall.answeredAt && (!callDuration || callDuration === 0);
+
+        if (wasNeverAnswered) {
+          await tx
+            .update(call)
+            .set({
+              status: "no-answer",
+              endedAt: new Date(),
+            })
+            .where(eq(call.id, existingCall.id));
+
+          twilioLogger.info("Call completed but was never answered, marking as no-answer (no charge)", {
+            callSid: callSid,
+            callId: existingCall.id,
+            callDuration: callDuration,
+            answeredAt: existingCall.answeredAt,
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+
         const profitMargin = config.CALL_PROFIT_MARGIN || 0.50;
 
         // Set endedAt on the call before billing

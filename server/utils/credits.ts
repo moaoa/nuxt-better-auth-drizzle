@@ -145,16 +145,9 @@ export async function billCall(
       0,
       Math.round((endedAt.getTime() - answeredAt.getTime()) / 1000)
     );
-  } else if (existingCall.createdAt && existingCall.endedAt) {
-    // Fallback: answeredAt was never set (common for browser calls where the
-    // "answered" webhook doesn't fire). Use createdAt as approximate start time.
-    const startTime = new Date(existingCall.createdAt);
-    const endedAt = new Date(existingCall.endedAt);
-    durationSeconds = Math.max(
-      0,
-      Math.round((endedAt.getTime() - startTime.getTime()) / 1000)
-    );
   } else {
+    // If answeredAt was never set and Twilio didn't report a positive CallDuration,
+    // the call was never answered — don't bill for ringing time.
     durationSeconds = 0;
   }
 
