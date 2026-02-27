@@ -1,13 +1,24 @@
-FROM node:20-alpine as build
+# Stage 1: Build
+FROM node:20-alpine AS build
 
-RUN npm i -g pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /app
-COPY package.json /app
-RUN pnpm i
 
-COPY . /app
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
-EXPOSE 3000/tcp
+COPY . .
+RUN pnpm build
 
-CMD ["pnpm", "start"]
+# Stage 2: Production runtime
+FROM node:20-alpine AS runtime
+
+WORKDIR /app
+
+COPY --from=build /app/.output ./.output
+
+ENV NODE_ENV=production
+EXPOSE 3000
+
+CMD ["node", ".output/server/index.mjs"]
