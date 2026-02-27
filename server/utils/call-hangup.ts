@@ -2,15 +2,14 @@ import { useDrizzle } from "~~/server/utils/drizzle";
 import { call } from "~~/db/schema";
 import { eq, and, isNotNull } from "drizzle-orm";
 import { endCall } from "~~/server/utils/twilio";
-import { billCall } from "~~/server/utils/credits";
 
 /**
  * Check for active calls that have exceeded their max allowed time
  * and hang them up if necessary.
  * This function is called by a cron job every second.
+ * Billing is NOT done here — it is handled by the Twilio call-status webhook.
  */
 export async function checkAndHangupExpiredCalls() {
-  const config = useRuntimeConfig();
   const db = useDrizzle();
   const now = new Date();
 
@@ -54,32 +53,16 @@ export async function checkAndHangupExpiredCalls() {
           // End the call via Twilio API
           await endCall(callRecord.twilioCallSid);
 
-          // Set endedAt before billing
+          // Update call record: set endedAt and mark as completed
+          // Billing will be handled by the Twilio call-status webhook
           await db
             .update(call)
-            .set({ endedAt: now })
+            .set({ endedAt: now, status: "completed" })
             .where(eq(call.id, callRecord.id));
 
-          // Re-fetch the call with updated endedAt
-          const updatedCall = await db.query.call.findFirst({
-            where: eq(call.id, callRecord.id),
-          });
-
-          if (updatedCall) {
-            // Bill the call inside a transaction
-            const profitMargin = config.CALL_PROFIT_MARGIN || 0.50;
-
-            await db.transaction(async (tx) => {
-              const result = await billCall(tx, updatedCall, {
-                profitMargin,
-              });
-
-              console.log(
-                `[Cron] Forced hangup for call ${callRecord.id} (exceeded ${callRecord.maxAllowedSeconds}s limit). ` +
-                `Billed: ${result.billed}, Amount: $${result.userPriceUsd.toFixed(2)}, Duration: ${result.durationSeconds}s`
-              );
-            });
-          }
+          console.log(
+            `[Cron] Forced hangup for call ${callRecord.id} (exceeded ${callRecord.maxAllowedSeconds}s limit). Billing deferred to Twilio webhook.`
+          );
 
           hungupCount++;
         }
