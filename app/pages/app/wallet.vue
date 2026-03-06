@@ -37,10 +37,16 @@ const purchaseSchema = z.object({
   amountUsd: z.number().positive().min(0.5).max(1000),
 });
 
-const purchaseMutation = useMutation({
+interface InvoiceCreateResponse {
+  invoiceUrl: string;
+  invoiceId: string;
+  paymentId: number;
+}
+
+const purchaseMutation = useMutation<InvoiceCreateResponse, Error, number>({
   mutationFn: async (amountUsd: number) => {
     // Create NOWPayments invoice
-    const response = await $fetch("/api/nowpayments/invoice/create", {
+    const response = await $fetch<InvoiceCreateResponse>("/api/nowpayments/invoice/create", {
       method: "POST",
       body: { amountUsd },
     });
