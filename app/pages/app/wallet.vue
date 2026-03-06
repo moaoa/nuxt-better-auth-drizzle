@@ -39,17 +39,17 @@ const purchaseSchema = z.object({
 
 const purchaseMutation = useMutation({
   mutationFn: async (amountUsd: number) => {
-    // Create Stripe Checkout session
-    const response = await $fetch("/api/stripe/checkout/create", {
+    // Create NOWPayments invoice
+    const response = await $fetch("/api/nowpayments/invoice/create", {
       method: "POST",
       body: { amountUsd },
     });
     return response;
   },
   onSuccess: (data) => {
-    // Redirect to Stripe Checkout
-    if (data.checkoutUrl) {
-      window.location.href = data.checkoutUrl;
+    // Redirect to NOWPayments hosted payment page
+    if (data.invoiceUrl) {
+      window.location.href = data.invoiceUrl;
     }
   },
 });
@@ -119,8 +119,8 @@ const presetAmounts = [5, 10, 25, 50, 100];
             class="w-full"
             size="lg"
           >
-            <Icon name="lucide:credit-card" class="mr-2" />
-            <span v-if="purchaseMutation.isPending">Redirecting to checkout...</span>
+            <Icon name="lucide:wallet" class="mr-2" />
+            <span v-if="purchaseMutation.isPending">Redirecting to payment...</span>
             <span v-else>Add ${{ purchaseAmount.toFixed(2) }} to Wallet</span>
           </UiButton>
 
@@ -131,7 +131,7 @@ const presetAmounts = [5, 10, 25, 50, 100];
             Maximum purchase amount is $1,000
           </p>
           <p v-if="purchaseMutation.isError" class="text-sm text-destructive">
-            Failed to create checkout session. Please try again.
+            Failed to create payment. Please try again.
           </p>
         </div>
       </div>
@@ -158,9 +158,6 @@ const presetAmounts = [5, 10, 25, 50, 100];
               <p class="text-sm text-muted-foreground">
                 {{ new Date(transaction.createdAt).toLocaleString() }}
               </p>
-              <p v-if="transaction.stripePayment" class="text-xs text-muted-foreground mt-1">
-                Status: {{ transaction.stripePayment.status }}
-              </p>
             </div>
             <div class="text-right">
               <p
@@ -171,9 +168,6 @@ const presetAmounts = [5, 10, 25, 50, 100];
                 }"
               >
                 {{ parseFloat(transaction.amountUsd || '0') > 0 ? '+' : '' }}${{ Math.abs(parseFloat(transaction.amountUsd || '0')).toFixed(2) }}
-              </p>
-              <p v-if="transaction.stripePayment" class="text-sm text-muted-foreground">
-                {{ transaction.stripePayment.status }}
               </p>
             </div>
           </div>

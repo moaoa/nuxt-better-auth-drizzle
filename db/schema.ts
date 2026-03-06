@@ -239,6 +239,48 @@ export const stripePayment = pgTable(
   })
 );
 
+export const nowPayment = pgTable("now_payment", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  walletId: integer("wallet_id")
+    .notNull()
+    .references(() => wallet.id, { onDelete: "cascade" }),
+  nowpaymentsInvoiceId: text("nowpayments_invoice_id"),
+  nowpaymentsPaymentId: text("nowpayments_payment_id"),
+  invoiceUrl: text("invoice_url"),
+  amountUsd: numeric("amount_usd", { precision: 10, scale: 2 }).notNull(),
+  payCurrency: text("pay_currency"), // e.g. "btc", "eth"
+  payAmount: numeric("pay_amount", { precision: 20, scale: 10 }),
+  actuallyPaid: numeric("actually_paid", { precision: 20, scale: 10 }),
+  outcomeAmount: numeric("outcome_amount", { precision: 10, scale: 2 }),
+  status: text("status", {
+    enum: [
+      "pending",
+      "waiting",
+      "confirming",
+      "confirmed",
+      "sending",
+      "finished",
+      "partially_paid",
+      "expired",
+      "failed",
+      "refunded",
+    ],
+  })
+    .notNull()
+    .default("pending"),
+  metadata: jsonb("metadata").default("{}").notNull(),
+  createdAt: timestamp("created_at")
+    .$defaultFn(() => new Date())
+    .notNull(),
+  updatedAt: timestamp("updated_at")
+    .$defaultFn(() => new Date())
+    .notNull(),
+  completedAt: timestamp("completed_at"),
+});
+
 /* ---------- RELATIONS ---------- */
 
 export const walletRelations = relations(wallet, ({ one, many }) => ({
@@ -294,6 +336,20 @@ export const stripePaymentRelations = relations(
   })
 );
 
+export const nowPaymentRelations = relations(
+  nowPayment,
+  ({ one }) => ({
+    user: one(user, {
+      fields: [nowPayment.userId],
+      references: [user.id],
+    }),
+    wallet: one(wallet, {
+      fields: [nowPayment.walletId],
+      references: [wallet.id],
+    }),
+  })
+);
+
 //Types
 export type User = InferSelectModel<typeof user>;
 export type Wallet = InferSelectModel<typeof wallet>;
@@ -302,3 +358,4 @@ export type Call = InferSelectModel<typeof call>;
 export type CallCostBreakdown = InferSelectModel<typeof callCostBreakdown>;
 export type TwilioVoiceRate = InferSelectModel<typeof twilioVoiceRate>;
 export type StripePayment = InferSelectModel<typeof stripePayment>;
+export type NowPayment = InferSelectModel<typeof nowPayment>;

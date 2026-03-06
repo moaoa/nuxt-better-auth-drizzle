@@ -39,6 +39,11 @@ export const envSchema = z.object({
   STRIPE_SECRET_KEY: z.string().min(1),
   STRIPE_PUBLISHABLE_KEY: z.string().min(1), // For frontend (public)
   STRIPE_WEBHOOK_SECRET: z.string().min(1), // For webhook signature validation
+
+  // NOWPayments
+  NOWPAYMENTS_API_KEY: z.string().min(1),
+  NOWPAYMENTS_IPN_SECRET: z.string().min(1), // For IPN webhook signature validation
+  NOWPAYMENTS_BASE_URL: z.string().url().optional(), // Base URL for callbacks (success_url, cancel_url, ipn_callback_url)
 });
 
 // Create a type from the schema
