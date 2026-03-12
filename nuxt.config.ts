@@ -43,7 +43,7 @@ export default defineNuxtConfig({
     "@nuxtjs/color-mode",
     "@nuxt/icon",
     "@unlighthouse/nuxt",
-    "@nuxt/fonts",
+    // "@nuxt/fonts", // Temporarily disabled to avoid Vite CSS import.meta issue in nuxt-fonts-global.css
     "@vueuse/motion/nuxt",
     "@nuxtjs/i18n",
     "@hebilicious/vue-query-nuxt",

@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres:16
-    container_name: postgres
+    # container_name: postgres
     restart: unless-stopped
     env_file:
       - .env
@@ -25,7 +25,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.prod
-    container_name: nuxt-app
+    # container_name: nuxt-app
     restart: unless-stopped
     env_file:
       - .env
