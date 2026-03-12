@@ -2,7 +2,6 @@ import http from "http";
 import { twilioLogger } from "./lib/loggers/twilio";
 import { webhooksLogger } from "./lib/loggers/webhooks";
 import querystring from "querystring";
-import { parse as parseUrl } from "url";
 
 const PORT = 4000;
 const TARGET_HOST = "localhost";
@@ -20,35 +19,8 @@ const server = http.createServer((req, res) => {
   console.log(`URL: ${req.url}`);
   console.log(`Headers:`, req.headers);
 
-  // Parse URL to get pathname (ignoring query string)
-  const parsedUrl = parseUrl(req.url || '/');
-  const pathname = parsedUrl.pathname || '/';
-
-  // Route based on pathname
-  let webhookType = "unknown";
-  let targetPath: string;
-
-  console.log('==================================================')
-  console.log('pathname', pathname);
-  console.log('==================================================')
-
-  if (pathname === '/') {
-    webhookType = "voice";
-    targetPath = "/api/twilio/voice";
-  } else if (pathname.includes('call-status')) {
-    webhookType = "call-status";
-    targetPath = "/api/twilio/call-status";
-  } else {
-    // Return 404 for unmatched paths
-    console.log(`⚠️  Unknown webhook path: ${pathname}`);
-    res.writeHead(404, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({
-      status: "error",
-      message: "Webhook endpoint not found",
-      path: pathname
-    }));
-    return;
-  }
+  // Use original request path, preserving query string
+  const targetPath = req.url || '/';
 
   // Collect request body if present
   let body = "";
@@ -85,7 +57,6 @@ const server = http.createServer((req, res) => {
     
     // Log to file using Twilio logger
     twilioLogger.info("Twilio webhook received", {
-      webhookType,
       method: req.method,
       url: req.url,
       headers: req.headers,
@@ -145,7 +116,6 @@ const server = http.createServer((req, res) => {
 
     // Log request headers before forwarding to target server
     webhooksLogger.info("Forwarding request to target server", {
-      webhookType,
       method: options.method,
       targetUrl: `http://${options.hostname}:${options.port}${options.path}`,
       requestHeaders: forwardHeaders,
@@ -189,27 +159,24 @@ const server = http.createServer((req, res) => {
           }
         }
 
-        // For voice webhooks, ensure Content-Type is set correctly for TwiML responses
-        if (webhookType === "voice") {
-          // Check if Content-Type is missing or incorrect
-          const contentType = responseHeaders["content-type"] || 
-                             responseHeaders["Content-Type"] || 
-                             responseHeaders["Content-type"];
-          
-          // If response looks like TwiML (starts with <?xml) but Content-Type is missing/wrong
-          if (responseBody && responseBody.trim().startsWith("<?xml")) {
-            if (!contentType || 
-                (typeof contentType === "string" && !contentType.includes("xml"))) {
-              // Set correct Content-Type for TwiML
-              responseHeaders["Content-Type"] = "application/xml; charset=utf-8";
-              console.log("⚠️  Content-Type missing/incorrect for TwiML response, setting to application/xml");
-            }
+        // Ensure Content-Type is set correctly for TwiML responses
+        // Check if Content-Type is missing or incorrect
+        const contentType = responseHeaders["content-type"] || 
+                           responseHeaders["Content-Type"] || 
+                           responseHeaders["Content-type"];
+        
+        // If response looks like TwiML (starts with <?xml) but Content-Type is missing/wrong
+        if (responseBody && responseBody.trim().startsWith("<?xml")) {
+          if (!contentType || 
+              (typeof contentType === "string" && !contentType.includes("xml"))) {
+            // Set correct Content-Type for TwiML
+            responseHeaders["Content-Type"] = "application/xml; charset=utf-8";
+            console.log("⚠️  Content-Type missing/incorrect for TwiML response, setting to application/xml");
           }
         }
 
         // Log response to file
         twilioLogger.info("Webhook response", {
-          webhookType,
           statusCode: proxyRes.statusCode,
           statusMessage: proxyRes.statusMessage,
           responseHeaders: responseHeaders,
@@ -224,7 +191,6 @@ const server = http.createServer((req, res) => {
 
         // Log response headers to webhooks.log
         webhooksLogger.info("Forwarding response to Twilio", {
-          webhookType,
           statusCode: proxyRes.statusCode,
           statusMessage: proxyRes.statusMessage,
           responseHeaders: responseHeaders,
@@ -241,7 +207,6 @@ const server = http.createServer((req, res) => {
     proxyReq.on("error", (error) => {
       console.error("Error forwarding request:", error);
       twilioLogger.error("Error forwarding webhook", {
-        webhookType,
         error: error.message,
         stack: error.stack,
         timestamp: new Date().toISOString(),
@@ -283,10 +248,10 @@ server.on("error", (error: NodeJS.ErrnoException) => {
 
 server.listen(PORT, () => {
   console.log("=".repeat(50));
-  console.log(`✅ Webhook test server listening on port ${PORT}`);
+  console.log(`✅ Webhook proxy server listening on port ${PORT}`);
   console.log(`✅ Ready to receive requests...`);
   console.log(
-    `✅ Will forward Twilio webhooks to: http://${TARGET_HOST}:${TARGET_PORT}/api/twilio/*`
+    `✅ Will forward all requests to: http://${TARGET_HOST}:${TARGET_PORT}{originalPath}`
   );
   console.log("=".repeat(50));
   console.log("");

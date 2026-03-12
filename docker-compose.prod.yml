@@ -18,6 +18,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - dokploy-network
 
   app:
     build:
@@ -27,11 +29,25 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    ports:
-      - "3000:3000"
+    # When using Dokploy + Traefik, exposing the port is optional because Traefik
+    # reaches the container over the Docker network. Uncomment if direct host access is needed.
+    # ports:
+    #   - "3000:3000"
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - dokploy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.phonecall.rule=Host(`phonely.net`)"
+      - "traefik.http.routers.phonecall.entrypoints=websecure"
+      - "traefik.http.routers.phonecall.tls.certResolver=letsencrypt"
+      - "traefik.http.services.phonecall.loadbalancer.server.port=3000"
 
 volumes:
   db-data:
+
+networks:
+  dokploy-network:
+    external: true
