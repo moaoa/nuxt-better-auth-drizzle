@@ -38,12 +38,6 @@ services:
         condition: service_healthy
     networks:
       - dokploy-network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.phonecall.rule=Host(`phonely.net`)"
-      - "traefik.http.routers.phonecall.entrypoints=websecure"
-      - "traefik.http.routers.phonecall.tls.certResolver=letsencrypt"
-      - "traefik.http.services.phonecall.loadbalancer.server.port=3000"
 
 volumes:
   db-data:
