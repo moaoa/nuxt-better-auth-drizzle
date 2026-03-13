@@ -1,5 +1,5 @@
 services:
-  db:
+  postgres:
     image: postgres:16
     # container_name: postgres
     restart: unless-stopped
@@ -29,12 +29,18 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    # The .env loaded by Docker should use `postgres` as the DB host for DATABASE_URL,
+    # not `localhost`, to allow the app container to reach the Postgres service.
+    # NOTE:
+    #   Inside this container, the DB host must be the Postgres service name, not localhost.
+    #   Example DATABASE_URL value for containers:
+    #     postgres://user:password@postgres:5432/db
     # When using Dokploy + Traefik, exposing the port is optional because Traefik
     # reaches the container over the Docker network. Uncomment if direct host access is needed.
     # ports:
     #   - "3000:3000"
     depends_on:
-      db:
+      postgres:
         condition: service_healthy
     networks:
       - dokploy-network
