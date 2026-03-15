@@ -2,7 +2,17 @@ import { z } from "zod";
 
 export const envSchema = z.object({
   // Database
-  DATABASE_URL: z.string().url(),
+  // Either DATABASE_URL or the separate DB_* variables must be provided
+  DATABASE_URL: z.string().url().optional(),
+  // Separate database connection variables (alternative to DATABASE_URL)
+  DB_HOST: z.string().min(1).optional(),
+  DB_PORT: z.string().optional(),
+  DB_USER: z.string().min(1).optional(),
+  POSTGRES_PASSWORD: z.string().optional(),
+  DB_NAME: z.string().min(1).optional(),
+  // Legacy PostgreSQL variables (for docker-compose compatibility)
+  POSTGRES_USER: z.string().min(1).optional(),
+  POSTGRES_DB: z.string().min(1).optional(),
 
   // Notion OAuth
   NOTION_OAUTH_CLIENT_ID: z.string().min(1),

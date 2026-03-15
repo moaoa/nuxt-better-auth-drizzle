@@ -8,11 +8,14 @@ services:
     environment:
       # PostgreSQL will automatically create a database with the name specified in POSTGRES_DB
       # when the container is first initialized (on first run with empty data volume).
-      # Set POSTGRES_DB in your .env file to create a database with a custom name.
-      # If POSTGRES_DB is not set in .env, it defaults to 'postgres'
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      # 
+      # Supports both old (POSTGRES_*) and new (DB_*) variable names for backward compatibility.
+      # Priority: POSTGRES_* variables take precedence, then DB_* variables, then defaults.
+      # 
+      # Note: DB_PASSWORD is required (new approach). POSTGRES_PASSWORD can override it (backward compatibility).
+      POSTGRES_USER: ${POSTGRES_USER:-${DB_USER:-postgres}}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-${DB_PASSWORD:?DB_PASSWORD is required. Set DB_PASSWORD in your .env file.}}
+      POSTGRES_DB: ${POSTGRES_DB:-${DB_NAME:-postgres}}
     ports:
       - "5432:5432"
     volumes:
