@@ -54,6 +54,26 @@ services:
     networks:
       - dokploy-network
 
+  # One-shot DB migrations (Drizzle). Run: docker compose -f docker-compose.prod.yml --profile tools run --rm migrate
+  migrate:
+    profiles:
+      - tools
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    restart: "no"
+    env_file:
+      - .env
+    environment:
+      # Must match postgres service credentials; host is the Compose service name (not localhost).
+      DATABASE_URL: postgresql://${POSTGRES_USER:-${DB_USER:-postgres}}:${POSTGRES_PASSWORD:-${DB_PASSWORD}}@postgres:5432/${POSTGRES_DB:-${DB_NAME:-postgres}}
+    command: ["pnpm", "db:migrate"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - dokploy-network
+
 volumes:
   db-data:
 
