@@ -54,13 +54,14 @@ services:
     networks:
       - dokploy-network
 
-  # One-shot DB migrations (Drizzle). Run: docker compose -f docker-compose.prod.yml --profile tools run --rm migrate
+  # One-shot DB migrations (Drizzle) via Dockerfile.migrate (pnpm + drizzle-kit; no Nuxt prepare). Run:
+  #   docker compose -f docker-compose.prod.yml --profile tools run --rm migrate
   migrate:
     profiles:
       - tools
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile.migrate
     restart: "no"
     env_file:
       - .env

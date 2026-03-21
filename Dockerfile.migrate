@@ -1,0 +1,17 @@
+FROM node:20-alpine
+
+RUN npm i -g pnpm
+
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm config set registry https://registry.npmjs.org && \
+    pnpm config set fetch-retries 5 && \
+    pnpm config set fetch-timeout 60000
+
+# Skip postinstall (nuxt prepare) — not needed for drizzle-kit migrate
+RUN pnpm i --ignore-scripts
+
+COPY . .
+
+CMD ["pnpm", "db:migrate"]

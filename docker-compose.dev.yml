@@ -50,7 +50,7 @@ services:
       - tools
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile.migrate
     restart: "no"
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgres
