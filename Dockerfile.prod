@@ -17,6 +17,7 @@ FROM node:20-alpine AS runtime
 WORKDIR /app
 
 COPY --from=build /app/.output ./.output
+COPY --from=build /app/db/migrations ./db/migrations
 
 ENV NODE_ENV=production
 EXPOSE 3000

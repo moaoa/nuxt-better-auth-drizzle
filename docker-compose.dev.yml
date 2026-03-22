@@ -44,19 +44,5 @@ services:
     ports:
       - "6379:6379"
 
-  # One-shot DB migrations (Drizzle). Run: docker compose -f docker-compose.dev.yml --profile tools run --rm migrate
-  migrate:
-    profiles:
-      - tools
-    build:
-      context: .
-      dockerfile: Dockerfile.migrate
-    restart: "no"
-    environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgres
-    command: ["pnpm", "db:migrate"]
-    depends_on:
-      - postgres
-
 volumes:
   db-data:
