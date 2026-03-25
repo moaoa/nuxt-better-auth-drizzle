@@ -9,6 +9,13 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .
+
+# PostHog Cloud (@posthog/nuxt): public keys are inlined at build time — pass when building the image if you use PostHog.
+ARG NUXT_PUBLIC_POSTHOG_KEY
+ARG NUXT_PUBLIC_POSTHOG_HOST
+ENV NUXT_PUBLIC_POSTHOG_KEY=${NUXT_PUBLIC_POSTHOG_KEY}
+ENV NUXT_PUBLIC_POSTHOG_HOST=${NUXT_PUBLIC_POSTHOG_HOST}
+
 RUN pnpm build
 
 # Stage 2: Production runtime

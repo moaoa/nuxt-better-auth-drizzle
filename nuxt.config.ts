@@ -3,6 +3,9 @@ import { OgImage } from "./.nuxt/components.d";
 import "./polyfills/crypto-hash";
 // https://nuxt.com/docs/api/configuration/nuxt-config
 
+/** PostHog Cloud: client only registers when `NUXT_PUBLIC_POSTHOG_KEY` is set (also required at `nuxt build` for inlined public config). */
+const posthogEnabled = Boolean(process.env.NUXT_PUBLIC_POSTHOG_KEY?.trim());
+
 export default defineNuxtConfig({
   vite: {
     server: {
@@ -47,6 +50,7 @@ export default defineNuxtConfig({
     "@vueuse/motion/nuxt",
     "@nuxtjs/i18n",
     "@hebilicious/vue-query-nuxt",
+    ...(posthogEnabled ? ["@posthog/nuxt"] : []),
   ],
   vueQuery: {
     // useState key used by nuxt-vue-query
@@ -170,4 +174,15 @@ export default defineNuxtConfig({
       TWILIO_REGION: process.env.TWILIO_REGION,
     },
   },
+
+  ...(posthogEnabled
+    ? {
+        posthogConfig: {
+          publicKey: process.env.NUXT_PUBLIC_POSTHOG_KEY!,
+          host:
+            process.env.NUXT_PUBLIC_POSTHOG_HOST?.trim() ||
+            "https://us.i.posthog.com",
+        },
+      }
+    : {}),
 });
