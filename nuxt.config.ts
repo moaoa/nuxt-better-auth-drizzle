@@ -143,9 +143,9 @@ export default defineNuxtConfig({
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
 
     // NOWPayments configuration (server-side only)
-    NOWPAYMENTS_API_KEY: '',
-    NOWPAYMENTS_IPN_SECRET: '',
-    NOWPAYMENTS_BASE_URL: '',
+    nowpaymentsApiKey: '',
+    nowpaymentsIpnSecret: '',
+    nowpaymentsBaseUrl: '',
 
     // Call profit margin (server-side only)
     CALL_PROFIT_MARGIN: parseFloat(process.env.CALL_PROFIT_MARGIN || "0.50"),
