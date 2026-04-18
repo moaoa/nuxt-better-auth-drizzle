@@ -172,6 +172,10 @@ export default defineNuxtConfig({
 
       // Twilio region for Voice SDK (safe to expose)
       TWILIO_REGION: process.env.TWILIO_REGION,
+
+      NOWPAYMENTS_API_KEY: process.env.NOWPAYMENTS_API_KEY,
+      NOWPAYMENTS_IPN_SECRET: process.env.NOWPAYMENTS_IPN_SECRET,
+      NOWPAYMENTS_BASE_URL: process.env.NOWPAYMENTS_BASE_URL,
     },
   },
 
