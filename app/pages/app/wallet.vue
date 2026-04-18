@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { useQuery, useMutation, useQueryClient } from "@tanstack/vue-query";
 import { z } from "zod";
+import { ALLOWED_TOPUP_AMOUNTS_USD, isAllowedTopupAmount } from "~~/lib/wallet-topup";
 
 const queryClient = useQueryClient();
 
@@ -32,9 +33,11 @@ const transactions = computed(() => transactionsData.value?.transactions || []);
 const pagination = computed(() => transactionsData.value?.pagination || { page: 1, limit: perPage, total: 0, totalPages: 0 });
 
 // Purchase credits form
-const purchaseAmount = ref(10); // Default $10
+const purchaseAmount = ref<number>(10);
 const purchaseSchema = z.object({
-  amountUsd: z.number().positive().min(0.5).max(1000),
+  amountUsd: z.number().refine(isAllowedTopupAmount, {
+    message: "Please choose one of the available top-up packages.",
+  }),
 });
 
 interface InvoiceCreateResponse {
@@ -65,7 +68,7 @@ const handlePurchase = () => {
   purchaseMutation.mutate(validated.amountUsd);
 };
 
-const presetAmounts = [5, 10, 25, 50, 100];
+const presetAmounts = ALLOWED_TOPUP_AMOUNTS_USD;
 </script>
 
 <template>
@@ -106,22 +109,10 @@ const presetAmounts = [5, 10, 25, 50, 100];
             </div>
           </div>
 
-          <!-- Custom Amount -->
-          <div>
-            <label class="text-sm font-medium mb-2 block">Custom Amount (USD)</label>
-            <UiInput
-              v-model.number="purchaseAmount"
-              type="number"
-              step="0.01"
-              min="0.01"
-              placeholder="10.00"
-            />
-          </div>
-
           <!-- Purchase Button -->
           <UiButton
             @click="handlePurchase"
-            :disabled="purchaseMutation.isPending || purchaseAmount < 0.5 || purchaseAmount > 1000"
+            :disabled="purchaseMutation.isPending || !presetAmounts.includes(purchaseAmount)"
             class="w-full"
             size="lg"
           >
@@ -129,13 +120,6 @@ const presetAmounts = [5, 10, 25, 50, 100];
             <span v-if="purchaseMutation.isPending">Redirecting to payment...</span>
             <span v-else>Add ${{ purchaseAmount.toFixed(2) }} to Wallet</span>
           </UiButton>
-
-          <p v-if="purchaseAmount < 0.5" class="text-sm text-muted-foreground">
-            Minimum purchase amount is $0.50
-          </p>
-          <p v-if="purchaseAmount > 1000" class="text-sm text-muted-foreground">
-            Maximum purchase amount is $1,000
-          </p>
           <p v-if="purchaseMutation.isError" class="text-sm text-destructive">
             Failed to create payment. Please try again.
           </p>

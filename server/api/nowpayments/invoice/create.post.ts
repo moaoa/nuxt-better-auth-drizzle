@@ -5,9 +5,17 @@ import { wallet, nowPayment } from "~~/db/schema";
 import { eq } from "drizzle-orm";
 import { createInvoice } from "~~/server/utils/nowpayments";
 import { useRuntimeConfig } from "#imports";
+import {
+  ALLOWED_TOPUP_AMOUNTS_USD,
+  isAllowedTopupAmount,
+} from "~~/lib/wallet-topup";
 
 const createInvoiceSchema = z.object({
-  amountUsd: z.number().positive().min(0.5).max(1000), // Min $0.50, Max $1000
+  amountUsd: z
+    .number()
+    .refine(isAllowedTopupAmount, {
+      message: `Invalid top-up amount. Allowed values: ${ALLOWED_TOPUP_AMOUNTS_USD.join(", ")}`,
+    }),
 });
 
 export default defineEventHandler(async (event) => {

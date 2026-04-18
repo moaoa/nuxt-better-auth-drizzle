@@ -42,8 +42,8 @@ vi.mock('@tanstack/vue-query', () => ({
   },
   useMutation: ({ mutationFn, onSuccess, onError }: any) => ({
     mutate: mockMutate,
-    isPending: computed(() => false),
-    isError: computed(() => false),
+    isPending: false,
+    isError: false,
   }),
   useQueryClient: () => ({
     invalidateQueries: vi.fn(),
@@ -109,7 +109,7 @@ describe('Wallet Page', () => {
 
   it('renders all preset amount buttons', () => {
     const wrapper = createWrapper()
-    const presets = ['$5', '$10', '$25', '$50', '$100']
+    const presets = ['$5', '$10', '$15', '$20', '$25', '$30']
     for (const preset of presets) {
       expect(wrapper.text()).toContain(preset)
     }
@@ -126,16 +126,13 @@ describe('Wallet Page', () => {
     await preset25!.trigger('click')
     await nextTick()
 
-    // The input value should be updated to 25
-    const input = wrapper.find('input')
-    expect((input.element as HTMLInputElement).value).toBe('25')
+    expect(wrapper.text()).toContain('Add $25.00 to Wallet')
   })
 
   it('renders the add funds button', () => {
     const wrapper = createWrapper()
-    // The button should exist and contain wallet-related text
     const addButton = wrapper.findAll('button').find(
-      (b) => b.text().includes('Wallet') || b.text().includes('checkout')
+      (b) => b.text().includes('Add $') && b.text().includes('Wallet')
     )
     expect(addButton).toBeDefined()
   })
@@ -163,10 +160,9 @@ describe('Wallet Page', () => {
     expect(wrapper.text()).toContain('$0.05')
   })
 
-  it('renders Custom Amount label and input', () => {
+  it('does not render a custom amount input', () => {
     const wrapper = createWrapper()
-    expect(wrapper.text()).toContain('Custom Amount (USD)')
     const inputs = wrapper.findAll('input')
-    expect(inputs.length).toBeGreaterThanOrEqual(1)
+    expect(inputs.length).toBe(0)
   })
 })

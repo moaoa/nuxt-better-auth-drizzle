@@ -1,10 +1,35 @@
 <script lang="ts" setup>
-import { useQuery } from "@tanstack/vue-query";
+import { useQuery, useQueryClient } from "@tanstack/vue-query";
 
 const route = useRoute();
 const router = useRouter();
+const queryClient = useQueryClient();
 
-const sessionId = route.query.session_id as string;
+const paymentId = computed(() => route.query.payment_id as string | undefined);
+
+interface PaymentStatusResponse {
+  paymentId: number;
+  status: string;
+  completedAt: string | null;
+  amountUsd: number;
+}
+
+const {
+  data: paymentStatus,
+  isLoading: paymentStatusLoading,
+  isError: paymentStatusError,
+} = useQuery<PaymentStatusResponse>({
+  queryKey: computed(() => ["nowpayments-payment-status", paymentId.value]),
+  enabled: computed(() => Boolean(paymentId.value)),
+  queryFn: () =>
+    $fetch("/api/nowpayments/payment-status", {
+      params: { paymentId: paymentId.value },
+    }),
+  refetchInterval: (query) => {
+    const currentStatus = query.state.data?.status;
+    return currentStatus === "finished" ? false : 3000;
+  },
+});
 
 // Fetch wallet balance to show updated amount
 const { data: wallet, refetch: refetchWallet } = useQuery({
@@ -15,27 +40,28 @@ const { data: wallet, refetch: refetchWallet } = useQuery({
   },
 });
 
-// Verify payment on mount
-const paymentVerified = ref(false);
-const creditsAdded = ref<number | null>(null);
+const paymentFinished = computed(() => paymentStatus.value?.status === "finished");
 
 onMounted(async () => {
-  if (!sessionId) {
-    console.error("No session ID provided");
+  if (!paymentId.value) {
+    console.error("No payment ID provided");
     return;
   }
 
   try {
-    // Verify the session (this would ideally be done server-side)
-    // For now, we'll just invalidate the wallet cache
-    await refetchWallet();
-    paymentVerified.value = true;
-
-    // Extract credits from URL or wait for webhook
-    // In a real scenario, you might want to fetch payment details
+    await queryClient.invalidateQueries({ queryKey: ["wallet"] });
+    if (paymentFinished.value) {
+      await refetchWallet();
+    }
   } catch (error) {
     console.error("Error verifying payment:", error);
   }
+});
+
+watch(paymentFinished, async (finished) => {
+  if (!finished) return;
+  await queryClient.invalidateQueries({ queryKey: ["wallet"] });
+  await refetchWallet();
 });
 
 const goToWallet = () => {
@@ -48,16 +74,39 @@ const goToWallet = () => {
     <div class="mx-auto w-full max-w-2xl">
       <div class="p-8 bg-card rounded-lg border text-center">
         <div class="mb-6">
-          <div class="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mb-4">
-            <Icon name="lucide:check" class="w-8 h-8 text-green-600 dark:text-green-400" />
+          <div
+            class="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4"
+            :class="paymentFinished ? 'bg-green-100 dark:bg-green-900' : 'bg-yellow-100 dark:bg-yellow-900'"
+          >
+            <Icon
+              :name="paymentFinished ? 'lucide:check' : 'lucide:clock-3'"
+              class="w-8 h-8"
+              :class="paymentFinished ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'"
+            />
           </div>
-          <h1 class="text-3xl font-bold mb-2">Payment Successful!</h1>
+          <h1 class="text-3xl font-bold mb-2">
+            {{ paymentFinished ? "Payment Successful!" : "Payment Pending" }}
+          </h1>
           <p class="text-muted-foreground">
-            Funds have been added to your wallet.
+            {{
+              paymentFinished
+                ? "Funds have been added to your wallet."
+                : "We're waiting for NOWPayments confirmation. This page updates automatically."
+            }}
           </p>
         </div>
 
-        <div v-if="wallet" class="mb-6 p-4 bg-muted rounded-lg">
+        <div v-if="paymentStatusLoading" class="mb-6 p-4 bg-muted rounded-lg">
+          <p class="text-sm text-muted-foreground">Checking payment status...</p>
+        </div>
+
+        <div v-else-if="paymentStatusError" class="mb-6 p-4 bg-muted rounded-lg">
+          <p class="text-sm text-destructive">
+            We could not verify your payment status yet. Please refresh in a moment.
+          </p>
+        </div>
+
+        <div v-else-if="wallet" class="mb-6 p-4 bg-muted rounded-lg">
           <p class="text-sm text-muted-foreground mb-1">New Balance</p>
           <p class="text-2xl font-bold">
             ${{ wallet.balanceUsd?.toFixed(2) || "0.00" }}
@@ -75,8 +124,8 @@ const goToWallet = () => {
           </UiButton>
         </div>
 
-        <p v-if="sessionId" class="text-xs text-muted-foreground mt-6">
-          Session ID: {{ sessionId }}
+        <p v-if="paymentId" class="text-xs text-muted-foreground mt-6">
+          Payment ID: {{ paymentId }}
         </p>
       </div>
     </div>

@@ -3,8 +3,6 @@ services:
     image: postgres:16
     # container_name: postgres
     restart: unless-stopped
-    env_file:
-      - .env
     environment:
       # PostgreSQL will automatically create a database with the name specified in POSTGRES_DB
       # when the container is first initialized (on first run with empty data volume).
@@ -16,8 +14,6 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-${DB_USER:-postgres}}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-${DB_PASSWORD:?DB_PASSWORD is required. Set DB_PASSWORD in your .env file.}}
       POSTGRES_DB: ${POSTGRES_DB:-${DB_NAME:-postgres}}
-    ports:
-      - "5432:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
@@ -26,7 +22,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - dokploy-network
+      - private-backend
 
   app:
     build:
@@ -52,11 +48,14 @@ services:
       postgres:
         condition: service_healthy
     networks:
+      - private-backend
       - dokploy-network
 
 volumes:
   db-data:
 
 networks:
+  private-backend:
+    internal: true
   dokploy-network:
     external: true

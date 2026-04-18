@@ -1,6 +1,6 @@
 import { useDrizzle } from "~~/server/utils/drizzle";
 import { nowPayment, wallet, transaction } from "~~/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import {
   validateIpnSignature,
   type IpnWebhookBody,
@@ -64,46 +64,69 @@ export default defineEventHandler(async (event) => {
 
     // Idempotency: if already finished, skip
     if (paymentRecord.status === "finished") {
-      console.log(`Payment ${paymentRecord.id} already finished, skipping`);
+      console.info("NOWPayments webhook already processed", {
+        paymentRecordId,
+        incomingStatus: body.payment_status,
+      });
       return { received: true, processed: false, reason: "already_processed" };
     }
 
     const newStatus = body.payment_status;
-
-    // Update the payment record with latest info from webhook
-    await db
-      .update(nowPayment)
-      .set({
-        status: newStatus as any,
-        nowpaymentsPaymentId: body.payment_id?.toString() || null,
-        payCurrency: body.pay_currency || null,
-        payAmount: body.pay_amount?.toString() || null,
-        actuallyPaid: body.actually_paid?.toString() || null,
-        outcomeAmount: body.outcome_amount?.toString() || null,
-        updatedAt: new Date(),
-        metadata: {
-          ...(paymentRecord.metadata && typeof paymentRecord.metadata === "object" && !Array.isArray(paymentRecord.metadata)
-            ? (paymentRecord.metadata as Record<string, any>)
-            : {}),
-          lastIpnStatus: newStatus,
-          lastIpnAt: new Date().toISOString(),
-          payAddress: body.pay_address,
-          purchaseId: body.purchase_id,
-        },
-      })
-      .where(eq(nowPayment.id, paymentRecord.id));
+    const nextMetadata = {
+      ...(paymentRecord.metadata &&
+      typeof paymentRecord.metadata === "object" &&
+      !Array.isArray(paymentRecord.metadata)
+        ? (paymentRecord.metadata as Record<string, any>)
+        : {}),
+      lastIpnStatus: newStatus,
+      lastIpnAt: new Date().toISOString(),
+      payAddress: body.pay_address,
+      purchaseId: body.purchase_id,
+    };
 
     // Only credit wallet when payment is fully finished
     if (newStatus === "finished") {
-      await db.transaction(async (tx) => {
-        // Mark payment as completed
-        await tx
+      const creditResult = await db.transaction(async (tx) => {
+        // Mark payment as completed exactly once.
+        const completedRows = await tx
           .update(nowPayment)
           .set({
+            status: "finished",
+            nowpaymentsPaymentId: body.payment_id?.toString() || null,
+            payCurrency: body.pay_currency || null,
+            payAmount: body.pay_amount?.toString() || null,
+            actuallyPaid: body.actually_paid?.toString() || null,
+            outcomeAmount: body.outcome_amount?.toString() || null,
             completedAt: new Date(),
             updatedAt: new Date(),
+            metadata: nextMetadata,
           })
-          .where(eq(nowPayment.id, paymentRecord.id));
+          .where(
+            and(eq(nowPayment.id, paymentRecord.id), ne(nowPayment.status, "finished"))
+          )
+          .returning({
+            id: nowPayment.id,
+            walletId: nowPayment.walletId,
+            amountUsd: nowPayment.amountUsd,
+          });
+
+        if (completedRows.length === 0) {
+          return { credited: false as const, reason: "already_processed" as const };
+        }
+
+        const referenceId = `nowpayments-${paymentRecord.id}`;
+
+        const existingPurchaseTransaction = await tx.query.transaction.findFirst({
+          where: eq(transaction.referenceId, referenceId),
+        });
+
+        if (existingPurchaseTransaction) {
+          console.warn("NOWPayments duplicate transaction reference detected", {
+            paymentRecordId,
+            referenceId,
+          });
+          return { credited: false as const, reason: "duplicate_transaction" as const };
+        }
 
         // Get current wallet balance
         const currentWallet = await tx.query.wallet.findFirst({
@@ -116,13 +139,13 @@ export default defineEventHandler(async (event) => {
 
         // Add USD to wallet
         const currentBalance = parseFloat(currentWallet.balanceUsd || "0.00");
-        const amountToAdd = parseFloat(paymentRecord.amountUsd);
+        const amountToAdd = parseFloat(completedRows[0].amountUsd);
         const newBalance = currentBalance + amountToAdd;
 
         await tx
           .update(wallet)
           .set({
-            balanceUsd: newBalance.toFixed(2),//TODO: check precision
+            balanceUsd: newBalance.toFixed(2),
             updatedAt: new Date(),
           })
           .where(eq(wallet.id, paymentRecord.walletId));
@@ -131,25 +154,52 @@ export default defineEventHandler(async (event) => {
         await tx.insert(transaction).values({
           walletId: paymentRecord.walletId,
           type: "purchase",
-          amountUsd: amountToAdd.toFixed(2),//TODO: check precision
+          amountUsd: amountToAdd.toFixed(2),
           referenceType: "purchase",
-          referenceId: `nowpayments-${paymentRecord.id}`,
+          referenceId,
         });
+
+        return { credited: true as const };
       });
 
-      console.log(
-        `Successfully processed NOWPayments payment ${paymentRecord.id} for $${paymentRecord.amountUsd}`
-      );
-      return { received: true, processed: true, paymentId: paymentRecord.id };
+      if (!creditResult.credited) {
+        return { received: true, processed: false, reason: creditResult.reason };
+      }
+
+      console.info("NOWPayments payment credited", {
+        paymentRecordId: paymentRecord.id,
+        amountUsd: paymentRecord.amountUsd,
+        status: newStatus,
+      });
+      return { received: true, processed: true, paymentId: paymentRecord.id, status: newStatus };
     }
 
+    // Update non-finished statuses without changing wallet balance
+    await db
+      .update(nowPayment)
+      .set({
+        status: newStatus as any,
+        nowpaymentsPaymentId: body.payment_id?.toString() || null,
+        payCurrency: body.pay_currency || null,
+        payAmount: body.pay_amount?.toString() || null,
+        actuallyPaid: body.actually_paid?.toString() || null,
+        outcomeAmount: body.outcome_amount?.toString() || null,
+        updatedAt: new Date(),
+        metadata: nextMetadata,
+      })
+      .where(eq(nowPayment.id, paymentRecord.id));
+
     // For non-finished statuses, just acknowledge
-    console.log(
-      `NOWPayments IPN: payment ${paymentRecord.id} status updated to ${newStatus}`
-    );
+    console.info("NOWPayments payment status updated", {
+      paymentRecordId: paymentRecord.id,
+      status: newStatus,
+    });
     return { received: true, processed: true, status: newStatus };
   } catch (error) {
-    console.error("Error processing NOWPayments IPN:", error);
+    console.error("Error processing NOWPayments IPN", {
+      paymentRecordId,
+      error,
+    });
     // Return 200 to prevent NOWPayments from retrying endlessly, but log the error
     return {
       received: true,
