@@ -8,7 +8,7 @@ const NOWPAYMENTS_API_BASE = "https://api.nowpayments.io/v1";
  */
 function getApiKey(): string {
   const config = useRuntimeConfig();
-  const apiKey = config.NOWPAYMENTS_API_KEY;
+  const apiKey = config.NUXT_NOWPAYMENTS_API_KEY;
 
   if (!apiKey) {
     throw new Error("NOWPAYMENTS_API_KEY is not configured");
@@ -22,7 +22,7 @@ function getApiKey(): string {
  */
 function getIpnSecret(): string {
   const config = useRuntimeConfig();
-  const ipnSecret = config.NOWPAYMENTS_IPN_SECRET;
+  const ipnSecret = config.NUXT_NOWPAYMENTS_IPN_SECRET;
 
   if (!ipnSecret) {
     throw new Error("NOWPAYMENTS_IPN_SECRET is not configured");
