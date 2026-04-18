@@ -112,7 +112,7 @@ const presetAmounts = ALLOWED_TOPUP_AMOUNTS_USD;
           <!-- Purchase Button -->
           <UiButton
             @click="handlePurchase"
-            :disabled="purchaseMutation.isPending || !presetAmounts.includes(purchaseAmount)"
+            :disabled="purchaseMutation.isPending"
             class="w-full"
             size="lg"
           >
