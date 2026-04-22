@@ -6,7 +6,7 @@ import { twilioLogger } from "~~/lib/loggers/twilio";
 // Initialize Twilio client (will be created per request)
 function getTwilioClient() {
   const config = useRuntimeConfig();
-  return twilio(config.TWILIO_ACCOUNT_SID, config.TWILIO_AUTH_TOKEN);
+  return twilio(config.twilioAccountSid, config.twilioAuthToken);
 }
 
 export interface TwilioCall {
@@ -128,7 +128,7 @@ export function validateWebhookSignature(
   signature: string
 ): boolean {
   const config = useRuntimeConfig();
-  const authToken = config.TWILIO_WEBHOOK_SECRET;
+  const authToken = config.twilioWebhookSecret;
 
   // Create the signature string
   const data = Object.keys(params)

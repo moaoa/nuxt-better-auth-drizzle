@@ -138,12 +138,12 @@ export default defineEventHandler(async (event) => {
   // const protocol = headers["x-forwarded-proto"] || "https";
   // const host = headers.host || headers["x-original-host"] || "localhost:3000";
   // const statusCallbackUrl = `${protocol}://${host}/api/twilio/call-status`;
-  const statusCallbackUrl = `${config.TWILIO_WEBHOOK_BASE_URL}/api/twilio/call-status`;
+  const statusCallbackUrl = `${config.twilioWebhookBaseUrl}/api/twilio/call-status`;
 
   const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Dial 
-    callerId="${config.TWILIO_PHONE_NUMBER}" 
+    callerId="${config.twilioPhoneNumber}" 
   >
   <Number
      statusCallback="${statusCallbackUrl}" 
@@ -157,7 +157,7 @@ export default defineEventHandler(async (event) => {
   twilioLogger.info("Voice webhook processed, returning TwiML", {
     callSid: body.CallSid,
     toNumber: toNumber,
-    fromNumber: config.TWILIO_PHONE_NUMBER,
+    fromNumber: config.twilioPhoneNumber,
     twimlResponse: twimlResponse,
     timestamp: new Date().toISOString(),
   });

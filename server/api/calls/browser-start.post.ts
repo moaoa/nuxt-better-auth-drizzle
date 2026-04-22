@@ -91,7 +91,7 @@ export default defineEventHandler(async (event) => {
     .values({
       userId: session.user.id,
       twilioCallSid: `browser-${Date.now()}`, // Temporary, will be updated by webhook
-      fromNumber: config.TWILIO_PHONE_NUMBER,
+      fromNumber: config.twilioPhoneNumber,
       toNumber: validated.toNumber,
       status: "initiated",
       ratePerMinUsd: ratePerMinUsd.toString(),

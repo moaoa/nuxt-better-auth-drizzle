@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig();
 
   // Validate required credentials
-  if (!config.TWILIO_ACCOUNT_SID) {
+  if (!config.twilioAccountSid) {
     throw createError({
       statusCode: 500,
       statusMessage: "TWILIO_ACCOUNT_SID is not configured",
@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Validate Account SID format (should start with "AC")
-  if (!config.TWILIO_ACCOUNT_SID.startsWith("AC")) {
+  if (!config.twilioAccountSid.startsWith("AC")) {
     console.warn(
       "TWILIO_ACCOUNT_SID does not start with 'AC'. This might indicate an incorrect Account SID."
     );
@@ -27,9 +27,9 @@ export default defineEventHandler(async (event) => {
 
   // Determine which credentials to use
   const useApiKey = !!(
-    config.TWILIO_API_KEY_SID && config.TWILIO_API_KEY_SECRET
+    config.twilioApiKeySid && config.twilioApiKeySecret
   );
-  const useAuthToken = !!config.TWILIO_AUTH_TOKEN;
+  const useAuthToken = !!config.twilioAuthToken;
 
   if (!useApiKey && !useAuthToken) {
     throw createError({
@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
 
   if (
     useApiKey &&
-    (!config.TWILIO_API_KEY_SID || !config.TWILIO_API_KEY_SECRET)
+    (!config.twilioApiKeySid || !config.twilioApiKeySecret)
   ) {
     throw createError({
       statusCode: 500,
@@ -68,7 +68,7 @@ export default defineEventHandler(async (event) => {
   const baseUrl = config.public.BETTER_AUTH_URL || "http://localhost:3000";
   const voiceUrl = `${baseUrl}/api/twilio/voice`;
 
-  if (!config.TWILIO_APP_SID) {
+  if (!config.twilioAppSid) {
     throw createError({
       statusCode: 500,
       statusMessage:
@@ -77,7 +77,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Validate App SID format (should start with "AP")
-  if (!config.TWILIO_APP_SID.startsWith("AP")) {
+  if (!config.twilioAppSid.startsWith("AP")) {
     console.warn(
       "TWILIO_APP_SID does not start with 'AP'. This might indicate an incorrect App SID."
     );
@@ -85,17 +85,17 @@ export default defineEventHandler(async (event) => {
 
   const voiceGrant = new VoiceGrant({
     incomingAllow: true,
-    outgoingApplicationSid: config.TWILIO_APP_SID,
+    outgoingApplicationSid: config.twilioAppSid,
   });
 
   // Create the access token
   // Use API Key if available, otherwise use Auth Token
   const signingKeySid = useApiKey
-    ? config.TWILIO_API_KEY_SID!
-    : config.TWILIO_ACCOUNT_SID;
+    ? config.twilioApiKeySid!
+    : config.twilioAccountSid;
   const signingKeySecret = useApiKey
-    ? config.TWILIO_API_KEY_SECRET!
-    : config.TWILIO_AUTH_TOKEN!;
+    ? config.twilioApiKeySecret!
+    : config.twilioAuthToken!;
 
   // Validate that credentials are not empty strings
   if (!signingKeySid || !signingKeySecret) {
@@ -131,7 +131,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Verify Account SID matches signing key SID when using Auth Token
-  if (!useApiKey && signingKeySid !== config.TWILIO_ACCOUNT_SID) {
+  if (!useApiKey && signingKeySid !== config.twilioAccountSid) {
     console.error("⚠️ WARNING: Signing key SID doesn't match Account SID when using Auth Token!");
     throw createError({
       statusCode: 500,
@@ -148,7 +148,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     const token = new AccessToken(
-      config.TWILIO_ACCOUNT_SID,
+      config.twilioAccountSid,
       signingKeySid,
       signingKeySecret,
       {
@@ -167,10 +167,10 @@ export default defineEventHandler(async (event) => {
   } catch (error: any) {
     console.error("Failed to generate Twilio access token:", {
       error: error.message,
-      accountSid: config.TWILIO_ACCOUNT_SID?.substring(0, 10) + "...",
+      accountSid: config.twilioAccountSid?.substring(0, 10) + "...",
       identity: identity,
       usingApiKey: useApiKey,
-      appSid: config.TWILIO_APP_SID?.substring(0, 10) + "...",
+      appSid: config.twilioAppSid?.substring(0, 10) + "...",
       expectedVoiceUrl: voiceUrl,
     });
     

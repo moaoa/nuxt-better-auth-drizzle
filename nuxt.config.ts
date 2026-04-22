@@ -116,8 +116,6 @@ export default defineNuxtConfig({
     },
   },
   runtimeConfig: {
-    NOTION_OAUTH_CLIENT_SECRET: process.env.NOTION_OAUTH_CLIENT_SECRET,
-    GOOGLE_SHEETS_CLIENT_SECRET: process.env.GOOGLE_SHEETS_CLIENT_SECRET,
     // Better Auth Google OAuth secret (server-side only)
     NUXT_GOOGLE_CLIENT_SECRET: process.env.NUXT_GOOGLE_CLIENT_SECRET,
 
@@ -128,15 +126,15 @@ export default defineNuxtConfig({
 
     DRIVE_WEBHOOK_BASE_URL: process.env.DRIVE_WEBHOOK_BASE_URL,
 
-    TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
-    TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
-    TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER,
-    TWILIO_WEBHOOK_SECRET: process.env.TWILIO_WEBHOOK_SECRET,
+    twilioAccountSid: "",
+    twilioAuthToken: "",
+    twilioPhoneNumber: "",
+    twilioWebhookSecret: "",
     // Optional: API Key for access tokens (more secure than using Auth Token)
-    TWILIO_API_KEY_SID: process.env.TWILIO_API_KEY_SID,
-    TWILIO_API_KEY_SECRET: process.env.TWILIO_API_KEY_SECRET,
+    twilioApiKeySid: "",
+    twilioApiKeySecret: "",
     // Optional: TwiML App SID (if using TwiML App)
-    TWILIO_APP_SID: process.env.TWILIO_APP_SID,
+    twilioAppSid: "",
 
     // Stripe configuration (server-side only)
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
@@ -149,21 +147,11 @@ export default defineNuxtConfig({
 
     // Call profit margin (server-side only)
     CALL_PROFIT_MARGIN: parseFloat(process.env.CALL_PROFIT_MARGIN || "0.50"),
-    TWILIO_WEBHOOK_BASE_URL: process.env.TWILIO_WEBHOOK_BASE_URL,
+    twilioWebhookBaseUrl: "",
 
     // Public config (exposed to the client)
     public: {
-      NOTION_OAUTH_REDIRECT_URI: process.env.NOTION_OAUTH_REDIRECT_URI,
-      NOTION_OAUTH_CLIENT_ID: process.env.NOTION_OAUTH_CLIENT_ID,
-      NOTION_TOKEN_URL: process.env.NOTION_TOKEN_URL,
-      NOTION_AUTH_URL: process.env.NOTION_AUTH_URL,
-      NOTION_TO_GOOGLE_SHEETS_REDIRECT_URI:
-        process.env.NOTION_TO_GOOGLE_SHEETS_REDIRECT_URI,
       GOOGLE_CLIENT_ID: process.env.NUXT_GOOGLE_CLIENT_ID,
-
-      GOOGLE_SHEETS_CLIENT_ID: process.env.GOOGLE_SHEETS_CLIENT_ID,
-      GOOGLE_SHEETS_REDIRECT_URI: process.env.GOOGLE_SHEETS_REDIRECT_URI,
-
       // Stripe publishable key (safe to expose to client)
       STRIPE_PUBLISHABLE_KEY: process.env.STRIPE_PUBLISHABLE_KEY,
 
@@ -172,7 +160,6 @@ export default defineNuxtConfig({
 
       // Twilio region for Voice SDK (safe to expose)
       TWILIO_REGION: process.env.TWILIO_REGION,
-
     },
   },
 

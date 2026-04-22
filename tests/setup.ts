@@ -18,11 +18,11 @@ import { ref, computed, watch, reactive, toRef, toRefs, nextTick, onMounted, onU
 ;(globalThis as any).navigateTo = (path: string) => ({ redirect: path })
 ;(globalThis as any).defineNuxtRouteMiddleware = (fn: Function) => fn
 ;(globalThis as any).useRuntimeConfig = () => ({
-  TWILIO_WEBHOOK_SECRET: 'test-webhook-secret-key',
-  TWILIO_ACCOUNT_SID: 'test-account-sid',
-  TWILIO_AUTH_TOKEN: 'test-auth-token',
-  TWILIO_PHONE_NUMBER: '+15005550006',
-  TWILIO_WEBHOOK_BASE_URL: 'https://test.example.com',
+  twilioWebhookSecret: 'test-webhook-secret-key',
+  twilioAccountSid: 'test-account-sid',
+  twilioAuthToken: 'test-auth-token',
+  twilioPhoneNumber: '+15005550006',
+  twilioWebhookBaseUrl: 'https://test.example.com',
   CALL_PROFIT_MARGIN: 0.5,
   public: {
     TWILIO_REGION: 'us1',

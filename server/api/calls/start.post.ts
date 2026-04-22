@@ -87,7 +87,7 @@ export default defineEventHandler(async (event) => {
     .values({
       userId: session.user.id,
       twilioCallSid: `pending-${Date.now()}`, // Temporary, will be updated
-      fromNumber: config.TWILIO_PHONE_NUMBER,
+      fromNumber: config.twilioPhoneNumber,
       toNumber: validated.toNumber,
       status: "initiated",
       ratePerMinUsd: ratePerMinUsd.toString(),
@@ -102,7 +102,7 @@ export default defineEventHandler(async (event) => {
     const voiceUrl = `${baseUrl}/api/twilio/voice`;
 
     const twilioCall = await initiateCall(
-      config.TWILIO_PHONE_NUMBER,
+      config.twilioPhoneNumber,
       validated.toNumber,
       webhookUrl,
       voiceUrl

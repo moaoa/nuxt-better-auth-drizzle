@@ -3,9 +3,9 @@ import crypto from 'crypto'
 
 // Stub Nuxt's auto-imported useRuntimeConfig as a global
 ;(globalThis as any).useRuntimeConfig = () => ({
-  TWILIO_WEBHOOK_SECRET: 'test-webhook-secret-key',
-  TWILIO_ACCOUNT_SID: 'test-account-sid',
-  TWILIO_AUTH_TOKEN: 'test-auth-token',
+  twilioWebhookSecret: 'test-webhook-secret-key',
+  twilioAccountSid: 'test-account-sid',
+  twilioAuthToken: 'test-auth-token',
 })
 
 import {
