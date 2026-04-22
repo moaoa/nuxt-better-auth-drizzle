@@ -63,9 +63,9 @@ describe("NOWPayments invoice create API", () => {
     });
   });
 
-  it("rejects an amount outside fixed packages", async () => {
+  it("rejects an amount below minimum", async () => {
     const event = {
-      __body: { amountUsd: 12 },
+      __body: { amountUsd: 0.99 },
       __headers: {},
     };
 
@@ -73,9 +73,29 @@ describe("NOWPayments invoice create API", () => {
     expect(mocks.createInvoice).not.toHaveBeenCalled();
   });
 
-  it("creates an invoice when amount is an allowed package", async () => {
+  it("rejects an amount above maximum", async () => {
     const event = {
-      __body: { amountUsd: 15 },
+      __body: { amountUsd: 50.01 },
+      __headers: {},
+    };
+
+    await expect(handler(event as any)).rejects.toThrow();
+    expect(mocks.createInvoice).not.toHaveBeenCalled();
+  });
+
+  it("rejects an amount with more than two decimals", async () => {
+    const event = {
+      __body: { amountUsd: 12.345 },
+      __headers: {},
+    };
+
+    await expect(handler(event as any)).rejects.toThrow();
+    expect(mocks.createInvoice).not.toHaveBeenCalled();
+  });
+
+  it("creates an invoice for a valid custom amount", async () => {
+    const event = {
+      __body: { amountUsd: 12.5 },
       __headers: {},
     };
 
@@ -83,7 +103,7 @@ describe("NOWPayments invoice create API", () => {
 
     expect(mocks.createInvoice).toHaveBeenCalledWith(
       expect.objectContaining({
-        priceAmount: 15,
+        priceAmount: 12.5,
         orderId: "wallet-topup-7",
       })
     );

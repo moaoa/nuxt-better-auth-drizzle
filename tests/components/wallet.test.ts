@@ -160,9 +160,19 @@ describe('Wallet Page', () => {
     expect(wrapper.text()).toContain('$0.05')
   })
 
-  it('does not render a custom amount input', () => {
+  it('renders a custom amount input', () => {
     const wrapper = createWrapper()
     const inputs = wrapper.findAll('input')
-    expect(inputs.length).toBe(0)
+    expect(inputs.length).toBe(1)
+  })
+
+  it('updates the purchase label when entering a custom amount', async () => {
+    const wrapper = createWrapper()
+    const input = wrapper.find('input')
+
+    await input.setValue('12.5')
+    await nextTick()
+
+    expect(wrapper.text()).toContain('Add $12.50 to Wallet')
   })
 })

@@ -6,15 +6,16 @@ import { eq } from "drizzle-orm";
 import { createInvoice } from "~~/server/utils/nowpayments";
 import { useRuntimeConfig } from "#imports";
 import {
-  ALLOWED_TOPUP_AMOUNTS_USD,
-  isAllowedTopupAmount,
+  isValidTopupAmount,
+  MIN_TOPUP_AMOUNT_USD,
+  MAX_TOPUP_AMOUNT_USD,
 } from "~~/lib/wallet-topup";
 
 const createInvoiceSchema = z.object({
   amountUsd: z
     .number()
-    .refine(isAllowedTopupAmount, {
-      message: `Invalid top-up amount. Allowed values: ${ALLOWED_TOPUP_AMOUNTS_USD.join(", ")}`,
+    .refine(isValidTopupAmount, {
+      message: `Invalid top-up amount. Use an amount between $${MIN_TOPUP_AMOUNT_USD.toFixed(2)} and $${MAX_TOPUP_AMOUNT_USD.toFixed(2)} with up to 2 decimal places.`,
     }),
 });
 

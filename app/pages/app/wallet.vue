@@ -1,7 +1,12 @@
 <script lang="ts" setup>
 import { useQuery, useMutation, useQueryClient } from "@tanstack/vue-query";
 import { z } from "zod";
-import { ALLOWED_TOPUP_AMOUNTS_USD, isAllowedTopupAmount } from "~~/lib/wallet-topup";
+import {
+  ALLOWED_TOPUP_AMOUNTS_USD,
+  isValidTopupAmount,
+  MIN_TOPUP_AMOUNT_USD,
+  MAX_TOPUP_AMOUNT_USD,
+} from "~~/lib/wallet-topup";
 
 const queryClient = useQueryClient();
 
@@ -34,9 +39,10 @@ const pagination = computed(() => transactionsData.value?.pagination || { page: 
 
 // Purchase credits form
 const purchaseAmount = ref<number>(10);
+const purchaseError = ref<string | null>(null);
 const purchaseSchema = z.object({
-  amountUsd: z.number().refine(isAllowedTopupAmount, {
-    message: "Please choose one of the available top-up packages.",
+  amountUsd: z.number().refine(isValidTopupAmount, {
+    message: `Amount must be between $${MIN_TOPUP_AMOUNT_USD.toFixed(2)} and $${MAX_TOPUP_AMOUNT_USD.toFixed(2)} with up to 2 decimal places.`,
   }),
 });
 
@@ -64,8 +70,14 @@ const purchaseMutation = useMutation<InvoiceCreateResponse, Error, number>({
 });
 
 const handlePurchase = () => {
-  const validated = purchaseSchema.parse({ amountUsd: purchaseAmount.value });
-  purchaseMutation.mutate(validated.amountUsd);
+  const validated = purchaseSchema.safeParse({ amountUsd: purchaseAmount.value });
+  if (!validated.success) {
+    purchaseError.value = validated.error.issues[0]?.message || "Invalid amount";
+    return;
+  }
+
+  purchaseError.value = null;
+  purchaseMutation.mutate(validated.data.amountUsd);
 };
 
 const presetAmounts = ALLOWED_TOPUP_AMOUNTS_USD;
@@ -102,11 +114,30 @@ const presetAmounts = ALLOWED_TOPUP_AMOUNTS_USD;
                 :key="amount"
                 variant="outline"
                 :class="{ 'border-primary': purchaseAmount === amount }"
-                @click="purchaseAmount = amount"
+                @click="
+                  purchaseAmount = amount;
+                  purchaseError = null;
+                "
               >
                 ${{ amount }}
               </UiButton>
             </div>
+          </div>
+
+          <div>
+            <p class="text-sm font-medium mb-2">Custom Amount (USD)</p>
+            <UiInput
+              v-model.number="purchaseAmount"
+              type="number"
+              :min="MIN_TOPUP_AMOUNT_USD"
+              :max="MAX_TOPUP_AMOUNT_USD"
+              step="0.01"
+              placeholder="Enter amount"
+              @input="purchaseError = null"
+            />
+            <p class="text-xs text-muted-foreground mt-1">
+              Enter an amount between ${{ MIN_TOPUP_AMOUNT_USD.toFixed(2) }} and ${{ MAX_TOPUP_AMOUNT_USD.toFixed(2) }}.
+            </p>
           </div>
 
           <!-- Purchase Button -->
@@ -120,6 +151,9 @@ const presetAmounts = ALLOWED_TOPUP_AMOUNTS_USD;
             <span v-if="purchaseMutation.isPending">Redirecting to payment...</span>
             <span v-else>Add ${{ purchaseAmount.toFixed(2) }} to Wallet</span>
           </UiButton>
+          <p v-if="purchaseError" class="text-sm text-destructive">
+            {{ purchaseError }}
+          </p>
           <p v-if="purchaseMutation.isError" class="text-sm text-destructive">
             Failed to create payment. Please try again.
           </p>
