@@ -1,10 +1,11 @@
 import { z } from "zod";
 import { requireUserSession } from "~~/server/utils/session";
 import { useDrizzle } from "~~/server/utils/drizzle";
-import { wallet, nowPayment } from "~~/db/schema";
+import { nowPayment } from "~~/db/schema";
 import { eq } from "drizzle-orm";
 import { createInvoice } from "~~/server/utils/nowpayments";
 import { useRuntimeConfig } from "#imports";
+import { getOrCreateWalletByUserId } from "~~/server/utils/wallet";
 import {
   isValidTopupAmount,
   MIN_TOPUP_AMOUNT_USD,
@@ -27,21 +28,7 @@ export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig();
   const db = useDrizzle();
 
-  // Get or create wallet
-  let userWallet = await db.query.wallet.findFirst({
-    where: eq(wallet.userId, session.user.id),
-  });
-
-  if (!userWallet) {
-    const [newWallet] = await db
-      .insert(wallet)
-      .values({
-        userId: session.user.id,
-        balanceUsd: "0.00",
-      })
-      .returning();
-    userWallet = newWallet;
-  }
+  const userWallet = await getOrCreateWalletByUserId(db, session.user.id);
 
   // Create payment record in database with status 'pending'
   const [paymentRecord] = await db

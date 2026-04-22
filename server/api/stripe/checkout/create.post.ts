@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { requireUserSession } from "~~/server/utils/session";
 import { useDrizzle } from "~~/server/utils/drizzle";
-import { wallet, stripePayment } from "~~/db/schema";
-import { eq } from "drizzle-orm";
+import { stripePayment } from "~~/db/schema";
 import { createCheckoutSession } from "~~/server/utils/stripe";
 import { useRuntimeConfig } from "#imports";
+import { getOrCreateWalletByUserId } from "~~/server/utils/wallet";
 
 const createCheckoutSchema = z.object({
   amountUsd: z.number().positive().min(0.5).max(1000), // Min $0.50, Max $1000
@@ -18,21 +18,7 @@ export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig();
   const db = useDrizzle();
 
-  // Get or create wallet
-  let userWallet = await db.query.wallet.findFirst({
-    where: eq(wallet.userId, session.user.id),
-  });
-
-  if (!userWallet) {
-    const [newWallet] = await db
-      .insert(wallet)
-      .values({
-        userId: session.user.id,
-        balanceUsd: "0.00",
-      })
-      .returning();
-    userWallet = newWallet;
-  }
+  const userWallet = await getOrCreateWalletByUserId(db, session.user.id);
 
   // Create success and cancel URLs
   const baseUrl = config.public.BETTER_AUTH_URL || "http://localhost:3000";

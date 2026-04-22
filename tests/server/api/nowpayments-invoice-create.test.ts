@@ -3,7 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   createInvoice: vi.fn(),
   findWallet: vi.fn(),
-  insertValues: vi.fn(),
+  walletInsertValues: vi.fn(),
+  nowPaymentInsertValues: vi.fn(),
+  walletInsertReturning: vi.fn(),
+  nowPaymentInsertReturning: vi.fn(),
   updateWhere: vi.fn(),
   dbInsert: vi.fn(),
   dbUpdate: vi.fn(),
@@ -44,17 +47,32 @@ describe("NOWPayments invoice create API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.findWallet.mockResolvedValue({ id: 21, userId: "user-1", balanceUsd: "0.00" });
-    mocks.insertValues.mockReturnValue({
-      returning: vi.fn().mockResolvedValue([
-        {
-          id: 7,
-          walletId: 21,
-          amountUsd: "10.00",
-          status: "pending",
-        },
-      ]),
+    mocks.walletInsertReturning.mockResolvedValue([]);
+    mocks.nowPaymentInsertReturning.mockResolvedValue([
+      {
+        id: 7,
+        walletId: 21,
+        amountUsd: "10.00",
+        status: "pending",
+      },
+    ]);
+    mocks.walletInsertValues.mockReturnValue({
+      onConflictDoNothing: vi.fn(() => ({
+        returning: mocks.walletInsertReturning,
+      })),
     });
-    mocks.dbInsert.mockReturnValue({ values: mocks.insertValues });
+    mocks.nowPaymentInsertValues.mockReturnValue({
+      returning: mocks.nowPaymentInsertReturning,
+    });
+    mocks.dbInsert.mockImplementation((table: any) => {
+      if (table?.id === "wallet.id") {
+        return { values: mocks.walletInsertValues };
+      }
+      if (table?.id === "nowPayment.id") {
+        return { values: mocks.nowPaymentInsertValues };
+      }
+      throw new Error("Unexpected table in db.insert");
+    });
     mocks.updateWhere.mockResolvedValue(undefined);
     mocks.dbUpdate.mockReturnValue({ set: vi.fn(() => ({ where: mocks.updateWhere })) });
     mocks.createInvoice.mockResolvedValue({
@@ -104,6 +122,35 @@ describe("NOWPayments invoice create API", () => {
     expect(mocks.createInvoice).toHaveBeenCalledWith(
       expect.objectContaining({
         priceAmount: 12.5,
+        orderId: "wallet-topup-7",
+      })
+    );
+    expect(result).toEqual({
+      invoiceUrl: "https://nowpayments.io/invoice/np-invoice-1",
+      invoiceId: "np-invoice-1",
+      paymentId: 7,
+    });
+  });
+
+  it("continues invoice creation when wallet insert conflicts", async () => {
+    mocks.findWallet
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 21, userId: "user-1", balanceUsd: "0.00" });
+    mocks.walletInsertReturning.mockResolvedValueOnce([]);
+
+    const event = {
+      __body: { amountUsd: 10 },
+      __headers: {},
+    };
+
+    const result = await handler(event as any);
+
+    expect(mocks.walletInsertValues).toHaveBeenCalledWith({
+      userId: "user-1",
+      balanceUsd: "0.00",
+    });
+    expect(mocks.createInvoice).toHaveBeenCalledWith(
+      expect.objectContaining({
         orderId: "wallet-topup-7",
       })
     );
