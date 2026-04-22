@@ -17,6 +17,7 @@ const phoneNumber = ref("");
 const isStartingCall = ref(false);
 const isCalling = ref(false);
 const callStatus = ref<string | null>(null);
+const startCallErrorMessage = ref<string | null>(null);
 const currentCall = ref<{
   callId: number;
   twilioCallSid: string;
@@ -54,6 +55,7 @@ const isValidPhone = computed(() => {
 const debouncedPhone = ref(phoneNumber.value);
 let debounceTimer: NodeJS.Timeout | null = null;
 watch(phoneNumber, (val) => {
+  startCallErrorMessage.value = null;
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
     debouncedPhone.value = val;
@@ -96,6 +98,25 @@ const remainingMinutes = computed(() => {
 
 const userRatePerMin = computed(() => {
   return callRate.value?.userRatePerMinUsd ?? null;
+});
+
+const walletBalanceUsd = computed(() => {
+  return wallet.value?.balanceUsd ?? 0;
+});
+
+const canAffordOneMinute = computed(() => {
+  if (!isValidPhone.value) return true;
+  if (!callRate.value) return false;
+  return (callRate.value.maxAllowedSeconds ?? 0) >= 60;
+});
+
+const startCallDisabled = computed(() => {
+  if (!isValidPhone.value) return true;
+  if (isCalling.value || isStartingCall.value || walletLoading.value || rateLoading.value) {
+    return true;
+  }
+  if (rateError.value || !callRate.value) return true;
+  return !canAffordOneMinute.value;
 });
 
 const invalidateQueries = () => {
@@ -427,8 +448,25 @@ const startCallMutation = useMutation({
       throw error;
     }
   },
-  onError: () => {
+  onError: (error: unknown) => {
     callStatus.value = "error";
+    const fetchError = error as {
+      data?: { statusMessage?: string; message?: string };
+      statusMessage?: string;
+      message?: string;
+    };
+    const message =
+      fetchError?.data?.statusMessage ||
+      fetchError?.statusMessage ||
+      fetchError?.data?.message ||
+      fetchError?.message ||
+      "Unable to start call. Please try again.";
+    startCallErrorMessage.value = message;
+    toast({
+      title: "Unable to start call",
+      description: message,
+      variant: "destructive",
+    });
   },
 });
 
@@ -512,6 +550,7 @@ const handleStartCall = async () => {
   if (!isValidPhone.value || isCalling.value || isStartingCall.value) return;
 
   isStartingCall.value = true;
+  startCallErrorMessage.value = null;
 
   try {
     if (!isDeviceReady.value) {
@@ -604,9 +643,9 @@ onUnmounted(() => {
       <div class="mb-6 p-4 bg-card rounded-lg border">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-muted-foreground">Balance</p>
+            <p class="text-sm text-muted-foreground">App wallet balance</p>
             <p class="text-2xl font-bold" v-if="!walletLoading">
-              ${{ wallet?.balanceUsd?.toFixed(2) || "0.00" }}
+              ${{ walletBalanceUsd.toFixed(2) }}
             </p>
           </div>
           <UiButton variant="outline" as-child>
@@ -743,13 +782,7 @@ onUnmounted(() => {
           <div class="flex gap-2">
             <UiButton
               @click="handleStartCall"
-              :disabled="
-                !isValidPhone ||
-                isCalling ||
-                isStartingCall ||
-                walletLoading ||
-                (wallet?.balanceUsd || 0) < 0.01
-              "
+              :disabled="startCallDisabled"
               class="flex-1"
               size="lg"
             >
@@ -779,10 +812,17 @@ onUnmounted(() => {
           </div>
 
           <p
-            v-if="(wallet?.balanceUsd || 0) < 0.01"
+            v-if="isValidPhone && callRate && !canAffordOneMinute"
             class="text-sm text-destructive"
           >
-            Insufficient balance. Please add more funds to make calls.
+            Insufficient app wallet credits for at least 1 minute to this number.
+            Add funds in Wallet to place this call.
+          </p>
+          <p
+            v-else-if="callStatus === 'error' && startCallErrorMessage"
+            class="text-sm text-destructive"
+          >
+            {{ startCallErrorMessage }}
           </p>
         </div>
       </div>
