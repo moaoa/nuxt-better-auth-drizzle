@@ -47,11 +47,14 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      - app-logs:/app/logs
     networks:
       - private-backend
       - dokploy-network
 
 volumes:
+  app-logs:
   db-data:
 
 networks:
