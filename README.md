@@ -1,5 +1,47 @@
 #  Nuxt and Better Auth integration example | Step by step tutorial | Basic Setup 
 
+## Observability (Grafana + Loki + Alloy)
+
+This project includes a Docker-based logging stack to visualize:
+- Docker container logs (stdout/stderr)
+- App file logs under `/app/logs` (Twilio + webhooks)
+
+### Config files
+- `observability/loki/loki-config.yaml`
+- `observability/alloy/config.alloy`
+- `observability/grafana/provisioning/datasources/loki.yaml`
+- `observability/grafana/provisioning/dashboards/dashboards.yaml`
+- `observability/grafana/dashboards/app-logs-overview.json`
+
+### Start in development
+```bash
+docker compose -f docker-compose.dev.yml up -d
+```
+
+Grafana is available at `http://localhost:3001` by default.
+
+### Start in production compose
+```bash
+docker compose -f docker-compose.prod.yml up -d
+```
+
+Production Grafana route is controlled by:
+- `GRAFANA_DOMAIN`
+- `GRAFANA_ADMIN_USER`
+- `GRAFANA_ADMIN_PASSWORD`
+
+### Useful LogQL examples
+```logql
+{service="phone-call-app", job="app-file-logs", component="twilio"} |= "Voice webhook"
+{service="phone-call-app", job="app-file-logs", component="webhooks"} |= "Webhook"
+{service="phone-call-app", job="docker"} |= "error"
+```
+
+### Troubleshooting
+- If Twilio/webhooks logs are missing, confirm app writes files into `/app/logs/twilio` and `/app/logs/webhooks`.
+- If Docker logs are missing, confirm Alloy can read `/var/run/docker.sock`.
+- If Grafana has no data, verify Loki datasource URL is `http://loki:3100` inside the compose network.
+
 1. User registration | email and password
 2. User login | email and password
 3. User logout

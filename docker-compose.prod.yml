@@ -53,9 +53,57 @@ services:
       - private-backend
       - dokploy-network
 
+  loki:
+    image: grafana/loki:latest
+    restart: unless-stopped
+    command: ["-config.file=/etc/loki/loki-config.yaml"]
+    volumes:
+      - ./observability/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - loki-data:/loki
+    networks:
+      - private-backend
+
+  alloy:
+    image: grafana/alloy:latest
+    restart: unless-stopped
+    command: ["run", "/etc/alloy/config.alloy"]
+    depends_on:
+      - loki
+      - app
+    volumes:
+      - ./observability/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - app-logs:/var/log/app:ro
+    networks:
+      - private-backend
+
+  grafana:
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    depends_on:
+      - loki
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`${GRAFANA_DOMAIN:-grafana.local}`)"
+      - "traefik.http.routers.grafana.entrypoints=web,websecure"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./observability/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./observability/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - private-backend
+      - dokploy-network
+
 volumes:
   app-logs:
   db-data:
+  loki-data:
+  grafana-data:
 
 networks:
   private-backend:

@@ -30,6 +30,48 @@ services:
     ports:
       - "6379:6379"
 
+  loki:
+    image: grafana/loki:latest
+    container_name: Loki
+    restart: unless-stopped
+    command: ["-config.file=/etc/loki/loki-config.yaml"]
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./observability/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - loki-data:/loki
+
+  alloy:
+    image: grafana/alloy:latest
+    container_name: Alloy
+    restart: unless-stopped
+    command: ["run", "/etc/alloy/config.alloy"]
+    depends_on:
+      - loki
+    volumes:
+      - ./observability/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./logs:/var/log/app:ro
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: Grafana
+    restart: unless-stopped
+    depends_on:
+      - loki
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./observability/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./observability/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+
 volumes:
   db-data:
+  loki-data:
+  grafana-data:
 
